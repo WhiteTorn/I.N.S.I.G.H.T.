@@ -8,3 +8,5 @@
 *.jsonl
 *.jsonl.gz
 *.jsonl.gz.part
+insight_debug.log
+insight_session.session
