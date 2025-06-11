@@ -66,6 +66,20 @@ async def parse_latest_posts(channel_username: str, limit: int = 3):
             logging.info(f"Successfully resolved channel: '{target_channel.title}'. Fetching last {limit} posts.")
             
             posts = await client.get_messages(target_channel, limit=limit)
+
+            for i, post in enumerate(posts):
+                if post and post.text:
+                    print("\n--- PRINTING POST ---")
+                    print(f"Post {i+1}/{limit} | ID: {post.id} | Text is present.")
+                    print(post.text)
+                else:
+                    print("\n--- SKIPPING POST ---")
+                    if post:
+                        print(f"Post {i+1}/{limit} | ID: {post.id} | This post has NO TEXT.")
+                        # Let's see what it is, if we can.
+                        print(f"Debug Info: {post.to_dict()}") 
+                    else:
+                        print(f"Post {i+1}/{limit} is None.")
             
             print("\n" + "="*20 + " LATEST POSTS " + "="*20)
             for i, post in enumerate(posts):
