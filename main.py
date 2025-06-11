@@ -19,12 +19,12 @@ logging.basicConfig(
 
 class InsightApp:
     """
-    I.N.S.I.G.H.T. Mark I (v1.2) - The Synthesizer
-    This version understands and processes Telegram's media groups (albums)
-    by synthesizing multiple related messages into a single logical post.
+    I.N.S.I.G.H.T. Mark I (v1.3) - The Evidentiary Analyst
+    This version enhances the synthesizer to include direct URLs for all
+    associated media, providing actionable links to the evidence.
     """
     def __init__(self):
-        logging.info("I.N.S.I.G.H.T. Mark I (v1.2) Initializing...")
+        logging.info("I.N.S.I.G.H.T. Mark I (v1.3) Initializing...")
         load_dotenv()
         self.api_id = os.getenv('TELEGRAM_API_ID')
         self.api_hash = os.getenv('TELEGRAM_API_HASH')
@@ -58,15 +58,19 @@ class InsightApp:
             logging.info("Disconnecting from Telegram...")
             await self.client.disconnect()
 
+    # --- PASTE THIS FUNCTION INTO YOUR InsightApp CLASS, REPLACING THE OLD ONE ---
+
     async def fetch_and_synthesize_posts(self, channel_username: str, limit: int = 3):
         """
         Implements the Fetch -> Synthesize -> Process pattern.
+        v1.4: Media URLs now use the '?single' parameter for a focused view.
         """
-        # 1. FETCH a larger buffer to catch all parts of a group
-        fetch_limit = limit * 5 # Fetch more to ensure we don't miss group parts
+        fetch_limit = limit * 5
         logging.info(f"Fetching last {fetch_limit} items from @{channel_username} to analyze for groups...")
         try:
-            raw_messages = await self.client.get_messages(channel_username, limit=fetch_limit)
+            # We must use the raw channel username for the API call
+            raw_channel_entity = await self.client.get_entity(channel_username)
+            raw_messages = await self.client.get_messages(raw_channel_entity, limit=fetch_limit)
             if not raw_messages:
                 logging.warning("No posts found for the given channel.")
                 return []
@@ -74,70 +78,78 @@ class InsightApp:
             logging.error(f"Failed to fetch posts from '{channel_username}': {e}")
             return []
 
-        # 2. SYNTHESIZE into logical posts
-        logging.info("Synthesizing raw messages into logical posts...")
+        # Use the resolved username for constructing URLs to handle redirects, etc.
+        resolved_username = raw_channel_entity.username
+        logging.info(f"Synthesizing raw messages into logical posts for @{resolved_username}...")
         logical_posts = []
         processed_group_ids = set()
 
         for msg in raw_messages:
-            # If it's part of a group we've already processed, skip it
             if msg.grouped_id and msg.grouped_id in processed_group_ids:
                 continue
 
             post_data = {}
             
             if msg.grouped_id:
-                # This is the first message of a group we've seen. Process the whole group now.
                 group = [m for m in raw_messages if m.grouped_id == msg.grouped_id]
-                
-                # Find the message with the caption and the main details
                 main_msg = next((m for m in group if m.text), group[0])
                 text = main_msg.text
-                media_count = len(group)
+                
+                # UPGRADED: Generate a list of URLs with '?single'
+                media_urls = [f'https://t.me/{resolved_username}/{m.id}?single' for m in group]
 
                 post_data = {
                     'id': main_msg.id,
                     'date': main_msg.date.strftime('%Y-%m-%d %H:%M:%S'),
                     'text': text,
-                    'media_count': media_count,
-                    'link': f'https://t.me/{channel_username}/{main_msg.id}'
+                    'media_urls': media_urls,
+                    'link': f'https://t.me/{resolved_username}/{main_msg.id}'
                 }
                 processed_group_ids.add(msg.grouped_id)
 
             elif msg.text:
-                # This is a standard, non-grouped message with text
+                # UPGRADED: Generate a URL with '?single' if this single post has media
+                media_urls = [f'https://t.me/{resolved_username}/{msg.id}?single'] if msg.media else []
+
                 post_data = {
                     'id': msg.id,
                     'date': msg.date.strftime('%Y-%m-%d %H:%M:%S'),
                     'text': msg.text,
-                    'media_count': 1 if msg.media else 0,
-                    'link': f'https://t.me/{channel_username}/{msg.id}'
+                    'media_urls': media_urls,
+                    'link': f'https://t.me/{resolved_username}/{msg.id}'
                 }
             
             if post_data:
                 logical_posts.append(post_data)
 
-        # 3. PROCESS (Return the correct number of final posts)
-        # We return the latest 'limit' number of *logical* posts
         final_posts = sorted(logical_posts, key=lambda p: p['id'], reverse=True)[:limit]
         logging.info(f"Synthesis complete. Found {len(final_posts)} logical posts.")
-        return sorted(final_posts, key=lambda p: p['id']) # Return in chronological order for display
+        return sorted(final_posts, key=lambda p: p['id'])
 
     def render_posts_to_console(self, posts: list):
-        """Renders the clean list of synthesized posts."""
+        """Renders the clean list of synthesized posts, including media URLs."""
         print("\n" + "="*20 + " I.N.S.I.G.H.T. REPORT " + "="*20)
         if not posts:
             print("\nNo displayable posts found.")
         
         for i, post_data in enumerate(posts):
-            media_indicator = f"[+{post_data['media_count']} MEDIA]" if post_data['media_count'] > 0 else ""
+            media_count = len(post_data['media_urls'])
+            media_indicator = f"[+{media_count} MEDIA]" if media_count > 0 else ""
             
             print(f"\n--- Post {i+1}/{len(posts)} | ID: {post_data['id']} | Date: {post_data['date']} {media_indicator} ---")
             print(post_data['text'])
-            print(f"Link: {post_data['link']}")
+            print(f"Post Link: {post_data['link']}")
+
+            # NEW: Render the list of media URLs
+            if post_data['media_urls']:
+                print("Media Links:")
+                for url in post_data['media_urls']:
+                    print(f"  - {url}")
+
             print("-" * 60)
         
         print("\n" + "="*20 + " END OF REPORT " + "="*24)
+
 
     async def run(self):
         """The main execution flow of the application."""
