@@ -1,1 +1,10 @@
-.env
+*.env
+*.session
+*.log
+*.xml
+*.txt
+*.json
+*.csv
+*.jsonl
+*.jsonl.gz
+*.jsonl.gz.part
