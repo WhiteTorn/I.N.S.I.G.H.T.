@@ -6,7 +6,6 @@ from telethon.sync import TelegramClient
 
 # --- Configuration and Setup ---
 
-# No debug switch needed for now. We build for stability first.
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(module)s - %(message)s',
@@ -20,11 +19,12 @@ logging.basicConfig(
 
 class InsightApp:
     """
-    A structured, robust class for the I.N.S.I.G.H.T. application.
-    This encapsulates the logic and prevents chaotic I/O.
+    I.N.S.I.G.H.T. Mark I (v1.2) - The Synthesizer
+    This version understands and processes Telegram's media groups (albums)
+    by synthesizing multiple related messages into a single logical post.
     """
     def __init__(self):
-        logging.info("I.N.S.I.G.H.T. Mark I (v1.1) Initializing...")
+        logging.info("I.N.S.I.G.H.T. Mark I (v1.2) Initializing...")
         load_dotenv()
         self.api_id = os.getenv('TELEGRAM_API_ID')
         self.api_hash = os.getenv('TELEGRAM_API_HASH')
@@ -47,8 +47,7 @@ class InsightApp:
             await self.client.send_code_request(phone)
             await self.client.sign_in(phone, input("Enter the code you received: "))
             
-            # Handle Two-Factor Authentication if enabled
-            if await self.client.is_user_authorized() == False:
+            if not await self.client.is_user_authorized():
                  await self.client.sign_in(password=input("Enter your 2FA password: "))
 
         logging.info("Connection successful and authorized.")
@@ -59,55 +58,79 @@ class InsightApp:
             logging.info("Disconnecting from Telegram...")
             await self.client.disconnect()
 
-    async def fetch_and_process_posts(self, channel_username: str, limit: int = 3):
+    async def fetch_and_synthesize_posts(self, channel_username: str, limit: int = 3):
         """
-        Implements the Fetch -> Process -> Render pattern.
-        Fetches posts, processes them into a clean data structure, and then renders them.
+        Implements the Fetch -> Synthesize -> Process pattern.
         """
-        # 1. FETCH
-        logging.info(f"Fetching last {limit} items from channel: @{channel_username}")
+        # 1. FETCH a larger buffer to catch all parts of a group
+        fetch_limit = limit * 5 # Fetch more to ensure we don't miss group parts
+        logging.info(f"Fetching last {fetch_limit} items from @{channel_username} to analyze for groups...")
         try:
-            raw_posts = await self.client.get_messages(channel_username, limit=limit)
-            if not raw_posts:
+            raw_messages = await self.client.get_messages(channel_username, limit=fetch_limit)
+            if not raw_messages:
                 logging.warning("No posts found for the given channel.")
                 return []
         except Exception as e:
             logging.error(f"Failed to fetch posts from '{channel_username}': {e}")
             return []
 
-        # 2. PROCESS
-        logging.info("Processing fetched items into structured data...")
-        processed_posts = []
-        for post in raw_posts:
-            if not post or not post.text:
-                logging.info(f"Skipping item ID {post.id if post else 'N/A'} - no text/caption found.")
+        # 2. SYNTHESIZE into logical posts
+        logging.info("Synthesizing raw messages into logical posts...")
+        logical_posts = []
+        processed_group_ids = set()
+
+        for msg in raw_messages:
+            # If it's part of a group we've already processed, skip it
+            if msg.grouped_id and msg.grouped_id in processed_group_ids:
                 continue
 
-            # Create a clean dictionary for each post. This is our standard format.
-            post_data = {
-                'id': post.id,
-                'date': post.date.strftime('%Y-%m-%d %H:%M:%S'),
-                'text': post.text,
-                'has_media': bool(post.media),
-                'link': f'https://t.me/{channel_username}/{post.id}'
-            }
-            processed_posts.append(post_data)
-        
-        logging.info(f"Successfully processed {len(processed_posts)} posts with text.")
-        return processed_posts
+            post_data = {}
+            
+            if msg.grouped_id:
+                # This is the first message of a group we've seen. Process the whole group now.
+                group = [m for m in raw_messages if m.grouped_id == msg.grouped_id]
+                
+                # Find the message with the caption and the main details
+                main_msg = next((m for m in group if m.text), group[0])
+                text = main_msg.text
+                media_count = len(group)
+
+                post_data = {
+                    'id': main_msg.id,
+                    'date': main_msg.date.strftime('%Y-%m-%d %H:%M:%S'),
+                    'text': text,
+                    'media_count': media_count,
+                    'link': f'https://t.me/{channel_username}/{main_msg.id}'
+                }
+                processed_group_ids.add(msg.grouped_id)
+
+            elif msg.text:
+                # This is a standard, non-grouped message with text
+                post_data = {
+                    'id': msg.id,
+                    'date': msg.date.strftime('%Y-%m-%d %H:%M:%S'),
+                    'text': msg.text,
+                    'media_count': 1 if msg.media else 0,
+                    'link': f'https://t.me/{channel_username}/{msg.id}'
+                }
+            
+            if post_data:
+                logical_posts.append(post_data)
+
+        # 3. PROCESS (Return the correct number of final posts)
+        # We return the latest 'limit' number of *logical* posts
+        final_posts = sorted(logical_posts, key=lambda p: p['id'], reverse=True)[:limit]
+        logging.info(f"Synthesis complete. Found {len(final_posts)} logical posts.")
+        return sorted(final_posts, key=lambda p: p['id']) # Return in chronological order for display
 
     def render_posts_to_console(self, posts: list):
-        """
-        3. RENDER
-        Takes the clean list of processed posts and prints it.
-        This function is completely separate from the fetching logic.
-        """
+        """Renders the clean list of synthesized posts."""
         print("\n" + "="*20 + " I.N.S.I.G.H.T. REPORT " + "="*20)
         if not posts:
             print("\nNo displayable posts found.")
         
         for i, post_data in enumerate(posts):
-            media_indicator = "[+MEDIA]" if post_data['has_media'] else ""
+            media_indicator = f"[+{post_data['media_count']} MEDIA]" if post_data['media_count'] > 0 else ""
             
             print(f"\n--- Post {i+1}/{len(posts)} | ID: {post_data['id']} | Date: {post_data['date']} {media_indicator} ---")
             print(post_data['text'])
@@ -115,7 +138,6 @@ class InsightApp:
             print("-" * 60)
         
         print("\n" + "="*20 + " END OF REPORT " + "="*24)
-
 
     async def run(self):
         """The main execution flow of the application."""
@@ -127,8 +149,7 @@ class InsightApp:
                 logging.error("No target channel provided. Aborting.")
                 return
 
-            # This is the core workflow
-            processed_data = await self.fetch_and_process_posts(channel)
+            processed_data = await self.fetch_and_synthesize_posts(channel, limit=3)
             self.render_posts_to_console(processed_data)
 
         except Exception as e:
