@@ -6,6 +6,9 @@ from dotenv import load_dotenv
 from telethon.sync import TelegramClient
 from telethon.errors import FloodWaitError
 
+# NEW: Import our dedicated HTML renderer
+from html_renderer import HTMLRenderer
+
 # --- Configuration and Setup ---
 
 logging.basicConfig(
@@ -174,7 +177,7 @@ class InsightOperator:
         return briefing_data
 
     # --- RENDER METHODS ---
-    def render_report(self, posts: list, title: str):
+    def render_report_to_console(self, posts: list, title: str):
         """A generic renderer for a list of posts, providing full details."""
         print("\n" + "#"*25 + f" I.N.S.I.G.H.T. REPORT: {title.upper()} " + "#"*25)
         if not posts:
@@ -195,7 +198,7 @@ class InsightOperator:
             print("-" * 60)
         print("\n" + "#"*30 + " END OF REPORT " + "#"*30)
 
-    def render_briefing(self, briefing_data: dict, days: int):
+    def render_briefing_to_console(self, briefing_data: dict, days: int):
         """
         Renders the daily briefing with full post content, organized by
         channel and date, without using snippets or recursive calls.
@@ -242,7 +245,7 @@ class InsightOperator:
         print("\n\n" + "#"*30 + " END OF BRIEFING " + "#"*30)
 
     async def run(self):
-        """The main execution flow, presenting the user with mission choices."""
+        """The main execution flow, now with an option to generate an HTML dossier."""
         try:
             await self.connect()
             
@@ -255,15 +258,28 @@ class InsightOperator:
                 channel = input("Enter the target channel username: ")
                 limit = int(input("How many posts to retrieve? "))
                 posts = await self.get_n_posts(channel, limit)
-                self.render_report(posts, f"{limit} posts from @{channel}")
+                
+                # Render to both console and HTML
+                title = f"{limit} posts from @{channel}"
+                self.render_report_to_console(posts, title)
+                
+                html_dossier = HTMLRenderer(f"I.N.S.I.G.H.T. Deep Scan: {title}")
+                html_dossier.render_report(posts)
+                html_dossier.save_to_file(f"deep_scan_{channel}.html")
             
             elif choice == '2':
                 channels_str = input("Enter channel usernames, separated by commas: ")
                 channels = [c.strip() for c in channels_str.split(',')]
                 days = int(input("How many days of history to include? "))
                 briefing = await self.get_daily_briefing(channels, days)
-                # We need a new renderer for the briefing format
-                self.render_briefing(briefing, days)
+                
+                # Render to both console and HTML
+                self.render_briefing_to_console(briefing, days)
+
+                html_dossier = HTMLRenderer() # Title is set inside the method
+                html_dossier.render_briefing(briefing, days)
+                filename_date = datetime.now().strftime('%Y-%m-%d')
+                html_dossier.save_to_file(f"daily_briefing_{filename_date}.html")
             
             else:
                 print("Invalid mission choice. Aborting.")
