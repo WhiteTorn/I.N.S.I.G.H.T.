@@ -33,7 +33,7 @@ class InsightOperator:
         self.session_file = 'insight_session'
         self.client = None
         self.request_counter = 0
-        self.REQUEST_THRESHOLD = 25
+        self.REQUEST_THRESHOLD = 15
         self.COOLDOWN_SECONDS = 60
 
     async def throttle_if_needed(self):
