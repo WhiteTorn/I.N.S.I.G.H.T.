@@ -245,44 +245,61 @@ class InsightOperator:
         print("\n\n" + "#"*30 + " END OF BRIEFING " + "#"*30)
 
     async def run(self):
-        """The main execution flow, now with an option to generate an HTML dossier."""
+        """
+        The main execution flow, now with user choice for output format.
+        """
         try:
             await self.connect()
             
             print("\nI.N.S.I.G.H.T. Operator Online. Choose your mission:")
             print("1. Deep Scan (Get last N posts from one channel)")
             print("2. Daily Briefing (Get posts from the last N days from multiple channels)")
-            choice = input("Enter mission number (1 or 2): ")
+            mission_choice = input("Enter mission number (1 or 2): ")
 
-            if choice == '1':
-                channel = input("Enter the target channel username: ")
+            # --- NEW: Ask for output format ---
+            print("\nChoose your output format:")
+            print("1. Console Only")
+            print("2. HTML Dossier Only")
+            print("3. Both Console and HTML")
+            output_choice = input("Enter format number (1, 2, or 3): ")
+
+            # --- Mission Execution Logic ---
+            if mission_choice == '1':
+                channel = input("\nEnter the target channel username: ")
                 limit = int(input("How many posts to retrieve? "))
                 posts = await self.get_n_posts(channel, limit)
                 
-                # Render to both console and HTML
                 title = f"{limit} posts from @{channel}"
-                self.render_report_to_console(posts, title)
+
+                # Conditional Rendering
+                if output_choice in ['1', '3']:
+                    self.render_report_to_console(posts, title)
                 
-                html_dossier = HTMLRenderer(f"I.N.S.I.G.H.T. Deep Scan: {title}")
-                html_dossier.render_report(posts)
-                html_dossier.save_to_file(f"deep_scan_{channel}.html")
-            
-            elif choice == '2':
-                channels_str = input("Enter channel usernames, separated by commas: ")
+                if output_choice in ['2', '3']:
+                    html_dossier = HTMLRenderer(f"I.N.S.I.G.H.T. Deep Scan: {title}")
+                    html_dossier.render_report(posts)
+                    html_dossier.save_to_file(f"deep_scan_{channel}.html")
+
+            elif mission_choice == '2':
+                channels_str = input("\nEnter channel usernames, separated by commas: ")
                 channels = [c.strip() for c in channels_str.split(',')]
                 days = int(input("How many days of history to include? "))
                 briefing = await self.get_daily_briefing(channels, days)
                 
-                # Render to both console and HTML
-                self.render_briefing_to_console(briefing, days)
+                # Conditional Rendering
+                if output_choice in ['1', '3']:
+                    self.render_briefing_to_console(briefing, days)
 
-                html_dossier = HTMLRenderer() # Title is set inside the method
-                html_dossier.render_briefing(briefing, days)
-                filename_date = datetime.now().strftime('%Y-%m-%d')
-                html_dossier.save_to_file(f"daily_briefing_{filename_date}.html")
+                if output_choice in ['2', '3']:
+                    html_dossier = HTMLRenderer() # Title is set inside the method
+                    html_dossier.render_briefing(briefing, days)
+                    filename_date = datetime.now().strftime('%Y-%m-%d')
+                    html_dossier.save_to_file(f"daily_briefing_{filename_date}.html")
             
             else:
                 print("Invalid mission choice. Aborting.")
+
+            logging.info("Mission complete.")
 
         except Exception as e:
             logging.critical(f"A critical error occurred: {e}", exc_info=True)
