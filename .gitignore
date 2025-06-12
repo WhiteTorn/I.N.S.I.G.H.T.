@@ -2,7 +2,6 @@
 *.session
 *.log
 *.xml
-*.txt
 *.json
 *.csv
 *.jsonl
