@@ -20,11 +20,16 @@ logging.basicConfig(
 # --- The Core Application Class (Mark II Orchestrator) ---
 class InsightOperator:
     """
-    I.N.S.I.G.H.T. Mark II (v2.4) - The Inquisitor Platform
+    I.N.S.I.G.H.T. Mark II (v2.4) - The Inquisitor Platform - Citadel Edition
     
     The modular intelligence platform that can gather intel from multiple sources.
     Version 2.4 introduces unified JSON output for seamless Mark III integration,
     creating a standardized data pipeline for the entire I.N.S.I.G.H.T. ecosystem.
+    
+    Hardened in v2.3 "The Citadel" with:
+    - Global timeout protection (30s per operation)
+    - Bulletproof error handling across all connectors
+    - Graceful failure recovery - no single source can crash the system
     
     Architecture:
     - Orchestrator pattern for connector management
@@ -33,10 +38,11 @@ class InsightOperator:
     - Independent connector testing capabilities
     - Category-aware content processing
     - Metadata enrichment and validation
+    - HARDENED: Global timeout and error isolation
     """
     
     def __init__(self):
-        logging.info("I.N.S.I.G.H.T. Mark II (v2.4) - The Inquisitor - Initializing...")
+        logging.info("I.N.S.I.G.H.T. Mark II (v2.4) - The Inquisitor - Citadel Edition - Initializing...")
         load_dotenv()
         
         # Initialize available connectors
@@ -51,7 +57,10 @@ class InsightOperator:
             'default': self._json_serializer
         }
         
-        logging.info("Mark II Orchestrator ready with unified JSON output capabilities.")
+        # Global timeout configuration for The Citadel
+        self.GLOBAL_TIMEOUT_SECONDS = 30
+        
+        logging.info("Mark II Orchestrator ready with unified JSON output capabilities and Citadel-grade protection.")
     
     def _json_serializer(self, obj):
         """
@@ -280,52 +289,134 @@ class InsightOperator:
     async def get_n_posts(self, channel_username: str, limit: int):
         """
         Fetches the last N logical posts from a single Telegram source.
+        HARDENED: Protected by global timeout and comprehensive error handling.
         """
         if 'telegram' not in self.connectors:
             logging.error("Telegram connector not available")
             return []
         
         connector = self.connectors['telegram']
-        return await connector.fetch_posts(channel_username, limit)
+        
+        try:
+            # Wrap connector call with global timeout protection
+            posts = await asyncio.wait_for(
+                connector.fetch_posts(channel_username, limit),
+                timeout=self.GLOBAL_TIMEOUT_SECONDS
+            )
+            return posts
+            
+        except asyncio.TimeoutError:
+            logging.warning(f"WARNING: Fetch from @{channel_username} timed out after {self.GLOBAL_TIMEOUT_SECONDS}s")
+            return []
+        except Exception as e:
+            logging.error(f"ERROR: Critical failure fetching from @{channel_username}: {str(e)}")
+            return []
     
     # --- MISSION PROFILE 2 & 3: BRIEFINGS (Telegram) ---
     async def get_briefing_posts(self, channels: list, days: int):
         """
         Fetches all posts from a list of Telegram sources for the last N days.
+        HARDENED: Protected by global timeout and comprehensive error handling.
         """
         if 'telegram' not in self.connectors:
             logging.error("Telegram connector not available")
             return []
         
         connector = self.connectors['telegram']
-        return await connector.fetch_posts_by_timeframe(channels, days)
+        
+        try:
+            # Wrap connector call with global timeout protection
+            posts = await asyncio.wait_for(
+                connector.fetch_posts_by_timeframe(channels, days),
+                timeout=self.GLOBAL_TIMEOUT_SECONDS * len(channels)  # Scale timeout with number of channels
+            )
+            return posts
+            
+        except asyncio.TimeoutError:
+            logging.warning(f"WARNING: Briefing fetch from {len(channels)} channels timed out after {self.GLOBAL_TIMEOUT_SECONDS * len(channels)}s")
+            return []
+        except Exception as e:
+            logging.error(f"ERROR: Critical failure fetching briefing from channels: {str(e)}")
+            return []
     
-    # --- RSS MISSIONS (Enhanced in v2.3) ---
+    # --- RSS MISSIONS (Enhanced in v2.3 with Citadel protection) ---
     async def analyze_rss_feed(self, feed_url: str):
         """
         Analyze an RSS/Atom feed and return metadata including available entry count.
+        HARDENED: Protected by global timeout and comprehensive error handling.
         """
         if 'rss' not in self.connectors:
             logging.error("RSS connector not available")
             return None
         
         connector = self.connectors['rss']
-        return await connector.get_feed_info(feed_url)
+        
+        try:
+            # Wrap connector call with global timeout protection
+            feed_info = await asyncio.wait_for(
+                connector.get_feed_info(feed_url),
+                timeout=self.GLOBAL_TIMEOUT_SECONDS
+            )
+            return feed_info
+            
+        except asyncio.TimeoutError:
+            logging.warning(f"WARNING: RSS feed analysis of {feed_url} timed out after {self.GLOBAL_TIMEOUT_SECONDS}s")
+            return {
+                "url": feed_url,
+                "title": "Timeout Error",
+                "description": f"Feed analysis timed out after {self.GLOBAL_TIMEOUT_SECONDS} seconds",
+                "total_entries": 0,
+                "feed_type": "unknown",
+                "common_categories": [],
+                "category_count": 0,
+                "status": "error",
+                "error": f"Analysis timed out after {self.GLOBAL_TIMEOUT_SECONDS}s"
+            }
+        except Exception as e:
+            logging.error(f"ERROR: Critical failure analyzing RSS feed {feed_url}: {str(e)}")
+            return {
+                "url": feed_url,
+                "title": "Critical Error",
+                "description": f"Critical error during analysis: {str(e)}",
+                "total_entries": 0,
+                "feed_type": "unknown",
+                "common_categories": [],
+                "category_count": 0,
+                "status": "error",
+                "error": str(e)
+            }
     
     async def get_rss_posts(self, feed_url: str, limit: int):
         """
         Fetch N posts from a single RSS/Atom feed.
+        HARDENED: Protected by global timeout and comprehensive error handling.
         """
         if 'rss' not in self.connectors:
             logging.error("RSS connector not available")
             return []
         
         connector = self.connectors['rss']
-        return await connector.fetch_posts(feed_url, limit)
+        
+        try:
+            # Wrap connector call with global timeout protection
+            posts = await asyncio.wait_for(
+                connector.fetch_posts(feed_url, limit),
+                timeout=self.GLOBAL_TIMEOUT_SECONDS
+            )
+            return posts
+            
+        except asyncio.TimeoutError:
+            logging.warning(f"WARNING: RSS fetch from {feed_url} timed out after {self.GLOBAL_TIMEOUT_SECONDS}s")
+            return []
+        except Exception as e:
+            logging.error(f"ERROR: Critical failure fetching RSS posts from {feed_url}: {str(e)}")
+            return []
     
     async def get_multi_rss_posts(self, feed_urls: list, limit_per_feed: int):
         """
         Fetch N posts from multiple RSS/Atom feeds.
+        HARDENED: Protected by global timeout and comprehensive error handling.
+        Individual feed failures do not affect other feeds.
         """
         if 'rss' not in self.connectors:
             logging.error("RSS connector not available")
@@ -333,13 +424,43 @@ class InsightOperator:
         
         connector = self.connectors['rss']
         all_posts = []
+        successful_feeds = 0
+        failed_feeds = 0
         
         for feed_url in feed_urls:
-            posts = await connector.fetch_posts(feed_url, limit_per_feed)
-            all_posts.extend(posts)
+            try:
+                # Wrap each individual feed fetch with timeout protection
+                posts = await asyncio.wait_for(
+                    connector.fetch_posts(feed_url, limit_per_feed),
+                    timeout=self.GLOBAL_TIMEOUT_SECONDS
+                )
+                
+                if posts:
+                    all_posts.extend(posts)
+                    successful_feeds += 1
+                    logging.info(f"Successfully fetched {len(posts)} posts from {feed_url}")
+                else:
+                    failed_feeds += 1
+                    logging.warning(f"No posts retrieved from {feed_url}")
+                    
+            except asyncio.TimeoutError:
+                failed_feeds += 1
+                logging.warning(f"WARNING: RSS fetch from {feed_url} timed out after {self.GLOBAL_TIMEOUT_SECONDS}s")
+                continue  # Continue processing other feeds
+                
+            except Exception as e:
+                failed_feeds += 1
+                logging.error(f"ERROR: Failed to fetch from {feed_url}: {str(e)}")
+                continue  # Continue processing other feeds
+        
+        logging.info(f"Multi-RSS operation complete: {successful_feeds} successful, {failed_feeds} failed feeds")
         
         # Sort by timestamp for unified timeline
-        return sorted(all_posts, key=lambda p: p['timestamp'], reverse=True)
+        try:
+            return sorted(all_posts, key=lambda p: p.get('timestamp', datetime.min), reverse=True)
+        except Exception as e:
+            logging.error(f"Error sorting multi-RSS posts: {e}")
+            return all_posts
     
     # --- RENDER METHODS (Enhanced for RSS v2.3) ---
     def render_report_to_console(self, posts: list, title: str):
@@ -458,8 +579,9 @@ class InsightOperator:
                 return
             
             available_connectors = list(self.connectors.keys())
-            print(f"\nI.N.S.I.G.H.T. Mark II (v2.4) - The Inquisitor - Operator Online.")
+            print(f"\nI.N.S.I.G.H.T. Mark II (v2.4) - The Inquisitor - Citadel Edition - Operator Online.")
             print(f"Available connectors: {', '.join(available_connectors)}")
+            print(f"🛡️  Citadel Protection: {self.GLOBAL_TIMEOUT_SECONDS}s global timeout, bulletproof error handling")
             print("\nChoose your mission:")
             print("\n--- TELEGRAM MISSIONS ---")
             print("1. Deep Scan (Get last N posts from one Telegram channel)")
@@ -473,6 +595,25 @@ class InsightOperator:
             print("7. JSON Export Test (Export sample data to test Mark III compatibility)")
             
             mission_choice = input("\nEnter mission number (1-7): ")
+
+            # Enhanced error reporting for user feedback
+            def report_mission_outcome(posts_collected: int, sources_attempted: int, mission_name: str):
+                """Report mission outcome with Citadel-enhanced feedback."""
+                if posts_collected > 0:
+                    print(f"\n✅ Mission '{mission_name}' completed successfully!")
+                    print(f"   📊 Intelligence gathered: {posts_collected} posts")
+                    if sources_attempted > 1:
+                        print(f"   🎯 Sources processed: {sources_attempted}")
+                elif sources_attempted > 0:
+                    print(f"\n⚠️  Mission '{mission_name}' completed with no intelligence gathered.")
+                    print(f"   🔍 This may indicate:")
+                    print(f"      • Sources are currently inaccessible")
+                    print(f"      • No content available in the specified timeframe")
+                    print(f"      • Network connectivity issues")
+                    print(f"   🛡️  Citadel Protection: System remained stable despite source failures")
+                else:
+                    print(f"\n❌ Mission '{mission_name}' failed to initiate.")
+                    print(f"   🛡️  Citadel Protection: System protected from cascading failures")
 
             # Telegram missions (enhanced with JSON output)
             if mission_choice in ['1', '2', '3']:
@@ -509,6 +650,9 @@ class InsightOperator:
                         json_filename = self.export_to_json(posts, f"deep_scan_{channel.lstrip('@')}.json")
                         print(f"\n📁 JSON export saved to: {json_filename}")
                         print("🔄 This file is ready for Mark III 'Scribe' processing.")
+                    
+                    # Report mission outcome
+                    report_mission_outcome(len(posts), 1, f"Deep Scan @{channel}")
                 
                 elif mission_choice in ['2', '3']:
                     days = 0
@@ -556,6 +700,9 @@ class InsightOperator:
                         json_filename = self.export_to_json(all_posts, f"briefing_{filename_date}.json")
                         print(f"\n📁 JSON export saved to: {json_filename}")
                         print("🔄 This file is ready for Mark III 'Scribe' processing.")
+                    
+                    # Report mission outcome
+                    report_mission_outcome(len(all_posts), len(channels), title_prefix)
             
             # RSS missions (enhanced with JSON output)
             elif mission_choice in ['4', '5', '6']:
@@ -620,6 +767,9 @@ class InsightOperator:
                         json_filename = self.export_to_json(posts, f"rss_scan_{safe_name}.json")
                         print(f"\n📁 JSON export saved to: {json_filename}")
                         print("🔄 This file is ready for Mark III 'Scribe' processing.")
+                    
+                    # Report mission outcome
+                    report_mission_outcome(len(posts), 1, f"RSS Scan - {feed_info['title']}")
                 
                 elif mission_choice == '6':
                     # RSS Multi-Feed Scan
@@ -667,6 +817,9 @@ class InsightOperator:
                         json_filename = self.export_to_json(posts, f"multi_rss_briefing_{filename_date}.json")
                         print(f"\n📁 JSON export saved to: {json_filename}")
                         print("🔄 This file is ready for Mark III 'Scribe' processing.")
+                    
+                    # Report mission outcome
+                    report_mission_outcome(len(posts), len(feed_urls), "Multi-RSS Scan")
             
             # New unified output testing mission
             elif mission_choice == '7':

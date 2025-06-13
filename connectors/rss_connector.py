@@ -2,6 +2,8 @@ import asyncio
 import logging
 import html
 import re
+import urllib.error
+import socket
 from datetime import datetime, timezone, timedelta
 from typing import List, Dict, Any
 from email.utils import parsedate_to_datetime
@@ -10,7 +12,7 @@ from .base_connector import BaseConnector
 
 class RssConnector(BaseConnector):
     """
-    I.N.S.I.G.H.T. RSS Connector v2.3
+    I.N.S.I.G.H.T. RSS Connector v2.3 - The Citadel
     
     Handles RSS/Atom feed processing including:
     - Feed parsing and validation
@@ -20,10 +22,11 @@ class RssConnector(BaseConnector):
     - Multi-feed aggregation
     - Category extraction (RSS & Atom)
     - Adaptive feed format handling
+    - ENHANCED: Comprehensive error handling and resilience
     
     This connector follows the unified architecture while providing
     RSS-specific functionality for feed analysis and content retrieval.
-    Enhanced in v2.3 with category support and HTML output capabilities.
+    Hardened in v2.3 with bulletproof error handling.
     """
     
     def __init__(self):
@@ -32,9 +35,9 @@ class RssConnector(BaseConnector):
         
         # RSS-specific configuration
         self.timeout = 30  # Feed fetch timeout in seconds
-        self.user_agent = "I.N.S.I.G.H.T. Mark II RSS Connector v2.3"
+        self.user_agent = "I.N.S.I.G.H.T. Mark II RSS Connector v2.3 - The Citadel"
         
-        self.logger.info("RSS Connector v2.3 initialized with category support")
+        self.logger.info("RSS Connector v2.3 'The Citadel' initialized with hardened error handling")
     
     async def connect(self) -> None:
         """
@@ -257,6 +260,7 @@ class RssConnector(BaseConnector):
         """
         Analyze an RSS/Atom feed and return metadata including entry count.
         Enhanced with feed type detection and category analysis.
+        HARDENED: Comprehensive error handling for network and parsing failures.
         
         Args:
             feed_url: URL of the RSS/Atom feed
@@ -264,137 +268,261 @@ class RssConnector(BaseConnector):
         Returns:
             Feed information dictionary
         """
+        self.logger.info(f"Analyzing RSS/Atom feed: {feed_url}")
+        
         try:
-            self.logger.info(f"Analyzing RSS/Atom feed: {feed_url}")
-            
-            # Parse feed asynchronously
+            # Parse feed asynchronously with comprehensive error handling
             loop = asyncio.get_event_loop()
-            feed = await loop.run_in_executor(
-                None, 
-                lambda: feedparser.parse(feed_url, agent=self.user_agent)
-            )
             
-            if feed.bozo:
-                self.logger.warning(f"Feed parsing warning for {feed_url}: {feed.bozo_exception}")
+            # Wrap the feedparser call with timeout and error handling
+            try:
+                feed = await asyncio.wait_for(
+                    loop.run_in_executor(
+                        None, 
+                        lambda: feedparser.parse(feed_url, agent=self.user_agent)
+                    ),
+                    timeout=self.timeout
+                )
+            except asyncio.TimeoutError:
+                error_msg = f"Feed analysis timed out after {self.timeout}s"
+                self.logger.error(f"ERROR: Failed to analyze RSS feed from {feed_url} - Reason: {error_msg}")
+                return self._create_error_response(feed_url, error_msg)
+            except Exception as e:
+                error_msg = f"Network or parsing error: {str(e)}"
+                self.logger.error(f"ERROR: Failed to analyze RSS feed from {feed_url} - Reason: {error_msg}")
+                return self._create_error_response(feed_url, error_msg)
+            
+            # Check for feed parsing errors
+            if hasattr(feed, 'bozo') and feed.bozo:
+                if hasattr(feed, 'bozo_exception') and feed.bozo_exception:
+                    bozo_error = str(feed.bozo_exception)
+                    self.logger.warning(f"Feed parsing warning for {feed_url}: {bozo_error}")
+                    
+                    # For severe parsing errors, treat as failure
+                    if any(severe_error in bozo_error.lower() for severe_error in ['not found', '404', '403', '500']):
+                        self.logger.error(f"ERROR: Failed to analyze RSS feed from {feed_url} - Reason: {bozo_error}")
+                        return self._create_error_response(feed_url, f"Feed parsing failed: {bozo_error}")
+            
+            # Check if feed has any usable content
+            if not hasattr(feed, 'feed') or not hasattr(feed, 'entries'):
+                error_msg = "Feed contains no parseable content"
+                self.logger.error(f"ERROR: Failed to analyze RSS feed from {feed_url} - Reason: {error_msg}")
+                return self._create_error_response(feed_url, error_msg)
             
             # Detect feed type
             feed_type = self._detect_feed_type(feed)
             
-            # Analyze categories across all entries
+            # Analyze categories across all entries (with error handling)
             all_categories = set()
-            for entry in feed.entries[:10]:  # Sample first 10 entries for category analysis
-                categories = self._extract_categories(entry, feed_type)
-                all_categories.update(categories)
+            try:
+                for entry in feed.entries[:10]:  # Sample first 10 entries for category analysis
+                    try:
+                        categories = self._extract_categories(entry, feed_type)
+                        all_categories.update(categories)
+                    except Exception as e:
+                        self.logger.warning(f"Error extracting categories from entry: {e}")
+                        continue
+            except Exception as e:
+                self.logger.warning(f"Error during category analysis: {e}")
             
-            # Extract feed metadata
-            feed_info = {
-                "url": feed_url,
-                "title": getattr(feed.feed, 'title', 'Unknown Feed'),
-                "description": getattr(feed.feed, 'description', 'No description available'),
-                "link": getattr(feed.feed, 'link', feed_url),
-                "language": getattr(feed.feed, 'language', 'Unknown'),
-                "total_entries": len(feed.entries),
-                "last_updated": getattr(feed.feed, 'updated', 'Unknown'),
-                "feed_type": feed_type,
-                "common_categories": sorted(list(all_categories)),
-                "category_count": len(all_categories),
-                "status": "success"
-            }
+            # Extract feed metadata with safe attribute access
+            try:
+                feed_info = {
+                    "url": feed_url,
+                    "title": getattr(feed.feed, 'title', 'Unknown Feed'),
+                    "description": getattr(feed.feed, 'description', 'No description available'),
+                    "link": getattr(feed.feed, 'link', feed_url),
+                    "language": getattr(feed.feed, 'language', 'Unknown'),
+                    "total_entries": len(feed.entries) if hasattr(feed, 'entries') else 0,
+                    "last_updated": getattr(feed.feed, 'updated', 'Unknown'),
+                    "feed_type": feed_type,
+                    "common_categories": sorted(list(all_categories)),
+                    "category_count": len(all_categories),
+                    "status": "success"
+                }
+                
+                self.logger.info(f"Successfully analyzed feed {feed_url}: {feed_info['total_entries']} entries, type: {feed_type}")
+                return feed_info
+                
+            except Exception as e:
+                error_msg = f"Error extracting feed metadata: {str(e)}"
+                self.logger.error(f"ERROR: Failed to analyze RSS feed from {feed_url} - Reason: {error_msg}")
+                return self._create_error_response(feed_url, error_msg)
+                
+        except urllib.error.HTTPError as e:
+            error_msg = f"HTTP {e.code}: {e.reason}"
+            self.logger.error(f"ERROR: Failed to analyze RSS feed from {feed_url} - Reason: {error_msg}")
+            return self._create_error_response(feed_url, error_msg)
             
-            return feed_info
+        except urllib.error.URLError as e:
+            error_msg = f"Network error: {str(e.reason)}"
+            self.logger.error(f"ERROR: Failed to analyze RSS feed from {feed_url} - Reason: {error_msg}")
+            return self._create_error_response(feed_url, error_msg)
+            
+        except socket.timeout:
+            error_msg = f"Connection timed out"
+            self.logger.error(f"ERROR: Failed to analyze RSS feed from {feed_url} - Reason: {error_msg}")
+            return self._create_error_response(feed_url, error_msg)
             
         except Exception as e:
-            self.logger.error(f"Failed to analyze feed {feed_url}: {e}")
-            return {
-                "url": feed_url,
-                "title": "Error",
-                "description": f"Failed to parse feed: {e}",
-                "total_entries": 0,
-                "feed_type": "unknown",
-                "common_categories": [],
-                "category_count": 0,
-                "status": "error",
-                "error": str(e)
-            }
+            error_msg = f"Unexpected error: {str(e)}"
+            self.logger.error(f"ERROR: Failed to analyze RSS feed from {feed_url} - Reason: {error_msg}")
+            return self._create_error_response(feed_url, error_msg)
+    
+    def _create_error_response(self, feed_url: str, error_message: str) -> Dict[str, Any]:
+        """Create a standardized error response for feed analysis failures."""
+        return {
+            "url": feed_url,
+            "title": "Error",
+            "description": f"Failed to parse feed: {error_message}",
+            "link": feed_url,
+            "language": "Unknown",
+            "total_entries": 0,
+            "last_updated": "Unknown",
+            "feed_type": "unknown",
+            "common_categories": [],
+            "category_count": 0,
+            "status": "error",
+            "error": error_message
+        }
     
     async def fetch_posts(self, source_identifier: str, limit: int) -> List[Dict[str, Any]]:
         """
         Fetch the latest N posts from a single RSS/Atom feed.
         Enhanced with category extraction and adaptive feed handling.
+        HARDENED: Bulletproof error handling for all failure scenarios.
         
         Args:
             source_identifier: RSS/Atom feed URL
             limit: Maximum number of posts to fetch
             
         Returns:
-            List of posts in unified format with categories
+            List of posts in unified format with categories, empty list on failure
         """
         feed_url = source_identifier
         self.logger.info(f"Fetching {limit} posts from RSS/Atom feed: {feed_url}")
         
         try:
-            # Parse feed asynchronously to avoid blocking
+            # Parse feed asynchronously with comprehensive error handling
             loop = asyncio.get_event_loop()
-            feed = await loop.run_in_executor(
-                None, 
-                lambda: feedparser.parse(feed_url, agent=self.user_agent)
-            )
             
-            if feed.bozo:
-                self.logger.warning(f"Feed parsing warning: {feed.bozo_exception}")
+            try:
+                feed = await asyncio.wait_for(
+                    loop.run_in_executor(
+                        None, 
+                        lambda: feedparser.parse(feed_url, agent=self.user_agent)
+                    ),
+                    timeout=self.timeout
+                )
+            except asyncio.TimeoutError:
+                self.logger.error(f"ERROR: Failed to fetch RSS feed from {feed_url} - Reason: Timeout after {self.timeout}s")
+                return []
+            except Exception as e:
+                self.logger.error(f"ERROR: Failed to fetch RSS feed from {feed_url} - Reason: Network/parsing error: {str(e)}")
+                return []
+            
+            # Check for critical parsing errors
+            if hasattr(feed, 'bozo') and feed.bozo:
+                if hasattr(feed, 'bozo_exception') and feed.bozo_exception:
+                    bozo_error = str(feed.bozo_exception)
+                    self.logger.warning(f"Feed parsing warning for {feed_url}: {bozo_error}")
+                    
+                    # For severe parsing errors, fail gracefully
+                    if any(severe_error in bozo_error.lower() for severe_error in ['not found', '404', '403', '500', 'connection']):
+                        self.logger.error(f"ERROR: Failed to fetch RSS feed from {feed_url} - Reason: {bozo_error}")
+                        return []
+            
+            # Validate feed structure
+            if not hasattr(feed, 'entries'):
+                self.logger.error(f"ERROR: Failed to fetch RSS feed from {feed_url} - Reason: Invalid feed structure, no entries found")
+                return []
             
             if not feed.entries:
                 self.logger.warning(f"No entries found in feed: {feed_url}")
                 return []
             
             # Detect feed type for adaptive processing
-            feed_type = self._detect_feed_type(feed)
-            self.logger.info(f"Detected feed type: {feed_type}")
+            try:
+                feed_type = self._detect_feed_type(feed)
+                self.logger.info(f"Detected feed type: {feed_type}")
+            except Exception as e:
+                self.logger.warning(f"Error detecting feed type: {e}, defaulting to 'rss'")
+                feed_type = 'rss'
             
             unified_posts = []
             
-            # Process entries up to the limit
-            for entry in feed.entries[:limit]:
+            # Process entries up to the limit with individual error handling
+            entries_processed = 0
+            for entry in feed.entries:
+                if entries_processed >= limit:
+                    break
+                    
                 try:
-                    # Extract categories
-                    categories = self._extract_categories(entry, feed_type)
+                    # Extract categories with error handling
+                    try:
+                        categories = self._extract_categories(entry, feed_type)
+                    except Exception as e:
+                        self.logger.warning(f"Error extracting categories from entry: {e}")
+                        categories = []
                     
-                    # Extract both cleaned text and original HTML
-                    cleaned_text, original_html = self._extract_content(entry, feed_type)
+                    # Extract both cleaned text and original HTML with error handling
+                    try:
+                        cleaned_text, original_html = self._extract_content(entry, feed_type)
+                    except Exception as e:
+                        self.logger.warning(f"Error extracting content from entry: {e}")
+                        cleaned_text = getattr(entry, 'title', 'No content available')
+                        original_html = cleaned_text
                     
-                    # Extract and normalize timestamp
-                    timestamp = self._normalize_timestamp(
-                        getattr(entry, 'published_parsed', None) or 
-                        getattr(entry, 'updated_parsed', None)
-                    )
+                    # Extract and normalize timestamp with error handling
+                    try:
+                        timestamp = self._normalize_timestamp(
+                            getattr(entry, 'published_parsed', None) or 
+                            getattr(entry, 'updated_parsed', None)
+                        )
+                    except Exception as e:
+                        self.logger.warning(f"Error normalizing timestamp: {e}")
+                        timestamp = datetime.now(timezone.utc)
+                    
+                    # Extract media URLs with error handling
+                    try:
+                        media_urls = self._extract_media_urls(entry)
+                    except Exception as e:
+                        self.logger.warning(f"Error extracting media URLs: {e}")
+                        media_urls = []
                     
                     # Create unified post using base connector helper
-                    unified_post = self._create_unified_post(
-                        source_platform="rss",
-                        source_id=feed_url,
-                        post_id=getattr(entry, 'id', getattr(entry, 'link', f"rss_{len(unified_posts)}")),
-                        author=getattr(entry, 'author', getattr(feed.feed, 'title', 'Unknown')),
-                        content=cleaned_text,  # Use cleaned text for console display
-                        timestamp=timestamp,
-                        media_urls=self._extract_media_urls(entry),
-                        post_url=getattr(entry, 'link', feed_url)
-                    )
-                    
-                    # Add RSS/Atom-specific fields for backward compatibility
-                    unified_post['title'] = getattr(entry, 'title', 'No title')
-                    unified_post['feed_title'] = getattr(feed.feed, 'title', 'Unknown Feed')
-                    unified_post['feed_type'] = feed_type
-                    unified_post['categories'] = categories  # NEW: Category support
-                    unified_post['content_html'] = original_html  # NEW: Original HTML for rich rendering
-                    
-                    # Legacy compatibility fields
-                    unified_post['id'] = unified_post['post_id']
-                    unified_post['date'] = timestamp
-                    unified_post['text'] = unified_post['content']  # Cleaned text for console
-                    unified_post['link'] = unified_post['post_url']
-                    
-                    unified_posts.append(unified_post)
-                    
+                    try:
+                        unified_post = self._create_unified_post(
+                            source_platform="rss",
+                            source_id=feed_url,
+                            post_id=getattr(entry, 'id', getattr(entry, 'link', f"rss_{entries_processed}")),
+                            author=getattr(entry, 'author', getattr(feed.feed, 'title', 'Unknown')),
+                            content=cleaned_text,
+                            timestamp=timestamp,
+                            media_urls=media_urls,
+                            post_url=getattr(entry, 'link', feed_url)
+                        )
+                        
+                        # Add RSS/Atom-specific fields for backward compatibility
+                        unified_post['title'] = getattr(entry, 'title', 'No title')
+                        unified_post['feed_title'] = getattr(feed.feed, 'title', 'Unknown Feed')
+                        unified_post['feed_type'] = feed_type
+                        unified_post['categories'] = categories
+                        unified_post['content_html'] = original_html
+                        
+                        # Legacy compatibility fields
+                        unified_post['id'] = unified_post['post_id']
+                        unified_post['date'] = timestamp
+                        unified_post['text'] = unified_post['content']
+                        unified_post['link'] = unified_post['post_url']
+                        
+                        unified_posts.append(unified_post)
+                        entries_processed += 1
+                        
+                    except Exception as e:
+                        self.logger.error(f"Error creating unified post from entry: {e}")
+                        continue
+                        
                 except Exception as e:
                     self.logger.error(f"Error processing RSS entry: {e}")
                     continue
@@ -402,14 +530,27 @@ class RssConnector(BaseConnector):
             self.logger.info(f"Successfully processed {len(unified_posts)} posts from {feed_url} ({feed_type})")
             return unified_posts
             
+        except urllib.error.HTTPError as e:
+            self.logger.error(f"ERROR: Failed to fetch RSS feed from {feed_url} - Reason: HTTP {e.code}: {e.reason}")
+            return []
+            
+        except urllib.error.URLError as e:
+            self.logger.error(f"ERROR: Failed to fetch RSS feed from {feed_url} - Reason: Network error: {str(e.reason)}")
+            return []
+            
+        except socket.timeout:
+            self.logger.error(f"ERROR: Failed to fetch RSS feed from {feed_url} - Reason: Connection timed out")
+            return []
+            
         except Exception as e:
-            self.logger.error(f"Failed to fetch RSS/Atom feed {feed_url}: {e}")
+            self.logger.error(f"ERROR: Failed to fetch RSS feed from {feed_url} - Reason: Unexpected error: {str(e)}")
             return []
     
     async def fetch_posts_by_timeframe(self, sources: List[str], days: int) -> List[Dict[str, Any]]:
         """
         Fetch posts from multiple RSS/Atom feeds within a timeframe.
         Enhanced with category aggregation across sources.
+        HARDENED: Individual source failures do not affect other sources.
         
         Note: RSS feeds typically don't support date filtering server-side,
         so we fetch all available posts and filter client-side.
@@ -429,25 +570,44 @@ class RssConnector(BaseConnector):
             self.logger.info(f"Fetching posts from last {days} days from {len(sources)} RSS/Atom feeds")
         
         all_posts = []
+        successful_sources = 0
+        failed_sources = 0
         
         for feed_url in sources:
             self.logger.info(f"Processing RSS/Atom feed: {feed_url}")
             
             try:
-                # Fetch all available posts from this feed
+                # Fetch all available posts from this feed with individual error handling
                 feed_posts = await self.fetch_posts(feed_url, limit=100)  # Reasonable limit
                 
-                # Filter by timeframe if specified
-                if cutoff_date:
-                    feed_posts = [
-                        post for post in feed_posts 
-                        if post['timestamp'] >= cutoff_date
-                    ]
-                
-                all_posts.extend(feed_posts)
+                if feed_posts:
+                    # Filter by timeframe if specified
+                    if cutoff_date:
+                        original_count = len(feed_posts)
+                        feed_posts = [
+                            post for post in feed_posts 
+                            if post.get('timestamp') and post['timestamp'] >= cutoff_date
+                        ]
+                        self.logger.info(f"Filtered {original_count} posts to {len(feed_posts)} within timeframe from {feed_url}")
+                    
+                    all_posts.extend(feed_posts)
+                    successful_sources += 1
+                    self.logger.info(f"Successfully collected {len(feed_posts)} posts from {feed_url}")
+                else:
+                    failed_sources += 1
+                    self.logger.warning(f"No posts collected from {feed_url}")
                 
             except Exception as e:
-                self.logger.error(f"Failed to process RSS/Atom feed {feed_url}: {e}")
+                failed_sources += 1
+                self.logger.error(f"ERROR: Failed to process RSS/Atom feed {feed_url} - Reason: {str(e)}")
+                # Continue processing other sources
+                continue
         
-        # Sort chronologically
-        return sorted(all_posts, key=lambda p: p['timestamp']) 
+        self.logger.info(f"Multi-feed processing complete: {successful_sources} successful, {failed_sources} failed sources")
+        
+        # Sort chronologically with error handling
+        try:
+            return sorted(all_posts, key=lambda p: p.get('timestamp', datetime.min.replace(tzinfo=timezone.utc)))
+        except Exception as e:
+            self.logger.error(f"Error sorting posts chronologically: {e}")
+            return all_posts 
