@@ -111,11 +111,20 @@ class HTMLRenderer:
 </html>
         """
 
-    def _format_post(self, post_data: dict):
+    # html_renderer.py (Updated _format_post method)
+
+# ... inside the HTMLRenderer class ...
+
+    def _format_post(self, post_data: dict, show_channel=False):
         """Converts a single post dictionary into an HTML block."""
         media_count = len(post_data['media_urls'])
         media_indicator = f"| {media_count} Media Item(s)" if media_count > 0 else ""
         
+        # NEW: Conditionally add the channel name to the header
+        channel_info = ""
+        if show_channel and post_data.get('channel'):
+            channel_info = f"<strong>From:</strong> @{post_data['channel']} | "
+
         # Sanitize text for HTML and preserve line breaks
         post_text_html = f"<p>{html.escape(post_data['text'])}</p>"
         
@@ -124,14 +133,13 @@ class HTMLRenderer:
         if post_data['media_urls']:
             media_gallery_html += '<div class="media-gallery">'
             for url in post_data['media_urls']:
-                # The magic is here: We use the link as both the href and the img src.
-                # Telegram's t.me links with ?single parameter will resolve to a preview image.
                 media_gallery_html += f'<a href="{url}" target="_blank"><img src="{url}" alt="Telegram Media"></a>'
             media_gallery_html += '</div>'
 
         return f"""
         <div class="post-block">
             <div class="post-header">
+                {channel_info}
                 <strong>ID:</strong> {post_data['id']} | 
                 <strong>Date:</strong> {post_data['date'].strftime('%Y-%m-%d %H:%M:%S')}
                 {media_indicator}
