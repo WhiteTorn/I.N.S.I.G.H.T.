@@ -142,8 +142,9 @@ class InsightOperator:
     # --- MISSION PROFILE 2 & 3: BRIEFINGS ---
     async def get_briefing_posts(self, channels: list, days: int):
         """
-        Fetches all posts from a list of channels for the last N days.
-        days=0 is a special flag for 'today only'.
+        Fetches all posts from a list of channels for the last N days,
+        and returns them as a single, chronologically sorted list.
+        v1.10.1: Corrects the album processing logic.
         """
         if days == 0:
             logging.info("Starting 'End of Day' briefing generation for today...")
@@ -157,31 +158,46 @@ class InsightOperator:
         
         for channel in channels:
             logging.info(f"Gathering intel from @{channel}...")
-            processed_ids = set()
+            
+            # --- THE FIX: We fetch all messages for the period into a list first ---
             try:
                 await self.throttle_if_needed()
                 entity = await self.client.get_entity(channel)
+                
+                # Fetch all relevant messages into memory for this channel
+                channel_messages = []
                 async for message in self.client.iter_messages(entity, limit=None):
                     if message.date < cutoff_date:
                         break
+                    channel_messages.append(message)
+
+                # Now process the buffered messages with correct album logic
+                processed_ids = set()
+                for message in channel_messages:
                     if message.id in processed_ids:
                         continue
 
-                    synthesized_list = await self._synthesize_messages([message], channel)
-                    if synthesized_list:
-                        for post in synthesized_list:
+                    synthesized = []
+                    if message.grouped_id:
+                        # This is part of an album. Find all its siblings in our buffer.
+                        group = [m for m in channel_messages if m and m.grouped_id == message.grouped_id]
+                        synthesized = await self._synthesize_messages(group, channel)
+                        # Mark all parts of this group as processed
+                        for m in group:
+                            processed_ids.add(m.id)
+                    else:
+                        # This is a single message
+                        synthesized = await self._synthesize_messages([message], channel)
+                        processed_ids.add(message.id)
+
+                    if synthesized:
+                        # Add channel source to each post for rendering
+                        for post in synthesized:
                             post['channel'] = channel
                             all_posts.append(post)
-                        
-                        if message.grouped_id:
-                            # Efficiently get all parts of an album to mark as processed
-                            group_msgs = await self.client.get_messages(entity, grouped_id=message.grouped_id)
-                            for m in group_msgs:
-                                if m: processed_ids.add(m.id)
-                        else:
-                            processed_ids.add(message.id)
+
             except Exception as e:
-                logging.error(f"Failed to process channel @{channel}: {e}")
+                logging.error(f"Failed to process channel @{channel}: {e}", exc_info=True)
         
         return sorted(all_posts, key=lambda p: p['date'])
 
