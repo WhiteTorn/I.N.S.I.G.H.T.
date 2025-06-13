@@ -242,7 +242,7 @@ class InsightOperator:
 
     # --- MAIN EXECUTION LOOP ---
     async def run(self):
-        """The main execution flow, presenting the user with mission choices."""
+        """The main execution flow, with updated mission choices."""
         try:
             await self.connect()
             
@@ -255,12 +255,23 @@ class InsightOperator:
             if mission_choice == '1':
                 channel = input("\nEnter the target channel username: ")
                 limit = int(input("How many posts to retrieve? "))
+                
+                print("\nChoose your output format:")
+                print("1. Console Only")
+                print("2. HTML Dossier Only")
+                print("3. Both Console and HTML")
+                output_choice = input("Enter format number (1, 2, or 3): ")
+
                 posts = await self.get_n_posts(channel, limit)
                 title = f"{limit} posts from @{channel}"
-                self.render_report_to_console(posts, title)
-                html_dossier = HTMLRenderer(f"I.N.S.I.G.H.T. Deep Scan: {title}")
-                html_dossier.render_report(posts)
-                html_dossier.save_to_file(f"deep_scan_{channel}.html")
+
+                if output_choice in ['1', '3']:
+                    self.render_report_to_console(posts, title)
+                
+                if output_choice in ['2', '3']:
+                    html_dossier = HTMLRenderer(f"I.N.S.I.G.H.T. Deep Scan: {title}")
+                    html_dossier.render_report(posts) # render_report in HTMLRenderer only needs the post list
+                    html_dossier.save_to_file(f"deep_scan_{channel}.html")
             
             elif mission_choice in ['2', '3']:
                 days = 0
@@ -273,25 +284,32 @@ class InsightOperator:
                 channels_str = input("Enter channel usernames, separated by commas: ")
                 channels = [c.strip() for c in channels_str.split(',')]
                 
-                all_posts = await self.get_briefing_posts(channels, days)
-                
                 print("\nChoose your output format:")
                 print("1. Console Only")
                 print("2. HTML Dossier Only")
                 print("3. Both Console and HTML")
                 output_choice = input("Enter format number (1, 2, or 3): ")
-
+                
+                all_posts = await self.get_briefing_posts(channels, days)
+                
                 title = f"{title_prefix} for {', '.join(channels)}"
                 
                 if output_choice in ['1', '3']:
                     self.render_briefing_to_console(all_posts, title)
                 
                 if output_choice in ['2', '3']:
-                    html_renderer = HTMLRenderer(f"I.N.S.I.G.H.T. Briefing: {title}")
-                    # A new, dedicated method in the renderer for this format
-                    html_renderer.render_briefing(all_posts)
+                    # The HTML renderer needs the raw post data and the number of days for its title
+                    html_renderer = HTMLRenderer()
+                    # The briefing data needs to be structured by channel for the renderer
+                    briefing_data_for_html = {channel: [] for channel in channels}
+                    for post in all_posts:
+                        briefing_data_for_html[post['channel']].append(post)
+
+                    html_renderer.render_briefing(briefing_data_for_html, days) # Pass both arguments
+                    
                     filename_date = datetime.now().strftime('%Y-%m-%d')
-                    html_renderer.save_to_file(f"briefing_{filename_date}.html")
+                    filename = f"briefing_{filename_date}.html"
+                    html_renderer.save_to_file(filename)
             
             else:
                 print("Invalid mission choice. Aborting.")
