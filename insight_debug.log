@@ -514,3 +514,10 @@ TypeError: HTMLRenderer.render_briefing() missing 1 required positional argument
 2025-06-13 20:25:04,357 - INFO - main - Disconnected from telegram
 2025-06-13 20:25:04,357 - INFO - rss_connector - RSS connector cleanup complete
 2025-06-13 20:25:04,357 - INFO - main - Disconnected from rss
+2025-06-13 20:44:00,489 - INFO - main - I.N.S.I.G.H.T. Mark II (v2.4) - The Inquisitor - Citadel Edition - Initializing...
+2025-06-13 20:44:00,491 - INFO - telegram_connector - TelegramConnector v2.3 'The Citadel' initialized with hardened error handling
+2025-06-13 20:44:00,491 - INFO - main - Telegram connector registered
+2025-06-13 20:44:00,491 - INFO - rss_connector - RSS Connector v2.3 'The Citadel' initialized with hardened error handling
+2025-06-13 20:44:00,492 - INFO - main - RSS connector registered
+2025-06-13 20:44:00,492 - WARNING - main - YouTube API key not found in .env file
+2025-06-13 20:44:00,492 - INFO - main - Mark II Orchestrator ready with unified JSON output capabilities and Citadel-grade protection.

@@ -6,5 +6,6 @@ The modular connector architecture for multi-source intelligence gathering.
 from .base_connector import BaseConnector
 from .telegram_connector import TelegramConnector
 from .rss_connector import RssConnector
+from .youtube_connector import YouTubeConnector
 
-__all__ = ['BaseConnector', 'TelegramConnector', 'RssConnector'] 
+__all__ = ['BaseConnector', 'TelegramConnector', 'RssConnector', 'YouTubeConnector'] 

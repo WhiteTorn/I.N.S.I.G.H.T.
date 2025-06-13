@@ -4,7 +4,7 @@ import asyncio
 import json
 from datetime import datetime
 from dotenv import load_dotenv
-from connectors import TelegramConnector, RssConnector
+from connectors import TelegramConnector, RssConnector, YouTubeConnector
 from html_renderer import HTMLRenderer
 
 # --- Configuration and Setup ---
@@ -264,6 +264,18 @@ class InsightOperator:
         # RSS Connector (always available - no credentials needed)
         self.connectors['rss'] = RssConnector()
         logging.info("RSS connector registered")
+        
+        # YouTube Connector - requires API key
+        youtube_api_key = os.getenv('YOUTUBE_API_KEY')
+        
+        if youtube_api_key:
+            self.connectors['youtube'] = YouTubeConnector(
+                api_key=youtube_api_key,
+                preferred_languages=['en', 'es', 'fr']  # Configurable language preferences
+            )
+            logging.info("YouTube connector registered")
+        else:
+            logging.warning("YouTube API key not found in .env file")
     
     async def connect_all(self):
         """Connect all available connectors."""
@@ -462,9 +474,114 @@ class InsightOperator:
             logging.error(f"Error sorting multi-RSS posts: {e}")
             return all_posts
     
+    # --- YOUTUBE MISSIONS (New in v2.4 "The Spymaster") ---
+    async def get_youtube_transcript(self, video_url: str):
+        """
+        Fetch transcript from a single YouTube video.
+        HARDENED: Protected by global timeout and comprehensive error handling.
+        """
+        if 'youtube' not in self.connectors:
+            logging.error("YouTube connector not available")
+            return []
+        
+        connector = self.connectors['youtube']
+        
+        try:
+            # Wrap connector call with global timeout protection
+            posts = await asyncio.wait_for(
+                connector.fetch_posts(video_url, 1),  # limit=1 for single video
+                timeout=self.GLOBAL_TIMEOUT_SECONDS
+            )
+            return posts
+            
+        except asyncio.TimeoutError:
+            logging.warning(f"WARNING: YouTube transcript fetch from {video_url} timed out after {self.GLOBAL_TIMEOUT_SECONDS}s")
+            return []
+        except Exception as e:
+            logging.error(f"ERROR: Critical failure fetching YouTube transcript from {video_url}: {str(e)}")
+            return []
+    
+    async def get_youtube_channel_transcripts(self, channel_identifier: str, limit: int):
+        """
+        Fetch transcripts from the latest N videos in a YouTube channel.
+        HARDENED: Protected by global timeout and comprehensive error handling.
+        """
+        if 'youtube' not in self.connectors:
+            logging.error("YouTube connector not available")
+            return []
+        
+        connector = self.connectors['youtube']
+        
+        try:
+            # Wrap connector call with global timeout protection
+            posts = await asyncio.wait_for(
+                connector.fetch_posts(channel_identifier, limit),
+                timeout=self.GLOBAL_TIMEOUT_SECONDS * 2  # YouTube API calls take longer
+            )
+            return posts
+            
+        except asyncio.TimeoutError:
+            logging.warning(f"WARNING: YouTube channel transcript fetch from {channel_identifier} timed out after {self.GLOBAL_TIMEOUT_SECONDS * 2}s")
+            return []
+        except Exception as e:
+            logging.error(f"ERROR: Critical failure fetching YouTube channel transcripts from {channel_identifier}: {str(e)}")
+            return []
+    
+    async def get_youtube_playlist_transcripts(self, playlist_url: str, limit: int):
+        """
+        BONUS: Fetch transcripts from a YouTube playlist.
+        HARDENED: Protected by global timeout and comprehensive error handling.
+        """
+        if 'youtube' not in self.connectors:
+            logging.error("YouTube connector not available")
+            return []
+        
+        connector = self.connectors['youtube']
+        
+        try:
+            # Wrap connector call with global timeout protection
+            posts = await asyncio.wait_for(
+                connector.fetch_playlist_transcripts(playlist_url, limit),
+                timeout=self.GLOBAL_TIMEOUT_SECONDS * 3  # Playlist processing takes longer
+            )
+            return posts
+            
+        except asyncio.TimeoutError:
+            logging.warning(f"WARNING: YouTube playlist transcript fetch from {playlist_url} timed out after {self.GLOBAL_TIMEOUT_SECONDS * 3}s")
+            return []
+        except Exception as e:
+            logging.error(f"ERROR: Critical failure fetching YouTube playlist transcripts from {playlist_url}: {str(e)}")
+            return []
+    
+    async def search_youtube_transcripts(self, search_query: str, limit: int):
+        """
+        BONUS: Search for YouTube videos and extract their transcripts.
+        HARDENED: Protected by global timeout and comprehensive error handling.
+        """
+        if 'youtube' not in self.connectors:
+            logging.error("YouTube connector not available")
+            return []
+        
+        connector = self.connectors['youtube']
+        
+        try:
+            # Wrap connector call with global timeout protection
+            posts = await asyncio.wait_for(
+                connector.search_video_transcripts(search_query, limit),
+                timeout=self.GLOBAL_TIMEOUT_SECONDS * 2  # Search + transcript processing
+            )
+            return posts
+            
+        except asyncio.TimeoutError:
+            logging.warning(f"WARNING: YouTube search for '{search_query}' timed out after {self.GLOBAL_TIMEOUT_SECONDS * 2}s")
+            return []
+        except Exception as e:
+            logging.error(f"ERROR: Critical failure searching YouTube for '{search_query}': {str(e)}")
+            return []
+    
     # --- RENDER METHODS (Enhanced for RSS v2.3) ---
     def render_report_to_console(self, posts: list, title: str):
-        """A generic renderer for a list of posts, supporting both Telegram and RSS with categories."""
+        """A generic renderer for a list of posts, supporting Telegram, RSS, and YouTube content."""
         print("\n" + "#"*25 + f" I.N.S.I.G.H.T. REPORT: {title.upper()} " + "#"*25)
         if not posts:
             print("\nNo displayable posts found for this report.")
@@ -473,25 +590,41 @@ class InsightOperator:
             media_count = len(post_data.get('media_urls', []))
             media_indicator = f"[+{media_count} MEDIA]" if media_count > 0 else ""
             
-            # Handle RSS-specific fields
-            if post_data.get('source_platform') == 'rss':
+            # Handle platform-specific fields
+            if post_data.get('source_platform') == 'youtube':
+                video_title = post_data.get('video_title', 'Unknown Video')
+                channel_name = post_data.get('author', 'Unknown Channel')
+                view_count = post_data.get('view_count', 0)
+                
+                print(f"\n--- Video {i+1}/{len(posts)} | {video_title} ---")
+                print(f"📺 Channel: {channel_name} | 📅 Date: {post_data.get('timestamp', 'Unknown').strftime('%Y-%m-%d %H:%M:%S') if post_data.get('timestamp') else 'Unknown'}")
+                print(f"👀 Views: {view_count:,} | Video ID: {post_data.get('post_id', 'Unknown')} {media_indicator}")
+                print(f"\n🎬 TRANSCRIPT:")
+                
+            elif post_data.get('source_platform') == 'rss':
                 title_field = post_data.get('title', 'No title')
                 feed_title = post_data.get('feed_title', 'Unknown Feed')
                 feed_type = post_data.get('feed_type', 'rss').upper()
                 categories = post_data.get('categories', [])
                 
                 print(f"\n--- Post {i+1}/{len(posts)} | {title_field} ---")
-                print(f"Feed: {feed_title} ({feed_type}) | Date: {post_data['date'].strftime('%Y-%m-%d %H:%M:%S')} {media_indicator}")
+                print(f"Feed: {feed_title} ({feed_type}) | Date: {post_data.get('date', post_data.get('timestamp', 'Unknown')).strftime('%Y-%m-%d %H:%M:%S') if post_data.get('date') or post_data.get('timestamp') else 'Unknown'} {media_indicator}")
                 if categories:
                     print(f"Categories: {', '.join(categories)}")
             else:
-                print(f"\n--- Post {i+1}/{len(posts)} | ID: {post_data['id']} | Date: {post_data['date'].strftime('%Y-%m-%d %H:%M:%S')} {media_indicator} ---")
+                # Telegram and other platforms
+                print(f"\n--- Post {i+1}/{len(posts)} | ID: {post_data.get('id', post_data.get('post_id', 'Unknown'))} | Date: {post_data.get('date', post_data.get('timestamp', 'Unknown')).strftime('%Y-%m-%d %H:%M:%S') if post_data.get('date') or post_data.get('timestamp') else 'Unknown'} {media_indicator} ---")
             
-            print(post_data['text'])
-            print(f"Link: {post_data['link']}")
+            # Display content (text or transcript)
+            content = post_data.get('content', post_data.get('text', 'No content available'))
+            print(content)
+            
+            # Display link
+            link = post_data.get('post_url', post_data.get('link', 'No link available'))
+            print(f"🔗 Link: {link}")
 
             if post_data.get('media_urls'):
-                print("Media Links:")
+                print("📎 Media Links:")
                 for url in post_data['media_urls']:
                     print(f"  - {url}")
             print("-" * 60)
@@ -591,10 +724,15 @@ class InsightOperator:
             print("4. RSS Feed Analysis (Analyze a single RSS/Atom feed)")
             print("5. RSS Single Feed Scan (Get N posts from a single RSS/Atom feed)")
             print("6. RSS Multi-Feed Scan (Get N posts from multiple RSS/Atom feeds)")
+            print("\n--- YOUTUBE MISSIONS ---")
+            print("7. YouTube Transcript (Get transcript from a single YouTube video)")
+            print("8. YouTube Channel Transcripts (Get transcripts from the latest N videos in a YouTube channel)")
+            print("9. YouTube Playlist Transcripts (Get transcripts from a YouTube playlist)")
+            print("10. YouTube Search (Search for YouTube videos and extract their transcripts)")
             print("\n--- UNIFIED OUTPUT MISSIONS ---")
-            print("7. JSON Export Test (Export sample data to test Mark III compatibility)")
+            print("11. JSON Export Test (Export sample data to test Mark III compatibility)")
             
-            mission_choice = input("\nEnter mission number (1-7): ")
+            mission_choice = input("\nEnter mission number (1-11): ")
 
             # Enhanced error reporting for user feedback
             def report_mission_outcome(posts_collected: int, sources_attempted: int, mission_name: str):
@@ -821,8 +959,84 @@ class InsightOperator:
                     # Report mission outcome
                     report_mission_outcome(len(posts), len(feed_urls), "Multi-RSS Scan")
             
+            # YouTube missions (enhanced with JSON output)
+            elif mission_choice in ['7', '8', '9', '10']:
+                if 'youtube' not in self.connectors:
+                    print("❌ YouTube connector not available.")
+                    return
+                
+                if mission_choice == '7':
+                    # YouTube Transcript
+                    video_url = input("\nEnter YouTube video URL: ")
+                    print(f"\n🔍 Fetching YouTube transcript for: {video_url}")
+                    
+                    posts = await self.get_youtube_transcript(video_url)
+                    title = f"YouTube Transcript: {video_url}"
+                    
+                    if posts:
+                        self.render_report_to_console(posts, title)
+                        json_filename = self.export_to_json(posts, f"youtube_transcript_{video_url.replace('/', '_')}.json")
+                        print(f"\n📁 JSON export saved to: {json_filename}")
+                        print("🔄 This file is ready for Mark III 'Scribe' processing.")
+                    else:
+                        print("\n❌ No transcript found for the given video URL.")
+                
+                elif mission_choice == '8':
+                    # YouTube Channel Transcripts
+                    channel_identifier = input("\nEnter YouTube channel identifier (username or channel ID): ")
+                    print(f"\n🔍 Fetching YouTube channel transcripts for: {channel_identifier}")
+                    
+                    limit = int(input("How many videos to retrieve? "))
+                    
+                    posts = await self.get_youtube_channel_transcripts(channel_identifier, limit)
+                    title = f"YouTube Channel Transcripts: {channel_identifier}"
+                    
+                    if posts:
+                        self.render_briefing_to_console(posts, title)
+                        json_filename = self.export_to_json(posts, f"youtube_channel_transcripts_{channel_identifier.replace('/', '_')}.json")
+                        print(f"\n📁 JSON export saved to: {json_filename}")
+                        print("🔄 This file is ready for Mark III 'Scribe' processing.")
+                    else:
+                        print("\n❌ No transcripts found for the given channel identifier.")
+                
+                elif mission_choice == '9':
+                    # YouTube Playlist Transcripts
+                    playlist_url = input("\nEnter YouTube playlist URL: ")
+                    print(f"\n🔍 Fetching YouTube playlist transcripts for: {playlist_url}")
+                    
+                    limit = int(input("How many videos to retrieve? "))
+                    
+                    posts = await self.get_youtube_playlist_transcripts(playlist_url, limit)
+                    title = f"YouTube Playlist Transcripts: {playlist_url}"
+                    
+                    if posts:
+                        self.render_briefing_to_console(posts, title)
+                        json_filename = self.export_to_json(posts, f"youtube_playlist_transcripts_{playlist_url.replace('/', '_')}.json")
+                        print(f"\n📁 JSON export saved to: {json_filename}")
+                        print("🔄 This file is ready for Mark III 'Scribe' processing.")
+                    else:
+                        print("\n❌ No transcripts found for the given playlist URL.")
+                
+                elif mission_choice == '10':
+                    # YouTube Search
+                    search_query = input("\nEnter YouTube search query: ")
+                    print(f"\n🔍 Searching YouTube for: {search_query}")
+                    
+                    limit = int(input("How many videos to retrieve? "))
+                    
+                    posts = await self.search_youtube_transcripts(search_query, limit)
+                    title = f"YouTube Search Results: {search_query}"
+                    
+                    if posts:
+                        self.render_briefing_to_console(posts, title)
+                        json_filename = self.export_to_json(posts, f"youtube_search_{search_query.replace(' ', '_')}.json")
+                        print(f"\n📁 JSON export saved to: {json_filename}")
+                        print("🔄 This file is ready for Mark III 'Scribe' processing.")
+                    else:
+                        print("\n❌ No search results found for the given query.")
+            
             # New unified output testing mission
-            elif mission_choice == '7':
+            elif mission_choice == '11':
                 print("\n🧪 JSON Export Test Mode")
                 print("This mission demonstrates the unified JSON output format for Mark III compatibility testing.")
                 
@@ -850,6 +1064,17 @@ class InsightOperator:
                             print(f"✅ Added {len(rss_posts)} RSS posts")
                         except Exception as e:
                             print(f"❌ Failed to fetch RSS data: {e}")
+                
+                if 'youtube' in self.connectors:
+                    print("\n📺 Include YouTube test data? (y/n): ", end="")
+                    if input().lower() == 'y':
+                        video_url = input("Enter a YouTube video URL for test data: ")
+                        try:
+                            youtube_posts = await self.get_youtube_transcript(video_url)
+                            test_posts.extend(youtube_posts)
+                            print(f"✅ Added {len(youtube_posts)} YouTube posts")
+                        except Exception as e:
+                            print(f"❌ Failed to fetch YouTube data: {e}")
                 
                 if test_posts:
                     json_filename = self.export_to_json(test_posts, "mark_iii_compatibility_test.json")
