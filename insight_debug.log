@@ -486,3 +486,31 @@ TypeError: HTMLRenderer.render_briefing() missing 1 required positional argument
 2025-06-13 19:47:35,292 - INFO - main - Disconnected from telegram
 2025-06-13 19:47:35,292 - INFO - rss_connector - RSS connector cleanup complete
 2025-06-13 19:47:35,292 - INFO - main - Disconnected from rss
+2025-06-13 20:24:11,294 - INFO - main - I.N.S.I.G.H.T. Mark II (v2.4) - The Inquisitor - Citadel Edition - Initializing...
+2025-06-13 20:24:11,295 - INFO - telegram_connector - TelegramConnector v2.3 'The Citadel' initialized with hardened error handling
+2025-06-13 20:24:11,296 - INFO - main - Telegram connector registered
+2025-06-13 20:24:11,296 - INFO - rss_connector - RSS Connector v2.3 'The Citadel' initialized with hardened error handling
+2025-06-13 20:24:11,296 - INFO - main - RSS connector registered
+2025-06-13 20:24:11,297 - INFO - main - Mark II Orchestrator ready with unified JSON output capabilities and Citadel-grade protection.
+2025-06-13 20:24:11,300 - INFO - telegram_connector - Connecting to Telegram...
+2025-06-13 20:24:11,300 - INFO - mtprotosender - Connecting to 149.154.167.51:443/TcpFull...
+2025-06-13 20:24:11,377 - INFO - mtprotosender - Connection to 149.154.167.51:443/TcpFull complete!
+2025-06-13 20:24:11,801 - INFO - telegram_connector - Telegram connection successful.
+2025-06-13 20:24:11,803 - INFO - main - Connected to telegram
+2025-06-13 20:24:11,804 - INFO - rss_connector - RSS connector ready - feedparser operational
+2025-06-13 20:24:11,805 - INFO - main - Connected to rss
+2025-06-13 20:24:27,872 - INFO - telegram_connector - Starting Deep Scan for 3 posts from @durov...
+2025-06-13 20:24:27,968 - INFO - telegram_connector - Fetch attempt #1 for @durov...
+2025-06-13 20:24:28,753 - INFO - telegram_connector - Successfully fetched 3 posts from @durov
+2025-06-13 20:24:36,909 - INFO - rss_connector - Fetching 3 posts from RSS/Atom feed: https://simonwillison.net/atom/everything/
+2025-06-13 20:24:38,234 - INFO - rss_connector - Detected feed type: atom
+2025-06-13 20:24:38,236 - INFO - rss_connector - Successfully processed 3 posts from https://simonwillison.net/atom/everything/ (atom)
+2025-06-13 20:24:38,244 - INFO - main - Successfully exported 6 posts to mark_iii_compatibility_test.json
+2025-06-13 20:24:38,245 - INFO - main - Validation status: valid
+2025-06-13 20:25:04,350 - INFO - main - Mission complete.
+2025-06-13 20:25:04,351 - INFO - telegram_connector - Disconnecting from Telegram...
+2025-06-13 20:25:04,351 - INFO - mtprotosender - Disconnecting from 149.154.167.51:443/TcpFull...
+2025-06-13 20:25:04,352 - INFO - mtprotosender - Disconnection from 149.154.167.51:443/TcpFull complete!
+2025-06-13 20:25:04,357 - INFO - main - Disconnected from telegram
+2025-06-13 20:25:04,357 - INFO - rss_connector - RSS connector cleanup complete
+2025-06-13 20:25:04,357 - INFO - main - Disconnected from rss

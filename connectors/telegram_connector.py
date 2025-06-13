@@ -3,7 +3,7 @@ import logging
 from datetime import datetime, timedelta, timezone
 from typing import List, Dict, Any
 from telethon.sync import TelegramClient
-from telethon.errors import FloodWaitError, ChannelInvalidError, ChannelPrivateError, UsernameInvalidError, UsernameNotOccupiedError, ConnectionError, TimeoutError, RPCError
+from telethon.errors import FloodWaitError, ChannelInvalidError, ChannelPrivateError, UsernameInvalidError, UsernameNotOccupiedError, RPCError
 from .base_connector import BaseConnector
 
 class TelegramConnector(BaseConnector):
