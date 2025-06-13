@@ -7,6 +7,9 @@ class HTMLRenderer:
     """
     A dedicated module for rendering I.N.S.I.G.H.T. reports and briefings
     into a clean, self-contained HTML file.
+    
+    Enhanced in v2.3 with RSS/Atom feed support, category display,
+    and adaptive rendering for different content types.
     """
 
     def __init__(self, report_title="I.N.S.I.G.H.T. Report"):
@@ -32,7 +35,7 @@ class HTMLRenderer:
             padding: 0;
         }}
         .container {{
-            max-width: 800px;
+            max-width: 900px;
             margin: 20px auto;
             padding: 20px;
             background-color: #1e1e1e;
@@ -57,6 +60,12 @@ class HTMLRenderer:
             margin-bottom: 25px;
             border-radius: 5px;
         }}
+        .post-block.rss {{
+            border-left: 5px solid #ff6b35;
+        }}
+        .post-block.atom {{
+            border-left: 5px solid #ff9500;
+        }}
         .post-header {{
             font-size: 0.9em;
             color: #aaa;
@@ -64,9 +73,45 @@ class HTMLRenderer:
             border-bottom: 1px solid #444;
             padding-bottom: 5px;
         }}
+        .post-title {{
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #ffffff;
+            margin-bottom: 8px;
+        }}
         .post-content p {{
             margin: 0 0 1em 0;
-            white-space: pre-wrap; /* Preserve line breaks from Telegram */
+            white-space: pre-wrap; /* Preserve line breaks */
+        }}
+        .categories {{
+            margin: 10px 0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }}
+        .category-tag {{
+            background-color: #444;
+            color: #00aaff;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            border: 1px solid #555;
+        }}
+        .feed-type-badge {{
+            display: inline-block;
+            background-color: #333;
+            color: #fff;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.7em;
+            text-transform: uppercase;
+            margin-left: 5px;
+        }}
+        .feed-type-badge.rss {{
+            background-color: #ff6b35;
+        }}
+        .feed-type-badge.atom {{
+            background-color: #ff9500;
         }}
         .media-gallery {{
             display: flex;
@@ -88,15 +133,28 @@ class HTMLRenderer:
             transform: scale(1.05);
             border-color: #00aaff;
         }}
+        .post-footer {{
+            margin-top: 15px;
+            padding-top: 10px;
+            border-top: 1px solid #444;
+        }}
         .post-footer a {{
             color: #00aaff;
             text-decoration: none;
+        }}
+        .post-footer a:hover {{
+            text-decoration: underline;
         }}
         .channel-header, .date-header {{
             margin-top: 40px;
             color: #00aaff;
             border-bottom: 1px solid #555;
             padding-bottom: 5px;
+        }}
+        .source-info {{
+            font-size: 0.9em;
+            color: #999;
+            margin-bottom: 5px;
         }}
     </style>
 </head>
@@ -111,61 +169,115 @@ class HTMLRenderer:
 </html>
         """
 
-    # html_renderer.py (Updated _format_post method)
+    def _format_categories(self, categories: list) -> str:
+        """Format categories as styled tags."""
+        if not categories:
+            return ""
+        
+        category_html = '<div class="categories">'
+        for category in categories:
+            category_html += f'<span class="category-tag">{html.escape(category)}</span>'
+        category_html += '</div>'
+        return category_html
 
-# ... inside the HTMLRenderer class ...
+    def _get_feed_type_badge(self, feed_type: str) -> str:
+        """Generate a badge for the feed type."""
+        if not feed_type or feed_type == "unknown":
+            return ""
+        return f'<span class="feed-type-badge {feed_type.lower()}">{feed_type.upper()}</span>'
 
     def _format_post(self, post_data: dict, show_channel=False):
-        """Converts a single post dictionary into an HTML block."""
-        media_count = len(post_data['media_urls'])
+        """Converts a single post dictionary into an HTML block with enhanced RSS/Atom support."""
+        media_count = len(post_data.get('media_urls', []))
         media_indicator = f"| {media_count} Media Item(s)" if media_count > 0 else ""
         
-        # NEW: Conditionally add the channel name to the header
-        channel_info = ""
-        if show_channel and post_data.get('channel'):
-            channel_info = f"<strong>From:</strong> @{post_data['channel']} | "
-
-        # Sanitize text for HTML and preserve line breaks
-        post_text_html = f"<p>{html.escape(post_data['text'])}</p>"
+        # Determine post type and styling
+        source_platform = post_data.get('source_platform', 'unknown')
+        feed_type = post_data.get('feed_type', 'unknown')
+        post_class = f"post-block {feed_type}" if feed_type != 'unknown' else "post-block"
         
-        # Create the media gallery
-        media_gallery_html = ""
-        if post_data['media_urls']:
-            media_gallery_html += '<div class="media-gallery">'
-            for url in post_data['media_urls']:
-                media_gallery_html += f'<a href="{url}" target="_blank"><img src="{url}" alt="Telegram Media"></a>'
-            media_gallery_html += '</div>'
-
-        return f"""
-        <div class="post-block">
+        # Build header based on source type
+        if source_platform == 'rss':
+            # RSS/Atom post
+            feed_title = post_data.get('feed_title', 'RSS Feed')
+            post_title = post_data.get('title', 'No title')
+            feed_badge = self._get_feed_type_badge(feed_type)
+            
+            header_html = f"""
+            <div class="source-info">From: {html.escape(feed_title)} {feed_badge}</div>
+            <div class="post-title">{html.escape(post_title)}</div>
+            <div class="post-header">
+                <strong>Published:</strong> {post_data['date'].strftime('%Y-%m-%d %H:%M:%S')}
+                {media_indicator}
+            </div>
+            """
+        else:
+            # Telegram post
+            channel_info = ""
+            if show_channel and post_data.get('channel'):
+                channel_info = f"<strong>From:</strong> @{post_data['channel']} | "
+            
+            header_html = f"""
             <div class="post-header">
                 {channel_info}
                 <strong>ID:</strong> {post_data['id']} | 
                 <strong>Date:</strong> {post_data['date'].strftime('%Y-%m-%d %H:%M:%S')}
                 {media_indicator}
             </div>
+            """
+
+        # Format categories if available
+        categories_html = ""
+        if post_data.get('categories'):
+            categories_html = self._format_categories(post_data['categories'])
+
+        # Sanitize text for HTML and preserve line breaks
+        post_text_html = f"<p>{html.escape(post_data['text'])}</p>"
+        
+        # Create the media gallery
+        media_gallery_html = ""
+        if post_data.get('media_urls'):
+            media_gallery_html += '<div class="media-gallery">'
+            for url in post_data['media_urls']:
+                media_gallery_html += f'<a href="{url}" target="_blank"><img src="{url}" alt="Media Content"></a>'
+            media_gallery_html += '</div>'
+
+        return f"""
+        <div class="{post_class}">
+            {header_html}
+            {categories_html}
             <div class="post-content">
                 {post_text_html}
                 {media_gallery_html}
             </div>
             <div class="post-footer">
-                <a href="{post_data['link']}" target="_blank">View on Telegram</a>
+                <a href="{post_data['link']}" target="_blank">View Original</a>
             </div>
         </div>
         """
 
     def render_report(self, posts: list):
-        """Renders a simple list of posts."""
+        """Renders a simple list of posts with enhanced support for RSS/Atom feeds."""
         for post in posts:
             self.body_content += self._format_post(post)
 
     def render_briefing(self, briefing_data: dict, days: int):
-        """Renders a full daily briefing, organized by channel and date."""
+        """Renders a full daily briefing, organized by channel/feed and date."""
         self.title = f"I.N.S.I.G.H.T. Briefing - Last {days} Days"
-        for channel, posts in briefing_data.items():
+        for source, posts in briefing_data.items():
             if not posts: continue
             
-            self.body_content += f'<h2 class="channel-header">Intel From: @{channel.upper()}</h2>'
+            # Determine source type for header styling
+            first_post = posts[0] if posts else {}
+            source_platform = first_post.get('source_platform', 'telegram')
+            
+            if source_platform == 'rss':
+                feed_title = first_post.get('feed_title', source)
+                feed_type = first_post.get('feed_type', 'rss')
+                feed_badge = self._get_feed_type_badge(feed_type)
+                self.body_content += f'<h2 class="channel-header">Intel From: {html.escape(feed_title)} {feed_badge}</h2>'
+            else:
+                self.body_content += f'<h2 class="channel-header">Intel From: @{source.upper()}</h2>'
             
             posts_by_day = {}
             for post in posts:
@@ -178,6 +290,41 @@ class HTMLRenderer:
                 self.body_content += f'<h3 class="date-header">{day}</h3>'
                 for post_data in day_posts:
                     self.body_content += self._format_post(post_data)
+
+    def render_rss_briefing(self, posts: list, title: str):
+        """Render RSS-specific briefing with category analytics."""
+        self.title = title
+        
+        if not posts:
+            self.body_content += "<p>No RSS posts found for this briefing.</p>"
+            return
+        
+        # Category analytics
+        all_categories = set()
+        feed_types = set()
+        for post in posts:
+            if post.get('categories'):
+                all_categories.update(post['categories'])
+            if post.get('feed_type'):
+                feed_types.add(post['feed_type'])
+        
+        # Analytics header
+        analytics_html = f"""
+        <div class="post-block">
+            <div class="post-header">📊 Briefing Analytics</div>
+            <div class="post-content">
+                <p><strong>Total Posts:</strong> {len(posts)}</p>
+                <p><strong>Feed Types:</strong> {', '.join(sorted(feed_types)) if feed_types else 'Unknown'}</p>
+                <p><strong>Unique Categories:</strong> {len(all_categories)}</p>
+                {self._format_categories(sorted(list(all_categories)))}
+            </div>
+        </div>
+        """
+        self.body_content += analytics_html
+        
+        # Render posts
+        for post in posts:
+            self.body_content += self._format_post(post)
 
     def save_to_file(self, filename="insight_report.html"):
         """Generates the final HTML and saves it to a file."""
