@@ -343,3 +343,53 @@ TypeError: HTMLRenderer.render_briefing() missing 1 required positional argument
 2025-06-13 18:22:15,631 - INFO - mtprotosender - Disconnecting from 149.154.167.51:443/TcpFull...
 2025-06-13 18:22:15,631 - INFO - mtprotosender - Disconnection from 149.154.167.51:443/TcpFull complete!
 2025-06-13 18:22:15,634 - INFO - main - Disconnected from telegram
+2025-06-13 18:36:52,035 - INFO - main - I.N.S.I.G.H.T. Mark II (v2.1) - The Inquisitor - Initializing...
+2025-06-13 18:36:52,036 - INFO - telegram_connector - TelegramConnector initialized
+2025-06-13 18:36:52,036 - INFO - main - Telegram connector registered
+2025-06-13 18:36:52,036 - INFO - rss_connector - RSS Connector initialized
+2025-06-13 18:36:52,037 - INFO - main - RSS connector registered
+2025-06-13 18:36:52,037 - INFO - main - Mark II Orchestrator ready.
+2025-06-13 18:53:32,647 - INFO - main - I.N.S.I.G.H.T. Mark II (v2.1) - The Inquisitor - Initializing...
+2025-06-13 18:53:32,649 - INFO - telegram_connector - TelegramConnector initialized
+2025-06-13 18:53:32,649 - INFO - main - Telegram connector registered
+2025-06-13 18:53:32,649 - INFO - rss_connector - RSS Connector initialized
+2025-06-13 18:53:32,651 - INFO - main - RSS connector registered
+2025-06-13 18:53:32,651 - INFO - main - Mark II Orchestrator ready.
+2025-06-13 18:53:32,653 - INFO - telegram_connector - Connecting to Telegram...
+2025-06-13 18:53:32,653 - INFO - mtprotosender - Connecting to 149.154.167.51:443/TcpFull...
+2025-06-13 18:53:32,790 - INFO - mtprotosender - Connection to 149.154.167.51:443/TcpFull complete!
+2025-06-13 18:53:33,815 - INFO - telegram_connector - Telegram connection successful.
+2025-06-13 18:53:33,815 - INFO - main - Connected to telegram
+2025-06-13 18:53:33,816 - INFO - rss_connector - RSS connector ready - feedparser operational
+2025-06-13 18:53:33,817 - INFO - main - Connected to rss
+2025-06-13 18:53:44,334 - INFO - rss_connector - Analyzing RSS feed: https://simonwillison.net/atom/everything/
+2025-06-13 18:53:44,866 - INFO - main - Mission complete.
+2025-06-13 18:53:44,866 - INFO - telegram_connector - Disconnecting from Telegram...
+2025-06-13 18:53:44,866 - INFO - mtprotosender - Disconnecting from 149.154.167.51:443/TcpFull...
+2025-06-13 18:53:44,867 - INFO - mtprotosender - Disconnection from 149.154.167.51:443/TcpFull complete!
+2025-06-13 18:53:44,871 - INFO - main - Disconnected from telegram
+2025-06-13 18:53:44,872 - INFO - rss_connector - RSS connector cleanup complete
+2025-06-13 18:53:44,872 - INFO - main - Disconnected from rss
+2025-06-13 18:53:57,416 - INFO - main - I.N.S.I.G.H.T. Mark II (v2.1) - The Inquisitor - Initializing...
+2025-06-13 18:53:57,417 - INFO - telegram_connector - TelegramConnector initialized
+2025-06-13 18:53:57,418 - INFO - main - Telegram connector registered
+2025-06-13 18:53:57,418 - INFO - rss_connector - RSS Connector initialized
+2025-06-13 18:53:57,418 - INFO - main - RSS connector registered
+2025-06-13 18:53:57,419 - INFO - main - Mark II Orchestrator ready.
+2025-06-13 18:53:57,421 - INFO - telegram_connector - Connecting to Telegram...
+2025-06-13 18:53:57,422 - INFO - mtprotosender - Connecting to 149.154.167.51:443/TcpFull...
+2025-06-13 18:53:57,492 - INFO - mtprotosender - Connection to 149.154.167.51:443/TcpFull complete!
+2025-06-13 18:53:58,023 - INFO - telegram_connector - Telegram connection successful.
+2025-06-13 18:53:58,024 - INFO - main - Connected to telegram
+2025-06-13 18:53:58,024 - INFO - rss_connector - RSS connector ready - feedparser operational
+2025-06-13 18:53:58,025 - INFO - main - Connected to rss
+2025-06-13 18:54:06,722 - INFO - rss_connector - Analyzing RSS feed: https://simonwillison.net/atom/everything/
+2025-06-13 18:54:16,947 - INFO - rss_connector - Fetching 30 posts from RSS feed: https://simonwillison.net/atom/everything/
+2025-06-13 18:54:17,457 - INFO - rss_connector - Successfully processed 30 posts from https://simonwillison.net/atom/everything/
+2025-06-13 18:54:17,507 - INFO - main - Mission complete.
+2025-06-13 18:54:17,507 - INFO - telegram_connector - Disconnecting from Telegram...
+2025-06-13 18:54:17,507 - INFO - mtprotosender - Disconnecting from 149.154.167.51:443/TcpFull...
+2025-06-13 18:54:17,508 - INFO - mtprotosender - Disconnection from 149.154.167.51:443/TcpFull complete!
+2025-06-13 18:54:17,513 - INFO - main - Disconnected from telegram
+2025-06-13 18:54:17,513 - INFO - rss_connector - RSS connector cleanup complete
+2025-06-13 18:54:17,513 - INFO - main - Disconnected from rss
