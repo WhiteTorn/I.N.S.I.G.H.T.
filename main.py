@@ -5,12 +5,9 @@ from datetime import datetime, timedelta, timezone
 from dotenv import load_dotenv
 from telethon.sync import TelegramClient
 from telethon.errors import FloodWaitError
-
-# NEW: Import our dedicated HTML renderer
 from html_renderer import HTMLRenderer
 
 # --- Configuration and Setup ---
-
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(module)s - %(message)s',
@@ -21,25 +18,25 @@ logging.basicConfig(
 )
 
 # --- The Core Application Class ---
-
 class InsightOperator:
     """
-    I.N.S.I.G.H.T. Mark I (v1.8) - The High-Fidelity Operator
-    The definitive, flexible, and robust version of the Mark I engine.
-    Corrects all known bugs and provides full-text, high-fidelity briefings.
+    I.N.S.I.G.H.T. Mark I (v1.10) - The Chronos Engine
+    The final version of the Mark I. Introduces chronological sorting for
+    briefings and a dedicated 'End of Day' automation protocol.
     """
     def __init__(self):
-        logging.info("I.N.S.I.G.H.T. Mark I (v1.8) Initializing...")
+        logging.info("I.N.S.I.G.H.T. Mark I (v1.10) Initializing...")
         load_dotenv()
         self.api_id = os.getenv('TELEGRAM_API_ID')
         self.api_hash = os.getenv('TELEGRAM_API_HASH')
         self.session_file = 'insight_session'
         self.client = None
         self.request_counter = 0
-        self.REQUEST_THRESHOLD = 15
+        self.REQUEST_THRESHOLD = 25
         self.COOLDOWN_SECONDS = 60
 
     async def throttle_if_needed(self):
+        """Checks the request counter and pauses if the threshold is exceeded."""
         if self.request_counter >= self.REQUEST_THRESHOLD:
             logging.warning(
                 f"Request threshold ({self.REQUEST_THRESHOLD}) reached. "
@@ -51,6 +48,7 @@ class InsightOperator:
         self.request_counter += 1
 
     async def connect(self):
+        """Establishes and authorizes the Telegram client connection."""
         self.client = TelegramClient(self.session_file, int(self.api_id), self.api_hash)
         logging.info("Connecting to Telegram...")
         await self.client.connect()
@@ -65,6 +63,7 @@ class InsightOperator:
         logging.info("Connection successful.")
 
     async def disconnect(self):
+        """Gracefully disconnects the client."""
         if self.client and self.client.is_connected():
             logging.info("Disconnecting from Telegram...")
             await self.client.disconnect()
@@ -125,7 +124,6 @@ class InsightOperator:
                 messages = await self.client.get_messages(entity, limit=fetch_chunk_size, offset_id=last_message_id)
                 if not messages: break
                 
-                # BUG FIX: Pass the original channel username for link building
                 synthesized = await self._synthesize_messages(messages, channel_username)
                 
                 for post in synthesized:
@@ -141,22 +139,20 @@ class InsightOperator:
         final_posts = sorted(all_synthesized_posts, key=lambda p: p['id'], reverse=True)[:limit]
         return sorted(final_posts, key=lambda p: p['date'])
 
-    # --- MISSION PROFILE 2: DAILY BRIEFING ---
-    async def get_daily_briefing(self, channels: list, days: int):
+    # --- MISSION PROFILE 2 & 3: BRIEFINGS ---
+    async def get_briefing_posts(self, channels: list, days: int):
         """
-        Fetches all posts from a list of channels for the last N days,
-        and returns them as a single, chronologically sorted list.
+        Fetches all posts from a list of channels for the last N days.
+        days=0 is a special flag for 'today only'.
         """
-        if days == 0: # Special case for "Today Only"
+        if days == 0:
             logging.info("Starting 'End of Day' briefing generation for today...")
-            # Set cutoff to the very beginning of the current day (00:00:00)
             now_utc = datetime.now(timezone.utc)
             cutoff_date = now_utc.replace(hour=0, minute=0, second=0, microsecond=0)
         else:
-            logging.info(f"Starting Daily Briefing generation for the last {days} days...")
+            logging.info(f"Starting Historical Briefing generation for the last {days} days...")
             cutoff_date = datetime.now(timezone.utc) - timedelta(days=days)
         
-        # This will now be a single flat list of all posts
         all_posts = []
         
         for channel in channels:
@@ -168,31 +164,25 @@ class InsightOperator:
                 async for message in self.client.iter_messages(entity, limit=None):
                     if message.date < cutoff_date:
                         break
-                    
-                    # Add a check to ensure we don't process the same message twice
-                    # from different synthesis paths (especially for albums)
                     if message.id in processed_ids:
                         continue
 
-                    # Add the channel name to the synthesized data
                     synthesized_list = await self._synthesize_messages([message], channel)
                     if synthesized_list:
                         for post in synthesized_list:
-                            # Add channel source to each post for rendering
                             post['channel'] = channel
                             all_posts.append(post)
-
-                        # Mark all parts of a group as processed
+                        
                         if message.grouped_id:
+                            # Efficiently get all parts of an album to mark as processed
                             group_msgs = await self.client.get_messages(entity, grouped_id=message.grouped_id)
                             for m in group_msgs:
-                                processed_ids.add(m.id)
+                                if m: processed_ids.add(m.id)
                         else:
                             processed_ids.add(message.id)
             except Exception as e:
                 logging.error(f"Failed to process channel @{channel}: {e}")
         
-        # Sort the final, combined list of all posts from all channels by date
         return sorted(all_posts, key=lambda p: p['date'])
 
     # --- RENDER METHODS ---
@@ -217,58 +207,8 @@ class InsightOperator:
             print("-" * 60)
         print("\n" + "#"*30 + " END OF REPORT " + "#"*30)
 
-    def render_briefing_to_console(self, briefing_data: dict, days: int):
-        """
-        Renders the daily briefing with full post content, organized by
-        channel and date, without using snippets or recursive calls.
-        """
-        print("\n" + "#"*25 + f" I.N.S.I.G.H.T. BRIEFING: LAST {days} DAYS " + "#"*25)
-        
-        # Iterate through each channel in the briefing data
-        for channel, posts in briefing_data.items():
-            if not posts:
-                # Optionally, mention channels with no new posts
-                # logging.info(f"No new posts found for @{channel} in the last {days} days.")
-                continue
-            
-            print(f"\n\n{'='*25} INTEL FROM: @{channel.upper()} {'='*25}")
-            
-            # Group the posts from this channel by day
-            posts_by_day = {}
-            for post in posts:
-                day_str = post['date'].strftime('%Y-%m-%d, %A')
-                if day_str not in posts_by_day:
-                    posts_by_day[day_str] = []
-                posts_by_day[day_str].append(post)
-            
-            # Render the posts for each day
-            for day, day_posts in sorted(posts_by_day.items()):
-                print(f"\n{'~'*15} {day} {'~'*15}")
-                
-                # Now, iterate through the posts for that specific day
-                for i, post_data in enumerate(day_posts):
-                    media_count = len(post_data['media_urls'])
-                    media_indicator = f"[+{media_count} MEDIA]" if media_count > 0 else ""
-                    
-                    # This is the full post rendering logic, adapted for the briefing format
-                    print(f"\n--- Post {i+1}/{len(day_posts)} | ID: {post_data['id']} | Time: {post_data['date'].strftime('%H:%M:%S')} {media_indicator} ---")
-                    print(post_data['text'])
-                    print(f"Post Link: {post_data['link']}")
-
-                    if post_data['media_urls']:
-                        print("Media Links:")
-                        for url in post_data['media_urls']:
-                            print(f"  - {url}")
-                    print("-" * 60)
-        
-        print("\n\n" + "#"*30 + " END OF BRIEFING " + "#"*30)
-
-    def render_briefing(self, posts: list, title: str):
-        """
-        Renders a chronologically sorted briefing, grouping posts by day.
-        This single method now handles both console and drives the HTML renderer.
-        """
-        # --- Console Rendering ---
+    def render_briefing_to_console(self, posts: list, title: str):
+        """Renders a chronologically sorted briefing, grouping posts by day."""
         print("\n" + "#"*25 + f" I.N.S.I.G.H.T. BRIEFING: {title.upper()} " + "#"*25)
         if not posts:
             print("\nNo intelligence gathered for this period.")
@@ -300,31 +240,9 @@ class InsightOperator:
 
         print("\n" + "#"*30 + " END OF BRIEFING " + "#"*30)
 
-    def render_briefing_to_html(self, posts: list, title: str, filename: str):
-        """Drives the HTMLRenderer to create a chronological briefing file."""
-        html_dossier = HTMLRenderer(f"I.N.S.I.G.H.T. Briefing: {title}")
-        
-        # We need a slightly different rendering logic for HTML to group by day
-        posts_by_day = {}
-        for post in posts:
-            day_str = post['date'].strftime('%Y-%m-%d, %A')
-            if day_str not in posts_by_day:
-                posts_by_day[day_str] = []
-            posts_by_day[day_str].append(post)
-            
-        # Add a channel key to each post for the renderer
-        for day, day_posts in sorted(posts_by_day.items()):
-            html_dossier.body_content += f'<h2 class="date-header">{day}</h2>'
-            for post_data in day_posts:
-                # Add channel info to post_data before rendering
-                post_data_with_channel = post_data.copy()
-                post_data_with_channel['channel'] = post_data.get('channel', 'N/A')
-                html_dossier.body_content += html_dossier._format_post(post_data_with_channel, show_channel=True)
-        
-        html_dossier.save_to_file(filename)
-
+    # --- MAIN EXECUTION LOOP ---
     async def run(self):
-        """The main execution flow, with updated mission choices."""
+        """The main execution flow, presenting the user with mission choices."""
         try:
             await self.connect()
             
@@ -334,45 +252,29 @@ class InsightOperator:
             print("3. End of Day Briefing (Get all of today's posts from multiple channels)")
             mission_choice = input("Enter mission number (1, 2, or 3): ")
 
-            # --- NEW: Ask for output format ---
-            print("\nChoose your output format:")
-            print("1. Console Only")
-            print("2. HTML Dossier Only")
-            print("3. Both Console and HTML")
-            output_choice = input("Enter format number (1, 2, or 3): ")
-
-            # --- Mission Execution Logic ---
             if mission_choice == '1':
                 channel = input("\nEnter the target channel username: ")
                 limit = int(input("How many posts to retrieve? "))
                 posts = await self.get_n_posts(channel, limit)
-                
                 title = f"{limit} posts from @{channel}"
-
-                # Conditional Rendering
-                if output_choice in ['1', '3']:
-                    self.render_report_to_console(posts, title)
-                
-                if output_choice in ['2', '3']:
-                    html_dossier = HTMLRenderer(f"I.N.S.I.G.H.T. Deep Scan: {title}")
-                    html_dossier.render_report(posts)
-                    html_dossier.save_to_file(f"deep_scan_{channel}.html")
-
+                self.render_report_to_console(posts, title)
+                html_dossier = HTMLRenderer(f"I.N.S.I.G.H.T. Deep Scan: {title}")
+                html_dossier.render_report(posts)
+                html_dossier.save_to_file(f"deep_scan_{channel}.html")
+            
             elif mission_choice in ['2', '3']:
+                days = 0
                 if mission_choice == '2':
                     title_prefix = "Historical Briefing"
                     days = int(input("How many days of history to include? "))
                 else: # mission_choice == '3'
                     title_prefix = "End of Day Report"
-                    days = 0 # Special flag for today only
-
+                
                 channels_str = input("Enter channel usernames, separated by commas: ")
                 channels = [c.strip() for c in channels_str.split(',')]
                 
-                # The get_daily_briefing now returns a single, sorted list of posts
-                all_posts = await self.get_daily_briefing(channels, days)
+                all_posts = await self.get_briefing_posts(channels, days)
                 
-                # Now we ask for output format
                 print("\nChoose your output format:")
                 print("1. Console Only")
                 print("2. HTML Dossier Only")
@@ -382,13 +284,15 @@ class InsightOperator:
                 title = f"{title_prefix} for {', '.join(channels)}"
                 
                 if output_choice in ['1', '3']:
-                    self.render_briefing(all_posts, title)
+                    self.render_briefing_to_console(all_posts, title)
                 
                 if output_choice in ['2', '3']:
+                    html_renderer = HTMLRenderer(f"I.N.S.I.G.H.T. Briefing: {title}")
+                    # A new, dedicated method in the renderer for this format
+                    html_renderer.render_briefing(all_posts)
                     filename_date = datetime.now().strftime('%Y-%m-%d')
-                    filename = f"briefing_{filename_date}.html"
-                    self.render_briefing_to_html(all_posts, title, filename)
-
+                    html_renderer.save_to_file(f"briefing_{filename_date}.html")
+            
             else:
                 print("Invalid mission choice. Aborting.")
 
