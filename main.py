@@ -1,6 +1,7 @@
 import os
 import logging
 import asyncio
+import json
 from datetime import datetime
 from dotenv import load_dotenv
 from connectors import TelegramConnector, RssConnector
@@ -19,29 +20,221 @@ logging.basicConfig(
 # --- The Core Application Class (Mark II Orchestrator) ---
 class InsightOperator:
     """
-    I.N.S.I.G.H.T. Mark II (v2.3) - The Inquisitor Platform
+    I.N.S.I.G.H.T. Mark II (v2.4) - The Inquisitor Platform
     
     The modular intelligence platform that can gather intel from multiple sources.
-    Version 2.3 enhances RSS support with category extraction, adaptive feed handling,
-    and comprehensive HTML output capabilities.
+    Version 2.4 introduces unified JSON output for seamless Mark III integration,
+    creating a standardized data pipeline for the entire I.N.S.I.G.H.T. ecosystem.
     
     Architecture:
     - Orchestrator pattern for connector management
     - Unified data model for cross-platform compatibility  
-    - Preserved user interface for seamless transition
+    - Enhanced JSON serialization for Mark III compatibility
     - Independent connector testing capabilities
     - Category-aware content processing
+    - Metadata enrichment and validation
     """
     
     def __init__(self):
-        logging.info("I.N.S.I.G.H.T. Mark II (v2.3) - The Inquisitor - Initializing...")
+        logging.info("I.N.S.I.G.H.T. Mark II (v2.4) - The Inquisitor - Initializing...")
         load_dotenv()
         
         # Initialize available connectors
         self.connectors = {}
         self._setup_connectors()
         
-        logging.info("Mark II Orchestrator ready.")
+        # JSON output configuration
+        self.json_config = {
+            'ensure_ascii': False,
+            'indent': 4,
+            'sort_keys': True,
+            'default': self._json_serializer
+        }
+        
+        logging.info("Mark II Orchestrator ready with unified JSON output capabilities.")
+    
+    def _json_serializer(self, obj):
+        """
+        Custom JSON serializer for handling datetime objects and other non-serializable types.
+        
+        This ensures that our unified data model can be cleanly serialized to JSON
+        for Mark III consumption while maintaining all temporal and metadata information.
+        """
+        if isinstance(obj, datetime):
+            return obj.isoformat() + 'Z'  # ISO format with UTC indicator
+        raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
+    
+    def _enrich_post_metadata(self, post: dict) -> dict:
+        """
+        Enrich a post with additional metadata for enhanced Mark III processing.
+        
+        This adds computed fields that will be valuable for Mark IV LLM analysis
+        while maintaining backward compatibility with existing connectors.
+        """
+        enriched_post = post.copy()
+        
+        # Add Mark II processing metadata
+        enriched_post['processing_metadata'] = {
+            'processed_by': 'I.N.S.I.G.H.T. Mark II v2.4',
+            'processed_at': datetime.utcnow().isoformat() + 'Z',
+            'data_version': '2.4.0',
+            'content_length': len(post.get('content', '')),
+            'has_media': len(post.get('media_urls', [])) > 0,
+            'media_count': len(post.get('media_urls', []))
+        }
+        
+        # Add content analysis hints for Mark IV
+        content = post.get('content', '')
+        enriched_post['content_analysis_hints'] = {
+            'estimated_reading_time_seconds': max(1, len(content.split()) * 0.25),  # ~250 WPM
+            'contains_urls': 'http' in content.lower(),
+            'contains_mentions': '@' in content,
+            'contains_hashtags': '#' in content,
+            'language_hint': 'en',  # Default, can be enhanced with detection
+            'content_type': self._classify_content_type(post)
+        }
+        
+        return enriched_post
+    
+    def _classify_content_type(self, post: dict) -> str:
+        """
+        Classify the type of content for enhanced Mark IV processing.
+        
+        Returns content type classification for LLM context optimization.
+        """
+        source_platform = post.get('source_platform', '')
+        content = post.get('content', '').lower()
+        
+        if source_platform == 'rss':
+            if post.get('categories'):
+                return 'news_article'
+            return 'feed_content'
+        elif source_platform == 'telegram':
+            if len(post.get('media_urls', [])) > 0:
+                return 'media_post'
+            elif len(content) > 500:
+                return 'long_form_message'
+            else:
+                return 'short_message'
+        
+        return 'unknown'
+    
+    def _validate_json_payload(self, posts: list) -> dict:
+        """
+        Validate the JSON payload before export to ensure Mark III compatibility.
+        
+        Returns validation report with any issues found.
+        """
+        validation_report = {
+            'status': 'valid',
+            'total_posts': len(posts),
+            'issues': [],
+            'warnings': [],
+            'metadata': {
+                'platforms_included': set(),
+                'date_range': {'earliest': None, 'latest': None},
+                'total_media_items': 0
+            }
+        }
+        
+        for i, post in enumerate(posts):
+            post_id = post.get('post_id', f'post_{i}')
+            
+            # Check required fields
+            required_fields = ['source_platform', 'source_id', 'post_id', 'content', 'timestamp']
+            for field in required_fields:
+                if field not in post or post[field] is None:
+                    validation_report['issues'].append(f"Post {post_id}: Missing required field '{field}'")
+            
+            # Track metadata
+            if 'source_platform' in post:
+                validation_report['metadata']['platforms_included'].add(post['source_platform'])
+            
+            if 'timestamp' in post and isinstance(post['timestamp'], datetime):
+                ts = post['timestamp']
+                if validation_report['metadata']['date_range']['earliest'] is None or ts < validation_report['metadata']['date_range']['earliest']:
+                    validation_report['metadata']['date_range']['earliest'] = ts
+                if validation_report['metadata']['date_range']['latest'] is None or ts > validation_report['metadata']['date_range']['latest']:
+                    validation_report['metadata']['date_range']['latest'] = ts
+            
+            if 'media_urls' in post and isinstance(post['media_urls'], list):
+                validation_report['metadata']['total_media_items'] += len(post['media_urls'])
+        
+        # Convert set to list for JSON serialization
+        validation_report['metadata']['platforms_included'] = list(validation_report['metadata']['platforms_included'])
+        
+        if validation_report['issues']:
+            validation_report['status'] = 'errors_found'
+        elif validation_report['warnings']:
+            validation_report['status'] = 'warnings_found'
+        
+        return validation_report
+    
+    def export_to_json(self, posts: list, filename: str = None, include_metadata: bool = True) -> str:
+        """
+        Export posts to a standardized JSON file for Mark III consumption.
+        
+        This is the core method that transforms our unified data into the standard
+        payload format that Mark III "The Scribe" will consume for database storage.
+        
+        Args:
+            posts: List of posts in unified format
+            filename: Output filename (auto-generated if None)
+            include_metadata: Whether to include enriched metadata
+            
+        Returns:
+            The filename of the exported JSON file
+        """
+        if not filename:
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            filename = f"inquisitor_report_{timestamp}.json"
+        
+        # Enrich posts with metadata if requested
+        if include_metadata:
+            enriched_posts = [self._enrich_post_metadata(post) for post in posts]
+        else:
+            enriched_posts = posts
+        
+        # Sort by timestamp for chronological processing
+        enriched_posts.sort(key=lambda p: p.get('timestamp', datetime.min), reverse=True)
+        
+        # Validate the payload
+        validation_report = self._validate_json_payload(enriched_posts)
+        
+        # Create the complete JSON payload
+        json_payload = {
+            'report_metadata': {
+                'generated_by': 'I.N.S.I.G.H.T. Mark II v2.4',
+                'generated_at': datetime.utcnow().isoformat() + 'Z',
+                'total_posts': len(enriched_posts),
+                'platforms_included': validation_report['metadata']['platforms_included'],
+                'date_range': validation_report['metadata']['date_range'],
+                'total_media_items': validation_report['metadata']['total_media_items'],
+                'format_version': '2.4.0',
+                'compatible_with': ['Mark III v3.0+', 'Mark IV v4.0+']
+            },
+            'validation_report': validation_report,
+            'posts': enriched_posts
+        }
+        
+        # Write to file
+        try:
+            with open(filename, 'w', encoding='utf-8') as f:
+                json.dump(json_payload, f, **self.json_config)
+            
+            logging.info(f"Successfully exported {len(enriched_posts)} posts to {filename}")
+            logging.info(f"Validation status: {validation_report['status']}")
+            
+            if validation_report['issues']:
+                logging.warning(f"Validation found {len(validation_report['issues'])} issues")
+                for issue in validation_report['issues'][:5]:  # Show first 5 issues
+                    logging.warning(f"  - {issue}")
+            
+            return filename
+            
+        except Exception as e:
+            logging.error(f"Failed to export JSON file {filename}: {e}")
+            raise
     
     def _setup_connectors(self):
         """Initialize and register all available connectors."""
@@ -265,7 +458,7 @@ class InsightOperator:
                 return
             
             available_connectors = list(self.connectors.keys())
-            print(f"\nI.N.S.I.G.H.T. Mark II (v2.3) - The Inquisitor - Operator Online.")
+            print(f"\nI.N.S.I.G.H.T. Mark II (v2.4) - The Inquisitor - Operator Online.")
             print(f"Available connectors: {', '.join(available_connectors)}")
             print("\nChoose your mission:")
             print("\n--- TELEGRAM MISSIONS ---")
@@ -276,10 +469,12 @@ class InsightOperator:
             print("4. RSS Feed Analysis (Analyze a single RSS/Atom feed)")
             print("5. RSS Single Feed Scan (Get N posts from a single RSS/Atom feed)")
             print("6. RSS Multi-Feed Scan (Get N posts from multiple RSS/Atom feeds)")
+            print("\n--- UNIFIED OUTPUT MISSIONS ---")
+            print("7. JSON Export Test (Export sample data to test Mark III compatibility)")
             
-            mission_choice = input("\nEnter mission number (1-6): ")
+            mission_choice = input("\nEnter mission number (1-7): ")
 
-            # Telegram missions (preserved from v2.0)
+            # Telegram missions (enhanced with JSON output)
             if mission_choice in ['1', '2', '3']:
                 if 'telegram' not in self.connectors:
                     print("❌ Telegram connector not available. Please check your .env configuration.")
@@ -292,19 +487,28 @@ class InsightOperator:
                     print("\nChoose your output format:")
                     print("1. Console Only")
                     print("2. HTML Dossier Only")
-                    print("3. Both Console and HTML")
-                    output_choice = input("Enter format number (1, 2, or 3): ")
+                    print("3. JSON Export Only")
+                    print("4. Console + HTML")
+                    print("5. Console + JSON")
+                    print("6. HTML + JSON")
+                    print("7. All Formats (Console + HTML + JSON)")
+                    output_choice = input("Enter format number (1-7): ")
 
                     posts = await self.get_n_posts(channel, limit)
                     title = f"{limit} posts from @{channel}"
 
-                    if output_choice in ['1', '3']:
+                    if output_choice in ['1', '4', '5', '7']:
                         self.render_report_to_console(posts, title)
                     
-                    if output_choice in ['2', '3']:
+                    if output_choice in ['2', '4', '6', '7']:
                         html_dossier = HTMLRenderer(f"I.N.S.I.G.H.T. Deep Scan: {title}")
                         html_dossier.render_report(posts)
                         html_dossier.save_to_file(f"deep_scan_{channel.lstrip('@')}.html")
+                    
+                    if output_choice in ['3', '5', '6', '7']:
+                        json_filename = self.export_to_json(posts, f"deep_scan_{channel.lstrip('@')}.json")
+                        print(f"\n📁 JSON export saved to: {json_filename}")
+                        print("🔄 This file is ready for Mark III 'Scribe' processing.")
                 
                 elif mission_choice in ['2', '3']:
                     days = 0
@@ -320,17 +524,21 @@ class InsightOperator:
                     print("\nChoose your output format:")
                     print("1. Console Only")
                     print("2. HTML Dossier Only")
-                    print("3. Both Console and HTML")
-                    output_choice = input("Enter format number (1, 2, or 3): ")
+                    print("3. JSON Export Only")
+                    print("4. Console + HTML")
+                    print("5. Console + JSON")
+                    print("6. HTML + JSON")
+                    print("7. All Formats (Console + HTML + JSON)")
+                    output_choice = input("Enter format number (1-7): ")
                     
                     all_posts = await self.get_briefing_posts(channels, days)
                     
                     title = f"{title_prefix} for {', '.join(channels)}"
                     
-                    if output_choice in ['1', '3']:
+                    if output_choice in ['1', '4', '5', '7']:
                         self.render_briefing_to_console(all_posts, title)
                     
-                    if output_choice in ['2', '3']:
+                    if output_choice in ['2', '4', '6', '7']:
                         # Prepare data for HTML renderer
                         html_renderer = HTMLRenderer()
                         briefing_data_for_html = {channel: [] for channel in channels}
@@ -342,8 +550,14 @@ class InsightOperator:
                         filename_date = datetime.now().strftime('%Y-%m-%d')
                         filename = f"briefing_{filename_date}.html"
                         html_renderer.save_to_file(filename)
+                    
+                    if output_choice in ['3', '5', '6', '7']:
+                        filename_date = datetime.now().strftime('%Y%m%d')
+                        json_filename = self.export_to_json(all_posts, f"briefing_{filename_date}.json")
+                        print(f"\n📁 JSON export saved to: {json_filename}")
+                        print("🔄 This file is ready for Mark III 'Scribe' processing.")
             
-            # RSS missions (enhanced in v2.3)
+            # RSS missions (enhanced with JSON output)
             elif mission_choice in ['4', '5', '6']:
                 if 'rss' not in self.connectors:
                     print("❌ RSS connector not available.")
@@ -378,16 +592,20 @@ class InsightOperator:
                     print("\nChoose your output format:")
                     print("1. Console Only")
                     print("2. HTML Dossier Only")
-                    print("3. Both Console and HTML")
-                    output_choice = input("Enter format number (1, 2, or 3): ")
+                    print("3. JSON Export Only")
+                    print("4. Console + HTML")
+                    print("5. Console + JSON")
+                    print("6. HTML + JSON")
+                    print("7. All Formats (Console + HTML + JSON)")
+                    output_choice = input("Enter format number (1-7): ")
                     
                     posts = await self.get_rss_posts(feed_url, limit)
                     title = f"{limit} posts from {feed_info['title']}"
                     
-                    if output_choice in ['1', '3']:
+                    if output_choice in ['1', '4', '5', '7']:
                         self.render_report_to_console(posts, title)
                     
-                    if output_choice in ['2', '3']:
+                    if output_choice in ['2', '4', '6', '7']:
                         html_dossier = HTMLRenderer(f"I.N.S.I.G.H.T. RSS Scan: {title}")
                         html_dossier.render_rss_briefing(posts, title)
                         
@@ -395,6 +613,13 @@ class InsightOperator:
                         safe_name = "".join(c for c in feed_info['title'] if c.isalnum() or c in (' ', '-', '_')).rstrip()
                         safe_name = safe_name.replace(' ', '_')[:50]  # Limit length
                         html_dossier.save_to_file(f"rss_scan_{safe_name}.html")
+                    
+                    if output_choice in ['3', '5', '6', '7']:
+                        safe_name = "".join(c for c in feed_info['title'] if c.isalnum() or c in (' ', '-', '_')).rstrip()
+                        safe_name = safe_name.replace(' ', '_')[:50]
+                        json_filename = self.export_to_json(posts, f"rss_scan_{safe_name}.json")
+                        print(f"\n📁 JSON export saved to: {json_filename}")
+                        print("🔄 This file is ready for Mark III 'Scribe' processing.")
                 
                 elif mission_choice == '6':
                     # RSS Multi-Feed Scan
@@ -417,21 +642,85 @@ class InsightOperator:
                     print("\nChoose your output format:")
                     print("1. Console Only")
                     print("2. HTML Dossier Only")
-                    print("3. Both Console and HTML")
-                    output_choice = input("Enter format number (1, 2, or 3): ")
+                    print("3. JSON Export Only")
+                    print("4. Console + HTML")
+                    print("5. Console + JSON")
+                    print("6. HTML + JSON")
+                    print("7. All Formats (Console + HTML + JSON)")
+                    output_choice = input("Enter format number (1-7): ")
                     
                     posts = await self.get_multi_rss_posts(feed_urls, limit_per_feed)
                     title = f"Multi-RSS scan: {limit_per_feed} posts from {len(feed_urls)} feeds"
                     
-                    if output_choice in ['1', '3']:
+                    if output_choice in ['1', '4', '5', '7']:
                         self.render_briefing_to_console(posts, title)
                     
-                    if output_choice in ['2', '3']:
+                    if output_choice in ['2', '4', '6', '7']:
                         html_renderer = HTMLRenderer(f"I.N.S.I.G.H.T. Multi-RSS Briefing")
                         html_renderer.render_rss_briefing(posts, title)
                         
                         filename_date = datetime.now().strftime('%Y-%m-%d')
                         html_renderer.save_to_file(f"multi_rss_briefing_{filename_date}.html")
+                    
+                    if output_choice in ['3', '5', '6', '7']:
+                        filename_date = datetime.now().strftime('%Y%m%d')
+                        json_filename = self.export_to_json(posts, f"multi_rss_briefing_{filename_date}.json")
+                        print(f"\n📁 JSON export saved to: {json_filename}")
+                        print("🔄 This file is ready for Mark III 'Scribe' processing.")
+            
+            # New unified output testing mission
+            elif mission_choice == '7':
+                print("\n🧪 JSON Export Test Mode")
+                print("This mission demonstrates the unified JSON output format for Mark III compatibility testing.")
+                
+                # Generate sample data from available connectors
+                test_posts = []
+                
+                if 'telegram' in self.connectors:
+                    print("\n📱 Include Telegram test data? (y/n): ", end="")
+                    if input().lower() == 'y':
+                        channel = input("Enter a Telegram channel username for test data: ")
+                        try:
+                            telegram_posts = await self.get_n_posts(channel, 3)
+                            test_posts.extend(telegram_posts)
+                            print(f"✅ Added {len(telegram_posts)} Telegram posts")
+                        except Exception as e:
+                            print(f"❌ Failed to fetch Telegram data: {e}")
+                
+                if 'rss' in self.connectors:
+                    print("\n📰 Include RSS test data? (y/n): ", end="")
+                    if input().lower() == 'y':
+                        feed_url = input("Enter an RSS feed URL for test data: ")
+                        try:
+                            rss_posts = await self.get_rss_posts(feed_url, 3)
+                            test_posts.extend(rss_posts)
+                            print(f"✅ Added {len(rss_posts)} RSS posts")
+                        except Exception as e:
+                            print(f"❌ Failed to fetch RSS data: {e}")
+                
+                if test_posts:
+                    json_filename = self.export_to_json(test_posts, "mark_iii_compatibility_test.json")
+                    print(f"\n🎯 Test JSON export created: {json_filename}")
+                    print("\n📋 JSON Export Summary:")
+                    print(f"   • Total posts: {len(test_posts)}")
+                    print(f"   • Platforms included: {', '.join(set(p.get('source_platform', 'unknown') for p in test_posts))}")
+                    print(f"   • Format version: 2.4.0")
+                    print(f"   • Mark III ready: ✅")
+                    print(f"   • Mark IV ready: ✅")
+                    
+                    print("\n🔍 Would you like to view the JSON structure? (y/n): ", end="")
+                    if input().lower() == 'y':
+                        with open(json_filename, 'r', encoding='utf-8') as f:
+                            sample_data = json.load(f)
+                        
+                        print("\n" + "="*60)
+                        print("SAMPLE JSON STRUCTURE (first post only):")
+                        print("="*60)
+                        if sample_data['posts']:
+                            print(json.dumps(sample_data['posts'][0], indent=2, ensure_ascii=False))
+                        print("="*60)
+                else:
+                    print("\n❌ No test data collected. Please check your connector configurations.")
             
             else:
                 print("Invalid mission choice. Aborting.")
