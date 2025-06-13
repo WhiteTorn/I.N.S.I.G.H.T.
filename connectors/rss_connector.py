@@ -163,19 +163,18 @@ class RssConnector(BaseConnector):
             self.logger.warning(f"Timestamp normalization failed: {e}")
             return datetime.now(timezone.utc)
     
-    def _extract_content(self, entry, feed_type: str) -> str:
+    def _extract_content(self, entry, feed_type: str) -> tuple[str, str]:
         """
-        Extract the best available content from an RSS/Atom entry.
-        Enhanced for different feed formats.
+        Extract both cleaned text and original HTML content from an RSS/Atom entry.
         
         Args:
             entry: RSS/Atom entry object
             feed_type: Type of feed for format-specific handling
             
         Returns:
-            Cleaned text content
+            Tuple of (cleaned_text, original_html)
         """
-        content = ""
+        content_html = ""
         
         # Priority order varies by feed type
         if feed_type == "atom":
@@ -185,35 +184,40 @@ class RssConnector(BaseConnector):
                     # Take the first content entry, preferably HTML
                     for content_item in entry.content:
                         if hasattr(content_item, 'type') and content_item.type == 'html':
-                            content = content_item.value
+                            content_html = content_item.value
                             break
                         elif hasattr(content_item, 'value'):
-                            content = content_item.value
-                    if not content and entry.content:
-                        content = entry.content[0].value if hasattr(entry.content[0], 'value') else str(entry.content[0])
+                            content_html = content_item.value
+                    if not content_html and entry.content:
+                        content_html = entry.content[0].value if hasattr(entry.content[0], 'value') else str(entry.content[0])
                 else:
-                    content = entry.content
+                    content_html = entry.content
             elif hasattr(entry, 'summary') and entry.summary:
-                content = entry.summary
+                content_html = entry.summary
         else:
             # RSS feeds - use existing logic
             if hasattr(entry, 'content') and entry.content:
-                content = entry.content[0].value if isinstance(entry.content, list) else entry.content
+                content_html = entry.content[0].value if isinstance(entry.content, list) else entry.content
             elif hasattr(entry, 'summary') and entry.summary:
-                content = entry.summary
+                content_html = entry.summary
             elif hasattr(entry, 'description') and entry.description:
-                content = entry.description
+                content_html = entry.description
         
         # Fallback to title if no content found
-        if not content and hasattr(entry, 'title') and entry.title:
-            content = entry.title
+        if not content_html and hasattr(entry, 'title') and entry.title:
+            content_html = entry.title
         
-        # Clean HTML and normalize whitespace
-        content = html.unescape(content) if content else ""
-        content = re.sub(r'<[^>]+>', '', content)  # Strip HTML tags
-        content = re.sub(r'\s+', ' ', content).strip()  # Normalize whitespace
+        # Ensure we have content
+        content_html = content_html or ""
         
-        return content
+        # Unescape HTML entities for both versions
+        content_html = html.unescape(content_html)
+        
+        # Create cleaned text version for console
+        cleaned_text = re.sub(r'<[^>]+>', '', content_html)  # Strip HTML tags
+        cleaned_text = re.sub(r'\s+', ' ', cleaned_text).strip()  # Normalize whitespace
+        
+        return cleaned_text, content_html
     
     def _extract_media_urls(self, entry) -> List[str]:
         """
@@ -355,6 +359,9 @@ class RssConnector(BaseConnector):
                     # Extract categories
                     categories = self._extract_categories(entry, feed_type)
                     
+                    # Extract both cleaned text and original HTML
+                    cleaned_text, original_html = self._extract_content(entry, feed_type)
+                    
                     # Extract and normalize timestamp
                     timestamp = self._normalize_timestamp(
                         getattr(entry, 'published_parsed', None) or 
@@ -367,7 +374,7 @@ class RssConnector(BaseConnector):
                         source_id=feed_url,
                         post_id=getattr(entry, 'id', getattr(entry, 'link', f"rss_{len(unified_posts)}")),
                         author=getattr(entry, 'author', getattr(feed.feed, 'title', 'Unknown')),
-                        content=self._extract_content(entry, feed_type),
+                        content=cleaned_text,  # Use cleaned text for console display
                         timestamp=timestamp,
                         media_urls=self._extract_media_urls(entry),
                         post_url=getattr(entry, 'link', feed_url)
@@ -378,11 +385,12 @@ class RssConnector(BaseConnector):
                     unified_post['feed_title'] = getattr(feed.feed, 'title', 'Unknown Feed')
                     unified_post['feed_type'] = feed_type
                     unified_post['categories'] = categories  # NEW: Category support
+                    unified_post['content_html'] = original_html  # NEW: Original HTML for rich rendering
                     
                     # Legacy compatibility fields
                     unified_post['id'] = unified_post['post_id']
                     unified_post['date'] = timestamp
-                    unified_post['text'] = unified_post['content']
+                    unified_post['text'] = unified_post['content']  # Cleaned text for console
                     unified_post['link'] = unified_post['post_url']
                     
                     unified_posts.append(unified_post)

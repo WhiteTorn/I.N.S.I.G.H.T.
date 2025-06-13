@@ -231,8 +231,18 @@ class HTMLRenderer:
         if post_data.get('categories'):
             categories_html = self._format_categories(post_data['categories'])
 
-        # Sanitize text for HTML and preserve line breaks
-        post_text_html = f"<p>{html.escape(post_data['text'])}</p>"
+        # Choose content based on source and available data
+        if source_platform == 'rss' and post_data.get('content_html'):
+            # Use rich HTML content for RSS/Atom feeds if available
+            content_html = post_data['content_html']
+            # Ensure content is properly wrapped and safe
+            if not content_html.strip().startswith('<'):
+                post_text_html = f"<p>{content_html}</p>"
+            else:
+                post_text_html = content_html
+        else:
+            # Use cleaned text for Telegram or fallback
+            post_text_html = f"<p>{html.escape(post_data['text'])}</p>"
         
         # Create the media gallery
         media_gallery_html = ""
