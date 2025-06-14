@@ -1151,14 +1151,36 @@ class InsightOperator:
                     post_url = input("\nEnter Reddit post URL: ")
                     print(f"\n🔍 Fetching Reddit post with comments for: {post_url}")
                     
+                    print("\nChoose your output format:")
+                    print("1. Console Only")
+                    print("2. HTML Dossier Only")
+                    print("3. JSON Export Only")
+                    print("4. Console + HTML")
+                    print("5. Console + JSON")
+                    print("6. HTML + JSON")
+                    print("7. All Formats (Console + HTML + JSON)")
+                    output_choice = input("Enter format number (1-7): ")
+                    
                     posts = await self.get_reddit_post_with_comments(post_url)
                     title = f"Reddit Post Analysis: {post_url}"
                     
                     if posts:
-                        self.render_report_to_console(posts, title)
-                        json_filename = self.export_to_json(posts, f"reddit_post_analysis_{post_url.replace('/', '_').replace('.', '_')}.json")
-                        print(f"\n📁 JSON export saved to: {json_filename}")
-                        print("🔄 This file is ready for Mark III 'Scribe' processing.")
+                        if output_choice in ['1', '4', '5', '7']:
+                            self.render_report_to_console(posts, title)
+                        
+                        if output_choice in ['2', '4', '6', '7']:
+                            html_dossier = HTMLRenderer(f"I.N.S.I.G.H.T. Reddit Post Analysis: {title}")
+                            html_dossier.render_report(posts)
+                            safe_url = post_url.replace('/', '_').replace('.', '_').replace(':', '_')
+                            html_dossier.save_to_file(f"reddit_post_analysis_{safe_url}.html")
+                        
+                        if output_choice in ['3', '5', '6', '7']:
+                            json_filename = self.export_to_json(posts, f"reddit_post_analysis_{post_url.replace('/', '_').replace('.', '_')}.json")
+                            print(f"\n📁 JSON export saved to: {json_filename}")
+                            print("🔄 This file is ready for Mark III 'Scribe' processing.")
+                        
+                        # Report mission outcome
+                        report_mission_outcome(len(posts), 1, "Reddit Post Analysis")
                     else:
                         print("\n❌ No comments found for the given post URL.")
                 
@@ -1167,14 +1189,35 @@ class InsightOperator:
                     subreddit = input("\nEnter Reddit subreddit name: ")
                     print(f"\n🔍 Exploring posts from subreddit: {subreddit}")
                     
+                    print("\nChoose your output format:")
+                    print("1. Console Only")
+                    print("2. HTML Dossier Only")
+                    print("3. JSON Export Only")
+                    print("4. Console + HTML")
+                    print("5. Console + JSON")
+                    print("6. HTML + JSON")
+                    print("7. All Formats (Console + HTML + JSON)")
+                    output_choice = input("Enter format number (1-7): ")
+                    
                     posts = await self.get_posts_from_subreddit(subreddit)
                     title = f"Reddit Posts from {subreddit}"
                     
                     if posts:
-                        self.render_briefing_to_console(posts, title)
-                        json_filename = self.export_to_json(posts, f"reddit_subreddit_explorer_{subreddit.replace('/', '_')}.json")
-                        print(f"\n📁 JSON export saved to: {json_filename}")
-                        print("🔄 This file is ready for Mark III 'Scribe' processing.")
+                        if output_choice in ['1', '4', '5', '7']:
+                            self.render_briefing_to_console(posts, title)
+                        
+                        if output_choice in ['2', '4', '6', '7']:
+                            html_dossier = HTMLRenderer(f"I.N.S.I.G.H.T. Reddit Subreddit Explorer: {title}")
+                            html_dossier.render_briefing({subreddit: posts}, 0)  # 0 days for current posts
+                            html_dossier.save_to_file(f"reddit_subreddit_{subreddit.replace('/', '_')}.html")
+                        
+                        if output_choice in ['3', '5', '6', '7']:
+                            json_filename = self.export_to_json(posts, f"reddit_subreddit_explorer_{subreddit.replace('/', '_')}.json")
+                            print(f"\n📁 JSON export saved to: {json_filename}")
+                            print("🔄 This file is ready for Mark III 'Scribe' processing.")
+                        
+                        # Report mission outcome
+                        report_mission_outcome(len(posts), 1, f"Reddit Subreddit Explorer - {subreddit}")
                     else:
                         print("\n❌ No posts found for the given subreddit.")
                 
@@ -1183,15 +1226,45 @@ class InsightOperator:
                     subreddits_str = input("\nEnter Reddit subreddits, separated by commas: ")
                     subreddits = [sr.strip() for sr in subreddits_str.split(',')]
                     
+                    print("\nChoose your output format:")
+                    print("1. Console Only")
+                    print("2. HTML Dossier Only")
+                    print("3. JSON Export Only")
+                    print("4. Console + HTML")
+                    print("5. Console + JSON")
+                    print("6. HTML + JSON")
+                    print("7. All Formats (Console + HTML + JSON)")
+                    output_choice = input("Enter format number (1-7): ")
+                    
                     print(f"\n🔍 Fetching posts from {len(subreddits)} subreddits...")
                     posts = await self.get_posts_from_multiple_subreddits(subreddits)
                     title = f"Reddit Multi-Source Briefing: {', '.join(subreddits)}"
                     
                     if posts:
-                        self.render_briefing_to_console(posts, title)
-                        json_filename = self.export_to_json(posts, f"reddit_multi_source_briefing_{'_'.join(subreddits).replace('/', '_')}.json")
-                        print(f"\n📁 JSON export saved to: {json_filename}")
-                        print("🔄 This file is ready for Mark III 'Scribe' processing.")
+                        if output_choice in ['1', '4', '5', '7']:
+                            self.render_briefing_to_console(posts, title)
+                        
+                        if output_choice in ['2', '4', '6', '7']:
+                            html_renderer = HTMLRenderer(f"I.N.S.I.G.H.T. Reddit Multi-Source Briefing")
+                            # Organize posts by subreddit for HTML rendering
+                            briefing_data_for_html = {sr: [] for sr in subreddits}
+                            for post in posts:
+                                subreddit_name = post.get('subreddit', 'unknown')
+                                if subreddit_name in briefing_data_for_html:
+                                    briefing_data_for_html[subreddit_name].append(post)
+                            
+                            html_renderer.render_briefing(briefing_data_for_html, 0)
+                            
+                            filename_date = datetime.now().strftime('%Y-%m-%d')
+                            html_renderer.save_to_file(f"reddit_multi_source_briefing_{filename_date}.html")
+                        
+                        if output_choice in ['3', '5', '6', '7']:
+                            json_filename = self.export_to_json(posts, f"reddit_multi_source_briefing_{'_'.join(subreddits).replace('/', '_')}.json")
+                            print(f"\n📁 JSON export saved to: {json_filename}")
+                            print("🔄 This file is ready for Mark III 'Scribe' processing.")
+                        
+                        # Report mission outcome
+                        report_mission_outcome(len(posts), len(subreddits), "Reddit Multi-Source Briefing")
                     else:
                         print("\n❌ No posts found for the given subreddits.")
             
