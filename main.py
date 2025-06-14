@@ -265,17 +265,11 @@ class InsightOperator:
         self.connectors['rss'] = RssConnector()
         logging.info("RSS connector registered")
         
-        # YouTube Connector - requires API key
-        youtube_api_key = os.getenv('YOUTUBE_API_KEY')
-        
-        if youtube_api_key:
-            self.connectors['youtube'] = YouTubeConnector(
-                api_key=youtube_api_key,
-                preferred_languages=['en', 'es', 'fr']  # Configurable language preferences
-            )
-            logging.info("YouTube connector registered")
-        else:
-            logging.warning("YouTube API key not found in .env file")
+        # YouTube Connector - NO API KEY REQUIRED (uses yt-dlp)
+        self.connectors['youtube'] = YouTubeConnector(
+            preferred_languages=['en', 'ru', 'ka']  # Configurable language preferences
+        )
+        logging.info("YouTube connector registered (yt-dlp powered - no API key needed)")
     
     async def connect_all(self):
         """Connect all available connectors."""

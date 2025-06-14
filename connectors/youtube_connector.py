@@ -5,20 +5,19 @@ from datetime import datetime, timedelta, timezone
 from typing import List, Dict, Any, Optional
 from urllib.parse import urlparse, parse_qs
 
+import yt_dlp
 from youtube_transcript_api import YouTubeTranscriptApi, NoTranscriptFound, TranscriptsDisabled
 from youtube_transcript_api.formatters import TextFormatter
-from googleapiclient.discovery import build
-from googleapiclient.errors import HttpError
 
 from .base_connector import BaseConnector
 
 
 class YouTubeConnector(BaseConnector):
     """
-    I.N.S.I.G.H.T. YouTube Connector v2.4 - "The Spymaster"
+    I.N.S.I.G.H.T. YouTube Connector v3.0 - "The Liberated Spymaster"
     
-    Expands intelligence gathering into the audio-visual domain by extracting
-    transcripts from YouTube videos and channels.
+    Now FREE from Google API dependencies! Uses yt-dlp for metadata extraction
+    and youtube_transcript_api for transcripts.
     
     Features:
     - Single video transcript extraction by URL
@@ -27,51 +26,58 @@ class YouTubeConnector(BaseConnector):
     - Search-based transcript collection
     - Language preference system with fallbacks
     - HARDENED: Bulletproof error handling for all failure scenarios
+    - NO API KEY REQUIRED: Complete freedom from Google's API quotas
     
     This connector treats transcript failures as expected battlefield conditions
     and continues operations despite individual video failures.
     """
     
-    def __init__(self, api_key: str, preferred_languages: List[str] = None):
+    def __init__(self, preferred_languages: List[str] = None):
         """
         Initialize the YouTube connector.
         
         Args:
-            api_key: YouTube Data API v3 key from Google Cloud Console
             preferred_languages: List of preferred language codes (e.g., ['en', 'es', 'fr'])
                                 If None, defaults to ['en'] with auto-fallback to available languages
         """
         super().__init__("youtube")
         
-        self.api_key = api_key
         self.preferred_languages = preferred_languages or ['en']
-        self.youtube_service = None
         self.transcript_formatter = TextFormatter()
         
         # Quality preferences - prefer manual transcripts over auto-generated
         self.prefer_manual = True
         
-        self.logger.info("YouTubeConnector v2.4 'The Spymaster' initialized with audio-visual intelligence capabilities")
+        # yt-dlp configuration
+        self.ydl_opts = {
+            'quiet': True,
+            'no_warnings': True,
+            'extract_flat': False,  # We need full info for metadata
+            'writesubtitles': False,  # We use youtube_transcript_api instead
+            'writeautomaticsub': False,
+        }
+        
+        self.logger.info("YouTubeConnector v3.0 'The Liberated Spymaster' initialized - NO API KEY REQUIRED!")
     
     async def connect(self) -> None:
         """
-        Establishes connection to YouTube Data API.
+        No connection needed - yt-dlp works directly without authentication.
         """
         try:
-            self.youtube_service = build('youtube', 'v3', developerKey=self.api_key)
-            self.logger.info("Connected to YouTube Data API v3")
+            # Test yt-dlp functionality with a simple call
+            with yt_dlp.YoutubeDL({'quiet': True}) as ydl:
+                # Just test that yt-dlp is working
+                pass
+            self.logger.info("Connected to YouTube via yt-dlp - Ready for intelligence gathering!")
         except Exception as e:
-            self.logger.error(f"Failed to connect to YouTube Data API: {str(e)}")
-            raise ConnectionError(f"YouTube API connection failed: {str(e)}")
+            self.logger.error(f"Failed to initialize yt-dlp: {str(e)}")
+            raise ConnectionError(f"yt-dlp initialization failed: {str(e)}")
     
     async def disconnect(self) -> None:
         """
-        Gracefully disconnects from YouTube services.
+        Gracefully disconnects (nothing to disconnect with yt-dlp).
         """
-        if self.youtube_service:
-            self.youtube_service.close()
-            self.youtube_service = None
-            self.logger.info("Disconnected from YouTube Data API")
+        self.logger.info("YouTube connector disconnected")
     
     def _extract_video_id(self, video_url: str) -> Optional[str]:
         """
@@ -112,17 +118,22 @@ class YouTubeConnector(BaseConnector):
             channel_identifier: Channel ID, username, or channel URL
             
         Returns:
-            Processed channel identifier for API calls
+            Processed channel identifier for yt-dlp calls
         """
-        # If it's a full URL, extract the identifier
+        # If it's a full URL, return as-is for yt-dlp
         if "youtube.com" in channel_identifier:
-            if "/channel/" in channel_identifier:
-                return channel_identifier.split("/channel/")[1].split("/")[0]
-            elif "/user/" in channel_identifier or "/c/" in channel_identifier:
-                return channel_identifier.split("/")[-1]
+            return channel_identifier
         
-        # Clean up @ symbol if present
-        return channel_identifier.lstrip('@')
+        # If it's just a channel ID or username, construct the URL
+        if channel_identifier.startswith('UC') and len(channel_identifier) == 24:
+            # It's a channel ID
+            return f"https://www.youtube.com/channel/{channel_identifier}"
+        elif channel_identifier.startswith('@'):
+            # It's a handle
+            return f"https://www.youtube.com/{channel_identifier}"
+        else:
+            # Assume it's a username or handle without @
+            return f"https://www.youtube.com/@{channel_identifier}"
     
     def _get_best_transcript(self, video_id: str) -> Optional[str]:
         """
@@ -178,9 +189,9 @@ class YouTubeConnector(BaseConnector):
             self.logger.error(f"Unexpected error fetching transcript for video {video_id}: {e}")
             return None
     
-    async def _get_video_metadata(self, video_id: str) -> Optional[Dict[str, Any]]:
+    def _get_video_metadata_ytdlp(self, video_id: str) -> Optional[Dict[str, Any]]:
         """
-        Fetches video metadata using YouTube Data API.
+        Fetches video metadata using yt-dlp.
         
         Args:
             video_id: YouTube video ID
@@ -189,27 +200,37 @@ class YouTubeConnector(BaseConnector):
             Video metadata dictionary or None if failed
         """
         try:
-            response = self.youtube_service.videos().list(
-                part='snippet,statistics',
-                id=video_id
-            ).execute()
+            video_url = f"https://www.youtube.com/watch?v={video_id}"
             
-            if not response.get('items'):
-                self.logger.warning(f"No metadata found for video {video_id}")
-                return None
+            with yt_dlp.YoutubeDL(self.ydl_opts) as ydl:
+                info = ydl.extract_info(video_url, download=False)
+                
+                if not info:
+                    self.logger.warning(f"No metadata found for video {video_id}")
+                    return None
+                
+                # Convert yt-dlp format to Google API-like format for compatibility
+                return {
+                    'snippet': {
+                        'title': info.get('title', ''),
+                        'description': info.get('description', ''),
+                        'publishedAt': info.get('upload_date', ''),
+                        'channelTitle': info.get('uploader', ''),
+                        'channelId': info.get('uploader_id', ''),
+                    },
+                    'statistics': {
+                        'viewCount': info.get('view_count', 0),
+                        'likeCount': info.get('like_count', 0),
+                    }
+                }
             
-            return response['items'][0]
-            
-        except HttpError as e:
-            self.logger.error(f"YouTube API error fetching metadata for video {video_id}: {e}")
-            return None
         except Exception as e:
-            self.logger.error(f"Unexpected error fetching metadata for video {video_id}: {e}")
+            self.logger.error(f"yt-dlp error fetching metadata for video {video_id}: {e}")
             return None
     
-    async def _get_channel_videos(self, channel_identifier: str, limit: int) -> List[str]:
+    def _get_channel_videos_ytdlp(self, channel_identifier: str, limit: int) -> List[str]:
         """
-        Fetches latest video IDs from a YouTube channel.
+        Fetches latest video IDs from a YouTube channel using yt-dlp.
         
         Args:
             channel_identifier: Channel ID or username
@@ -219,92 +240,113 @@ class YouTubeConnector(BaseConnector):
             List of video IDs
         """
         try:
-            # First, resolve channel ID if we have a username
-            channel_id = await self._resolve_channel_id(channel_identifier)
-            if not channel_id:
-                return []
+            channel_url = self._extract_channel_id(channel_identifier)
             
-            # Get uploads playlist ID
-            channel_response = self.youtube_service.channels().list(
-                part='contentDetails',
-                id=channel_id
-            ).execute()
+            # Configure yt-dlp for playlist extraction
+            opts = {
+                **self.ydl_opts,
+                'extract_flat': True,  # Just get IDs, not full metadata
+                'playlistend': limit,
+            }
             
-            if not channel_response.get('items'):
-                self.logger.error(f"Channel {channel_identifier} not found")
-                return []
-            
-            uploads_playlist_id = channel_response['items'][0]['contentDetails']['relatedPlaylists']['uploads']
-            
-            # Get videos from uploads playlist
-            videos = []
-            next_page_token = None
-            
-            while len(videos) < limit:
-                playlist_response = self.youtube_service.playlistItems().list(
-                    part='contentDetails',
-                    playlistId=uploads_playlist_id,
-                    maxResults=min(50, limit - len(videos)),
-                    pageToken=next_page_token
-                ).execute()
+            with yt_dlp.YoutubeDL(opts) as ydl:
+                info = ydl.extract_info(channel_url, download=False)
                 
-                for item in playlist_response.get('items', []):
-                    videos.append(item['contentDetails']['videoId'])
+                if not info or 'entries' not in info:
+                    self.logger.error(f"Channel {channel_identifier} not found or has no videos")
+                    return []
                 
-                next_page_token = playlist_response.get('nextPageToken')
-                if not next_page_token:
-                    break
+                # Extract video IDs from entries
+                video_ids = []
+                for entry in info['entries']:
+                    if entry and 'id' in entry:
+                        video_ids.append(entry['id'])
+                        if len(video_ids) >= limit:
+                            break
+                
+                return video_ids
             
-            return videos[:limit]
-            
-        except HttpError as e:
-            self.logger.error(f"YouTube API error fetching videos from channel {channel_identifier}: {e}")
-            return []
         except Exception as e:
-            self.logger.error(f"Unexpected error fetching videos from channel {channel_identifier}: {e}")
+            self.logger.error(f"yt-dlp error fetching videos from channel {channel_identifier}: {e}")
             return []
     
-    async def _resolve_channel_id(self, channel_identifier: str) -> Optional[str]:
+    def _search_videos_ytdlp(self, search_query: str, limit: int) -> List[str]:
         """
-        Resolves a channel username to channel ID.
+        Searches for videos using yt-dlp.
         
         Args:
-            channel_identifier: Channel username or ID
+            search_query: Search query
+            limit: Maximum number of video IDs to return
             
         Returns:
-            Channel ID or None if not found
+            List of video IDs
         """
         try:
-            # If it already looks like a channel ID, return it
-            if channel_identifier.startswith('UC') and len(channel_identifier) == 24:
-                return channel_identifier
+            search_url = f"ytsearch{limit}:{search_query}"
             
-            # Try to find by username
-            response = self.youtube_service.channels().list(
-                part='id',
-                forUsername=channel_identifier
-            ).execute()
+            opts = {
+                **self.ydl_opts,
+                'extract_flat': True,
+            }
             
-            if response.get('items'):
-                return response['items'][0]['id']
-            
-            # Try to find by custom URL (search)
-            search_response = self.youtube_service.search().list(
-                part='snippet',
-                q=channel_identifier,
-                type='channel',
-                maxResults=1
-            ).execute()
-            
-            if search_response.get('items'):
-                return search_response['items'][0]['snippet']['channelId']
-            
-            return None
+            with yt_dlp.YoutubeDL(opts) as ydl:
+                info = ydl.extract_info(search_url, download=False)
+                
+                if not info or 'entries' not in info:
+                    self.logger.warning(f"No videos found for search query: {search_query}")
+                    return []
+                
+                # Extract video IDs from entries
+                video_ids = []
+                for entry in info['entries']:
+                    if entry and 'id' in entry:
+                        video_ids.append(entry['id'])
+                
+                return video_ids[:limit]
             
         except Exception as e:
-            self.logger.error(f"Error resolving channel ID for {channel_identifier}: {e}")
-            return None
+            self.logger.error(f"yt-dlp error searching for videos with query '{search_query}': {e}")
+            return []
     
+    def _get_playlist_videos_ytdlp(self, playlist_url: str, limit: int) -> List[str]:
+        """
+        Fetches video IDs from a YouTube playlist using yt-dlp.
+        
+        Args:
+            playlist_url: YouTube playlist URL
+            limit: Maximum number of videos to fetch
+            
+        Returns:
+            List of video IDs
+        """
+        try:
+            opts = {
+                **self.ydl_opts,
+                'extract_flat': True,
+                'playlistend': limit,
+            }
+            
+            with yt_dlp.YoutubeDL(opts) as ydl:
+                info = ydl.extract_info(playlist_url, download=False)
+                
+                if not info or 'entries' not in info:
+                    self.logger.error(f"Playlist not found or has no videos: {playlist_url}")
+                    return []
+                
+                # Extract video IDs from entries
+                video_ids = []
+                for entry in info['entries']:
+                    if entry and 'id' in entry:
+                        video_ids.append(entry['id'])
+                        if len(video_ids) >= limit:
+                            break
+                
+                return video_ids
+            
+        except Exception as e:
+            self.logger.error(f"yt-dlp error fetching playlist {playlist_url}: {e}")
+            return []
+
     async def fetch_posts(self, source_identifier: str, limit: int) -> List[Dict[str, Any]]:
         """
         Fetches transcripts from YouTube videos.
@@ -322,10 +364,6 @@ class YouTubeConnector(BaseConnector):
         Returns:
             List of posts in unified format with transcript content
         """
-        if not self.youtube_service:
-            self.logger.error("ERROR: YouTube connector not connected to API")
-            return []
-        
         # Determine if this is a video URL or channel identifier
         video_id = self._extract_video_id(source_identifier)
         
@@ -349,8 +387,8 @@ class YouTubeConnector(BaseConnector):
         self.logger.info(f"Extracting intelligence from video {video_id}...")
         
         try:
-            # Get video metadata
-            metadata = await self._get_video_metadata(video_id)
+            # Get video metadata using yt-dlp
+            metadata = self._get_video_metadata_ytdlp(video_id)
             if not metadata:
                 self.logger.error(f"ERROR: Failed to fetch metadata for video {video_id}")
                 return []
@@ -364,10 +402,19 @@ class YouTubeConnector(BaseConnector):
             # Create unified post
             snippet = metadata['snippet']
             
-            # Parse publish date
-            publish_date = datetime.fromisoformat(
-                snippet['publishedAt'].replace('Z', '+00:00')
-            )
+            # Parse publish date from yt-dlp format (YYYYMMDD)
+            upload_date_str = snippet.get('publishedAt', '')
+            try:
+                if upload_date_str and len(upload_date_str) == 8:
+                    # Convert YYYYMMDD to datetime
+                    year = int(upload_date_str[:4])
+                    month = int(upload_date_str[4:6])
+                    day = int(upload_date_str[6:8])
+                    publish_date = datetime(year, month, day, tzinfo=timezone.utc)
+                else:
+                    publish_date = datetime.now(timezone.utc)
+            except:
+                publish_date = datetime.now(timezone.utc)
             
             unified_post = self._create_unified_post(
                 source_platform="youtube",
@@ -406,17 +453,16 @@ class YouTubeConnector(BaseConnector):
         Returns:
             List of posts with transcripts in unified format
         """
-        cleaned_channel = self._extract_channel_id(channel_identifier)
-        self.logger.info(f"Starting intelligence extraction from channel {cleaned_channel} (limit: {limit})...")
+        self.logger.info(f"Starting intelligence extraction from channel {channel_identifier} (limit: {limit})...")
         
         try:
-            # Get video IDs from channel
-            video_ids = await self._get_channel_videos(cleaned_channel, limit)
+            # Get video IDs from channel using yt-dlp
+            video_ids = self._get_channel_videos_ytdlp(channel_identifier, limit)
             if not video_ids:
-                self.logger.error(f"ERROR: No videos found for channel {cleaned_channel}")
+                self.logger.error(f"ERROR: No videos found for channel {channel_identifier}")
                 return []
             
-            self.logger.info(f"Found {len(video_ids)} videos in channel {cleaned_channel}")
+            self.logger.info(f"Found {len(video_ids)} videos in channel {channel_identifier}")
             
             # Process each video with individual error handling
             all_posts = []
@@ -427,8 +473,8 @@ class YouTubeConnector(BaseConnector):
                 self.logger.info(f"Processing video {i+1}/{len(video_ids)}: {video_id}")
                 
                 try:
-                    # Get video metadata
-                    metadata = await self._get_video_metadata(video_id)
+                    # Get video metadata using yt-dlp
+                    metadata = self._get_video_metadata_ytdlp(video_id)
                     if not metadata:
                         self.logger.warning(f"WARNING: Could not retrieve metadata for video {video_id}. Skipping.")
                         failed_extractions += 1
@@ -444,14 +490,22 @@ class YouTubeConnector(BaseConnector):
                     # Create unified post
                     snippet = metadata['snippet']
                     
-                    # Parse publish date
-                    publish_date = datetime.fromisoformat(
-                        snippet['publishedAt'].replace('Z', '+00:00')
-                    )
+                    # Parse publish date from yt-dlp format
+                    upload_date_str = snippet.get('publishedAt', '')
+                    try:
+                        if upload_date_str and len(upload_date_str) == 8:
+                            year = int(upload_date_str[:4])
+                            month = int(upload_date_str[4:6])
+                            day = int(upload_date_str[6:8])
+                            publish_date = datetime(year, month, day, tzinfo=timezone.utc)
+                        else:
+                            publish_date = datetime.now(timezone.utc)
+                    except:
+                        publish_date = datetime.now(timezone.utc)
                     
                     unified_post = self._create_unified_post(
                         source_platform="youtube",
-                        source_id=f"channel:{cleaned_channel}",
+                        source_id=f"channel:{channel_identifier}",
                         post_id=video_id,
                         author=snippet['channelTitle'],
                         content=transcript,
@@ -481,7 +535,7 @@ class YouTubeConnector(BaseConnector):
             return all_posts
             
         except Exception as e:
-            self.logger.error(f"ERROR: Failed to process channel {cleaned_channel} - Reason: Critical error: {str(e)}")
+            self.logger.error(f"ERROR: Failed to process channel {channel_identifier} - Reason: Critical error: {str(e)}")
             return []
     
     async def fetch_posts_by_timeframe(self, sources: List[str], days: int) -> List[Dict[str, Any]]:
@@ -497,10 +551,6 @@ class YouTubeConnector(BaseConnector):
         Returns:
             List of posts with transcripts in unified format, sorted chronologically
         """
-        if not self.youtube_service:
-            self.logger.error("ERROR: YouTube connector not connected to API")
-            return []
-        
         if days == 0:
             self.logger.info("Starting 'End of Day' YouTube intelligence briefing for today...")
             cutoff_date = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
@@ -558,46 +608,25 @@ class YouTubeConnector(BaseConnector):
             List of posts with transcripts in unified format
         """
         try:
-            # Extract playlist ID from URL
-            playlist_id = None
-            if "list=" in playlist_url:
-                playlist_id = playlist_url.split("list=")[1].split("&")[0]
+            self.logger.info(f"Extracting intelligence from playlist {playlist_url}...")
             
-            if not playlist_id:
-                self.logger.error(f"Invalid playlist URL: {playlist_url}")
+            # Get videos from playlist using yt-dlp
+            video_ids = self._get_playlist_videos_ytdlp(playlist_url, limit)
+            
+            if not video_ids:
+                self.logger.error(f"No videos found in playlist: {playlist_url}")
                 return []
-            
-            self.logger.info(f"Extracting intelligence from playlist {playlist_id}...")
-            
-            # Get videos from playlist
-            videos = []
-            next_page_token = None
-            
-            while len(videos) < limit:
-                response = self.youtube_service.playlistItems().list(
-                    part='contentDetails',
-                    playlistId=playlist_id,
-                    maxResults=min(50, limit - len(videos)),
-                    pageToken=next_page_token
-                ).execute()
-                
-                for item in response.get('items', []):
-                    videos.append(item['contentDetails']['videoId'])
-                
-                next_page_token = response.get('nextPageToken')
-                if not next_page_token:
-                    break
             
             # Process each video
             all_posts = []
-            for video_id in videos[:limit]:
+            for video_id in video_ids:
                 video_posts = await self._fetch_single_video_transcript(video_id)
                 if video_posts:
                     # Update source_id to indicate playlist
-                    video_posts[0]['source_id'] = f"playlist:{playlist_id}"
+                    video_posts[0]['source_id'] = f"playlist:{playlist_url}"
                     all_posts.extend(video_posts)
             
-            self.logger.info(f"Successfully extracted {len(all_posts)} transcripts from playlist {playlist_id}")
+            self.logger.info(f"Successfully extracted {len(all_posts)} transcripts from playlist")
             return all_posts
             
         except Exception as e:
@@ -618,20 +647,12 @@ class YouTubeConnector(BaseConnector):
         try:
             self.logger.info(f"Searching for videos matching: '{search_query}'")
             
-            # Search for videos
-            search_response = self.youtube_service.search().list(
-                part='id',
-                q=search_query,
-                type='video',
-                maxResults=limit
-            ).execute()
+            # Search for videos using yt-dlp
+            video_ids = self._search_videos_ytdlp(search_query, limit)
             
-            if not search_response.get('items'):
+            if not video_ids:
                 self.logger.warning(f"No videos found for search query: {search_query}")
                 return []
-            
-            # Extract video IDs
-            video_ids = [item['id']['videoId'] for item in search_response['items']]
             
             # Process each video
             all_posts = []
