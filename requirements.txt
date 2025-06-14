@@ -4,4 +4,4 @@ feedparser
 youtube-transcript-api
 yt-dlp
 praw
-
+asyncpraw
