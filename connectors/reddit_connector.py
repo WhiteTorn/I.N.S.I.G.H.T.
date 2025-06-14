@@ -51,7 +51,7 @@ class RedditConnector(BaseConnector):
         
         # Configuration
         self.max_comments_per_post = 50  # Limit comments to prevent overwhelming data
-        self.comment_depth_limit = 3     # How deep to traverse comment threads
+        self.comment_depth_limit = 10     # How deep to traverse comment threads
         
         self.logger.info("RedditConnector v2.6 'The Crowd Crier' initialized")
     
