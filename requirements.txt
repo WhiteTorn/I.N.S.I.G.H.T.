@@ -3,3 +3,4 @@ python-dotenv
 feedparser
 youtube-transcript-api
 yt-dlp
+praw

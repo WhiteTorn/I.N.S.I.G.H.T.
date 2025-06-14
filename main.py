@@ -4,7 +4,7 @@ import asyncio
 import json
 from datetime import datetime
 from dotenv import load_dotenv
-from connectors import TelegramConnector, RssConnector, YouTubeConnector
+from connectors import TelegramConnector, RssConnector, YouTubeConnector, RedditConnector
 from html_renderer import HTMLRenderer
 
 # --- Configuration and Setup ---
@@ -270,6 +270,21 @@ class InsightOperator:
             preferred_languages=['en', 'ru', 'ka']  # Configurable language preferences
         )
         logging.info("YouTube connector registered (yt-dlp powered - no API key needed)")
+        
+        # Reddit Connector - Requires Reddit API credentials
+        reddit_client_id = os.getenv('REDDIT_CLIENT_ID')
+        reddit_client_secret = os.getenv('REDDIT_CLIENT_SECRET')
+        reddit_user_agent = os.getenv('REDDIT_USER_AGENT', 'I.N.S.I.G.H.T. v2.6 The Crowd Crier')
+        
+        if reddit_client_id and reddit_client_secret:
+            self.connectors['reddit'] = RedditConnector(
+                client_id=reddit_client_id,
+                client_secret=reddit_client_secret,
+                user_agent=reddit_user_agent
+            )
+            logging.info("Reddit connector registered (PRAW powered)")
+        else:
+            logging.warning("Reddit credentials not found in .env file")
     
     async def connect_all(self):
         """Connect all available connectors."""
@@ -573,6 +588,98 @@ class InsightOperator:
             logging.error(f"ERROR: Critical failure searching YouTube for '{search_query}': {str(e)}")
             return []
     
+    # --- REDDIT MISSIONS (v2.6 "The Crowd Crier") ---
+    async def get_reddit_post_with_comments(self, post_url: str):
+        """
+        Fetch a single Reddit post with all its comments.
+        HARDENED: Protected by global timeout and comprehensive error handling.
+        """
+        if 'reddit' not in self.connectors:
+            logging.error("Reddit connector not available")
+            return []
+        
+        connector = self.connectors['reddit']
+        
+        try:
+            # Wrap connector call with global timeout protection
+            posts = await asyncio.wait_for(
+                connector.fetch_post_with_comments(post_url),
+                timeout=self.GLOBAL_TIMEOUT_SECONDS * 2  # Extra time for comment extraction
+            )
+            return posts
+            
+        except asyncio.TimeoutError:
+            logging.warning(f"WARNING: Reddit post fetch from '{post_url}' timed out after {self.GLOBAL_TIMEOUT_SECONDS * 2}s")
+            return []
+        except Exception as e:
+            logging.error(f"ERROR: Critical failure fetching Reddit post '{post_url}': {str(e)}")
+            return []
+    
+    async def get_posts_from_subreddit(self, subreddit: str, limit: int = 10, sort: str = 'hot'):
+        """
+        Fetch posts from a subreddit with interactive selection.
+        HARDENED: Protected by global timeout and comprehensive error handling.
+        """
+        if 'reddit' not in self.connectors:
+            logging.error("Reddit connector not available")
+            return []
+        
+        connector = self.connectors['reddit']
+        
+        try:
+            # Wrap connector call with global timeout protection
+            posts = await asyncio.wait_for(
+                connector.fetch_subreddit_posts_interactive(subreddit, limit, sort),
+                timeout=self.GLOBAL_TIMEOUT_SECONDS * 3  # Extra time for interactive selection
+            )
+            return posts
+            
+        except asyncio.TimeoutError:
+            logging.warning(f"WARNING: Reddit subreddit fetch from 'r/{subreddit}' timed out after {self.GLOBAL_TIMEOUT_SECONDS * 3}s")
+            return []
+        except Exception as e:
+            logging.error(f"ERROR: Critical failure fetching Reddit subreddit 'r/{subreddit}': {str(e)}")
+            return []
+    
+    async def get_posts_from_multiple_subreddits(self, subreddits: list, limit_per_subreddit: int = 5):
+        """
+        Fetch posts from multiple subreddits.
+        HARDENED: Protected by global timeout and comprehensive error handling.
+        """
+        if 'reddit' not in self.connectors:
+            logging.error("Reddit connector not available")
+            return []
+        
+        connector = self.connectors['reddit']
+        all_posts = []
+        successful_subreddits = 0
+        failed_subreddits = 0
+        
+        for subreddit in subreddits:
+            try:
+                # Wrap each individual subreddit fetch with timeout protection
+                posts = await asyncio.wait_for(
+                    connector.fetch_posts(f"r/{subreddit}", limit_per_subreddit),
+                    timeout=self.GLOBAL_TIMEOUT_SECONDS
+                )
+                
+                if posts:
+                    all_posts.extend(posts)
+                    successful_subreddits += 1
+                else:
+                    failed_subreddits += 1
+                    logging.warning(f"No posts retrieved from r/{subreddit}")
+                    
+            except asyncio.TimeoutError:
+                failed_subreddits += 1
+                logging.warning(f"WARNING: Reddit subreddit r/{subreddit} timed out after {self.GLOBAL_TIMEOUT_SECONDS}s")
+            except Exception as e:
+                failed_subreddits += 1
+                logging.error(f"ERROR: Failed to fetch from r/{subreddit}: {str(e)}")
+        
+        logging.info(f"Reddit multi-subreddit mission: {successful_subreddits} successful, {failed_subreddits} failed")
+        return all_posts
+    
     # --- RENDER METHODS (Enhanced for RSS v2.3) ---
     def render_report_to_console(self, posts: list, title: str):
         """A generic renderer for a list of posts, supporting Telegram, RSS, and YouTube content."""
@@ -723,10 +830,14 @@ class InsightOperator:
             print("8. YouTube Channel Transcripts (Get transcripts from the latest N videos in a YouTube channel)")
             print("9. YouTube Playlist Transcripts (Get transcripts from a YouTube playlist)")
             print("10. YouTube Search (Search for YouTube videos and extract their transcripts)")
+            print("\n--- REDDIT MISSIONS ---")
+            print("12. Reddit Post Analysis (Get single Reddit post with comments by URL)")
+            print("13. Reddit Subreddit Explorer (Browse and select posts from subreddit)")
+            print("14. Reddit Multi-Source Briefing (Get posts from multiple subreddits/URLs)")
             print("\n--- UNIFIED OUTPUT MISSIONS ---")
             print("11. JSON Export Test (Export sample data to test Mark III compatibility)")
             
-            mission_choice = input("\nEnter mission number (1-11): ")
+            mission_choice = input("\nEnter mission number (1-14): ")
 
             # Enhanced error reporting for user feedback
             def report_mission_outcome(posts_collected: int, sources_attempted: int, mission_name: str):
@@ -1028,6 +1139,61 @@ class InsightOperator:
                         print("🔄 This file is ready for Mark III 'Scribe' processing.")
                     else:
                         print("\n❌ No search results found for the given query.")
+            
+            # Reddit missions (enhanced with JSON output)
+            elif mission_choice in ['12', '13', '14']:
+                if 'reddit' not in self.connectors:
+                    print("❌ Reddit connector not available.")
+                    return
+                
+                if mission_choice == '12':
+                    # Reddit Post Analysis
+                    post_url = input("\nEnter Reddit post URL: ")
+                    print(f"\n🔍 Fetching Reddit post with comments for: {post_url}")
+                    
+                    posts = await self.get_reddit_post_with_comments(post_url)
+                    title = f"Reddit Post Analysis: {post_url}"
+                    
+                    if posts:
+                        self.render_report_to_console(posts, title)
+                        json_filename = self.export_to_json(posts, f"reddit_post_analysis_{post_url.replace('/', '_').replace('.', '_')}.json")
+                        print(f"\n📁 JSON export saved to: {json_filename}")
+                        print("🔄 This file is ready for Mark III 'Scribe' processing.")
+                    else:
+                        print("\n❌ No comments found for the given post URL.")
+                
+                elif mission_choice == '13':
+                    # Reddit Subreddit Explorer
+                    subreddit = input("\nEnter Reddit subreddit name: ")
+                    print(f"\n🔍 Exploring posts from subreddit: {subreddit}")
+                    
+                    posts = await self.get_posts_from_subreddit(subreddit)
+                    title = f"Reddit Posts from {subreddit}"
+                    
+                    if posts:
+                        self.render_briefing_to_console(posts, title)
+                        json_filename = self.export_to_json(posts, f"reddit_subreddit_explorer_{subreddit.replace('/', '_')}.json")
+                        print(f"\n📁 JSON export saved to: {json_filename}")
+                        print("🔄 This file is ready for Mark III 'Scribe' processing.")
+                    else:
+                        print("\n❌ No posts found for the given subreddit.")
+                
+                elif mission_choice == '14':
+                    # Reddit Multi-Source Briefing
+                    subreddits_str = input("\nEnter Reddit subreddits, separated by commas: ")
+                    subreddits = [sr.strip() for sr in subreddits_str.split(',')]
+                    
+                    print(f"\n🔍 Fetching posts from {len(subreddits)} subreddits...")
+                    posts = await self.get_posts_from_multiple_subreddits(subreddits)
+                    title = f"Reddit Multi-Source Briefing: {', '.join(subreddits)}"
+                    
+                    if posts:
+                        self.render_briefing_to_console(posts, title)
+                        json_filename = self.export_to_json(posts, f"reddit_multi_source_briefing_{'_'.join(subreddits).replace('/', '_')}.json")
+                        print(f"\n📁 JSON export saved to: {json_filename}")
+                        print("🔄 This file is ready for Mark III 'Scribe' processing.")
+                    else:
+                        print("\n❌ No posts found for the given subreddits.")
             
             # New unified output testing mission
             elif mission_choice == '11':

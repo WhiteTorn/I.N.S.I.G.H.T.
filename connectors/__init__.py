@@ -7,5 +7,6 @@ from .base_connector import BaseConnector
 from .telegram_connector import TelegramConnector
 from .rss_connector import RssConnector
 from .youtube_connector import YouTubeConnector
+from .reddit_connector import RedditConnector
 
-__all__ = ['BaseConnector', 'TelegramConnector', 'RssConnector', 'YouTubeConnector'] 
+__all__ = ['BaseConnector', 'TelegramConnector', 'RssConnector', 'YouTubeConnector', 'RedditConnector'] 
