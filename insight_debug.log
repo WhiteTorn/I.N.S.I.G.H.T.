@@ -1742,3 +1742,310 @@ client_session: <aiohttp.client.ClientSession object at 0x00000257A6ECA4D0>
 2025-06-18 19:40:50,480 - ERROR - base_events - Unclosed connector
 connections: ['[(<aiohttp.client_proto.ResponseHandler object at 0x00000257A6D66900>, 11179.765)]']
 connector: <aiohttp.connector.TCPConnector object at 0x00000257A6EDB350>
+2025-06-18 19:49:49,853 - INFO - test_runner - Test logging initialized: Tests\logs\test_run_20250618_194949.log
+2025-06-18 19:49:49,855 - INFO - test_runner - Initializing I.N.S.I.G.H.T. operator for testing...
+2025-06-18 19:49:49,855 - INFO - main - I.N.S.I.G.H.T. Mark II (v2.4) - The Inquisitor - Citadel Edition - Initializing...
+2025-06-18 19:49:49,856 - INFO - telegram_connector - TelegramConnector v2.3 'The Citadel' initialized with hardened error handling
+2025-06-18 19:49:49,856 - INFO - main - Telegram connector registered
+2025-06-18 19:49:49,856 - INFO - rss_connector - RSS Connector v2.3 'The Citadel' initialized with hardened error handling
+2025-06-18 19:49:49,857 - INFO - main - RSS connector registered
+2025-06-18 19:49:49,857 - INFO - youtube_connector - YouTubeConnector v3.0 'The Liberated Spymaster' initialized - NO API KEY REQUIRED!
+2025-06-18 19:49:49,857 - INFO - main - YouTube connector registered (yt-dlp powered - no API key needed)
+2025-06-18 19:49:49,857 - INFO - reddit_connector - Reddit Connector initialized in Async PRAW mode (native async support)
+2025-06-18 19:49:49,857 - INFO - main - Reddit connector registered (PRAW powered)
+2025-06-18 19:49:49,857 - INFO - main - Mark II Orchestrator ready with Citadel-grade protection.
+2025-06-18 19:49:49,859 - INFO - telegram_connector - Connecting to Telegram...
+2025-06-18 19:49:49,859 - INFO - mtprotosender - Connecting to 149.154.167.51:443/TcpFull...
+2025-06-18 19:49:49,931 - INFO - mtprotosender - Connection to 149.154.167.51:443/TcpFull complete!
+2025-06-18 19:49:50,646 - INFO - telegram_connector - Telegram connection successful.
+2025-06-18 19:49:50,646 - INFO - main - Connected to telegram
+2025-06-18 19:49:50,647 - INFO - rss_connector - RSS connector ready - feedparser operational
+2025-06-18 19:49:50,647 - INFO - main - Connected to rss
+2025-06-18 19:49:50,719 - INFO - youtube_connector - Connected to YouTube via yt-dlp - Ready for intelligence gathering!
+2025-06-18 19:49:50,719 - INFO - main - Connected to youtube
+2025-06-18 19:49:51,496 - INFO - reddit_connector - Connected to Reddit API successfully (Async PRAW mode)
+2025-06-18 19:49:51,497 - INFO - main - Connected to reddit
+2025-06-18 19:49:51,497 - INFO - test_runner - Available connectors: ['telegram', 'rss', 'youtube', 'reddit']
+2025-06-18 19:49:51,498 - INFO - test_runner - Starting test: Telegram Deep Scan - seeallochnaya (5 posts)
+2025-06-18 19:49:51,498 - INFO - telegram_connector - Starting Deep Scan for 5 posts from @seeallochnaya...
+2025-06-18 19:49:51,679 - INFO - telegram_connector - Fetch attempt #1 for @seeallochnaya...
+2025-06-18 19:49:52,652 - INFO - telegram_connector - Successfully fetched 5 posts from @seeallochnaya
+2025-06-18 19:49:52,653 - INFO - json_output - Successfully exported 5 posts to Tests/output/test_output_Telegram_Deep_Scan_-_seeallochnaya_(5_posts).json
+2025-06-18 19:49:52,654 - INFO - json_output - JSON validation status: valid
+2025-06-18 19:49:52,654 - INFO - html_output - Successfully generated HTML dossier: Tests/output/test_output_Telegram_Deep_Scan_-_seeallochnaya_(5_posts).html
+2025-06-18 19:49:52,655 - INFO - test_runner - Test completed successfully: Telegram Deep Scan - seeallochnaya (5 posts)
+2025-06-18 19:49:55,658 - INFO - test_runner - Starting test: Telegram Deep Scan - durov (5 posts)
+2025-06-18 19:49:55,658 - INFO - telegram_connector - Starting Deep Scan for 5 posts from @durov...
+2025-06-18 19:49:55,740 - INFO - telegram_connector - Fetch attempt #1 for @durov...
+2025-06-18 19:49:56,583 - INFO - telegram_connector - Successfully fetched 5 posts from @durov
+2025-06-18 19:49:56,586 - INFO - json_output - Successfully exported 5 posts to Tests/output/test_output_Telegram_Deep_Scan_-_durov_(5_posts).json
+2025-06-18 19:49:56,586 - INFO - json_output - JSON validation status: valid
+2025-06-18 19:49:56,588 - INFO - html_output - Successfully generated HTML dossier: Tests/output/test_output_Telegram_Deep_Scan_-_durov_(5_posts).html
+2025-06-18 19:49:56,588 - INFO - test_runner - Test completed successfully: Telegram Deep Scan - durov (5 posts)
+2025-06-18 19:49:59,600 - INFO - test_runner - Starting test: Telegram Deep Scan - denissexy (10 posts)
+2025-06-18 19:49:59,601 - INFO - telegram_connector - Starting Deep Scan for 10 posts from @denissexy...
+2025-06-18 19:49:59,740 - INFO - telegram_connector - Fetch attempt #1 for @denissexy...
+2025-06-18 19:50:00,264 - INFO - telegram_connector - Successfully fetched 10 posts from @denissexy
+2025-06-18 19:50:00,267 - INFO - json_output - Successfully exported 10 posts to Tests/output/test_output_Telegram_Deep_Scan_-_denissexy_(10_posts).json
+2025-06-18 19:50:00,267 - INFO - json_output - JSON validation status: valid
+2025-06-18 19:50:00,268 - INFO - html_output - Successfully generated HTML dossier: Tests/output/test_output_Telegram_Deep_Scan_-_denissexy_(10_posts).html
+2025-06-18 19:50:00,269 - INFO - test_runner - Test completed successfully: Telegram Deep Scan - denissexy (10 posts)
+2025-06-18 19:50:03,282 - INFO - test_runner - Starting test: Telegram Rate Limiting Test - ai_newz (40 posts)
+2025-06-18 19:50:03,283 - INFO - telegram_connector - Starting Deep Scan for 40 posts from @ai_newz...
+2025-06-18 19:50:03,490 - INFO - telegram_connector - Fetch attempt #1 for @ai_newz...
+2025-06-18 19:50:04,218 - INFO - telegram_connector - Successfully fetched 40 posts from @ai_newz
+2025-06-18 19:50:04,225 - INFO - json_output - Successfully exported 40 posts to Tests/output/test_output_Telegram_Rate_Limiting_Test_-_ai_newz_(40_posts).json
+2025-06-18 19:50:04,225 - INFO - json_output - JSON validation status: valid
+2025-06-18 19:50:04,227 - INFO - html_output - Successfully generated HTML dossier: Tests/output/test_output_Telegram_Rate_Limiting_Test_-_ai_newz_(40_posts).html
+2025-06-18 19:50:04,228 - INFO - test_runner - Test completed successfully: Telegram Rate Limiting Test - ai_newz (40 posts)
+2025-06-18 19:50:07,231 - INFO - test_runner - Starting test: Telegram Rate Limiting Test - denissexy (100 posts)
+2025-06-18 19:50:07,233 - INFO - telegram_connector - Starting Deep Scan for 100 posts from @denissexy...
+2025-06-18 19:50:07,314 - INFO - telegram_connector - Fetch attempt #1 for @denissexy...
+2025-06-18 19:50:07,866 - INFO - telegram_connector - Fetch attempt #2 for @denissexy...
+2025-06-18 19:50:09,007 - INFO - telegram_connector - Successfully fetched 100 posts from @denissexy
+2025-06-18 19:50:09,018 - INFO - json_output - Successfully exported 100 posts to Tests/output/test_output_Telegram_Rate_Limiting_Test_-_denissexy_(100_posts).json
+2025-06-18 19:50:09,019 - INFO - json_output - JSON validation status: valid
+2025-06-18 19:50:09,023 - INFO - html_output - Successfully generated HTML dossier: Tests/output/test_output_Telegram_Rate_Limiting_Test_-_denissexy_(100_posts).html
+2025-06-18 19:50:09,024 - INFO - test_runner - Test completed successfully: Telegram Rate Limiting Test - denissexy (100 posts)
+2025-06-18 19:50:12,039 - INFO - test_runner - Starting test: Telegram Briefing - All channels (4 days)
+2025-06-18 19:50:12,040 - INFO - telegram_connector - Starting Historical Briefing generation for the last 4 days...
+2025-06-18 19:50:12,040 - INFO - telegram_connector - Gathering intel from @seeallochnaya...
+2025-06-18 19:50:13,057 - INFO - telegram_connector - Successfully collected 1 posts from @seeallochnaya
+2025-06-18 19:50:13,057 - INFO - telegram_connector - Gathering intel from @durov...
+2025-06-18 19:50:14,101 - INFO - telegram_connector - Successfully collected 1 posts from @durov
+2025-06-18 19:50:14,102 - INFO - telegram_connector - Gathering intel from @denissexy...
+2025-06-18 19:50:14,692 - INFO - telegram_connector - Successfully collected 11 posts from @denissexy
+2025-06-18 19:50:14,692 - INFO - telegram_connector - Gathering intel from @ai_newz...
+2025-06-18 19:50:15,387 - INFO - telegram_connector - Successfully collected 8 posts from @ai_newz
+2025-06-18 19:50:15,387 - INFO - telegram_connector - Multi-channel processing complete: 4 successful, 0 failed channels
+2025-06-18 19:50:15,390 - INFO - json_output - Successfully exported 21 posts to Tests/output/test_output_Telegram_Briefing_-_All_channels_(4_days).json
+2025-06-18 19:50:15,390 - INFO - json_output - JSON validation status: valid
+2025-06-18 19:50:15,391 - INFO - html_output - Successfully generated HTML dossier: Tests/output/test_output_Telegram_Briefing_-_All_channels_(4_days).html
+2025-06-18 19:50:15,393 - INFO - test_runner - Test completed successfully: Telegram Briefing - All channels (4 days)
+2025-06-18 19:50:18,402 - INFO - test_runner - Starting test: Telegram Briefing - All channels (10 days)
+2025-06-18 19:50:18,403 - INFO - telegram_connector - Starting Historical Briefing generation for the last 10 days...
+2025-06-18 19:50:18,403 - INFO - telegram_connector - Gathering intel from @seeallochnaya...
+2025-06-18 19:50:18,403 - WARNING - telegram_connector - Request threshold (15) reached. Initiating 60-second cooldown.
+2025-06-18 19:51:18,421 - INFO - telegram_connector - Cooldown complete. Resuming operations.
+2025-06-18 19:51:19,470 - INFO - telegram_connector - Successfully collected 5 posts from @seeallochnaya
+2025-06-18 19:51:19,470 - INFO - telegram_connector - Gathering intel from @durov...
+2025-06-18 19:51:20,559 - INFO - telegram_connector - Successfully collected 2 posts from @durov
+2025-06-18 19:51:20,560 - INFO - telegram_connector - Gathering intel from @denissexy...
+2025-06-18 19:51:21,145 - INFO - telegram_connector - Successfully collected 47 posts from @denissexy
+2025-06-18 19:51:21,145 - INFO - telegram_connector - Gathering intel from @ai_newz...
+2025-06-18 19:51:21,819 - INFO - telegram_connector - Successfully collected 18 posts from @ai_newz
+2025-06-18 19:51:21,820 - INFO - telegram_connector - Multi-channel processing complete: 4 successful, 0 failed channels
+2025-06-18 19:51:21,826 - INFO - json_output - Successfully exported 72 posts to Tests/output/test_output_Telegram_Briefing_-_All_channels_(10_days).json
+2025-06-18 19:51:21,826 - INFO - json_output - JSON validation status: valid
+2025-06-18 19:51:21,829 - INFO - html_output - Successfully generated HTML dossier: Tests/output/test_output_Telegram_Briefing_-_All_channels_(10_days).html
+2025-06-18 19:51:21,830 - WARNING - test_runner - Possible rate limiting detected - execution time: 63.42s
+2025-06-18 19:51:21,830 - INFO - test_runner - Test completed successfully: Telegram Briefing - All channels (10 days)
+2025-06-18 19:51:24,840 - INFO - test_runner - Starting test: Telegram Briefing - All channels (20 days)
+2025-06-18 19:51:24,841 - INFO - telegram_connector - Starting Historical Briefing generation for the last 20 days...
+2025-06-18 19:51:24,841 - INFO - telegram_connector - Gathering intel from @seeallochnaya...
+2025-06-18 19:51:25,503 - INFO - telegram_connector - Successfully collected 12 posts from @seeallochnaya
+2025-06-18 19:51:25,503 - INFO - telegram_connector - Gathering intel from @durov...
+2025-06-18 19:51:26,253 - INFO - telegram_connector - Successfully collected 6 posts from @durov
+2025-06-18 19:51:26,253 - INFO - telegram_connector - Gathering intel from @denissexy...
+2025-06-18 19:51:27,953 - INFO - telegram_connector - Successfully collected 76 posts from @denissexy
+2025-06-18 19:51:27,953 - INFO - telegram_connector - Gathering intel from @ai_newz...
+2025-06-18 19:51:28,652 - INFO - telegram_connector - Successfully collected 25 posts from @ai_newz
+2025-06-18 19:51:28,653 - INFO - telegram_connector - Multi-channel processing complete: 4 successful, 0 failed channels
+2025-06-18 19:51:28,663 - INFO - json_output - Successfully exported 119 posts to Tests/output/test_output_Telegram_Briefing_-_All_channels_(20_days).json
+2025-06-18 19:51:28,664 - INFO - json_output - JSON validation status: valid
+2025-06-18 19:51:28,674 - INFO - html_output - Successfully generated HTML dossier: Tests/output/test_output_Telegram_Briefing_-_All_channels_(20_days).html
+2025-06-18 19:51:28,675 - INFO - test_runner - Test completed successfully: Telegram Briefing - All channels (20 days)
+2025-06-18 19:51:31,692 - INFO - test_runner - Starting test: Telegram End of Day - All channels
+2025-06-18 19:51:31,694 - INFO - telegram_connector - Starting 'End of Day' briefing generation for today...
+2025-06-18 19:51:31,694 - INFO - telegram_connector - Gathering intel from @seeallochnaya...
+2025-06-18 19:51:32,490 - WARNING - telegram_connector - No messages found in timeframe for @seeallochnaya
+2025-06-18 19:51:32,490 - INFO - telegram_connector - Gathering intel from @durov...
+2025-06-18 19:51:33,249 - WARNING - telegram_connector - No messages found in timeframe for @durov
+2025-06-18 19:51:33,249 - INFO - telegram_connector - Gathering intel from @denissexy...
+2025-06-18 19:51:33,920 - INFO - telegram_connector - Successfully collected 2 posts from @denissexy
+2025-06-18 19:51:33,921 - INFO - telegram_connector - Gathering intel from @ai_newz...
+2025-06-18 19:51:34,740 - WARNING - telegram_connector - No messages found in timeframe for @ai_newz
+2025-06-18 19:51:34,741 - INFO - telegram_connector - Multi-channel processing complete: 1 successful, 0 failed channels
+2025-06-18 19:51:34,743 - INFO - json_output - Successfully exported 2 posts to Tests/output/test_output_Telegram_End_of_Day_-_All_channels.json
+2025-06-18 19:51:34,744 - INFO - json_output - JSON validation status: valid
+2025-06-18 19:51:34,744 - INFO - html_output - Successfully generated HTML dossier: Tests/output/test_output_Telegram_End_of_Day_-_All_channels.html
+2025-06-18 19:51:34,745 - INFO - test_runner - Test completed successfully: Telegram End of Day - All channels
+2025-06-18 19:51:37,750 - INFO - test_runner - Starting test: RSS Analysis - everything
+2025-06-18 19:51:37,751 - INFO - rss_connector - Analyzing RSS/Atom feed: https://simonwillison.net/atom/everything/
+2025-06-18 19:51:39,211 - INFO - rss_connector - Successfully analyzed feed https://simonwillison.net/atom/everything/: 30 entries, type: atom
+2025-06-18 19:51:39,213 - INFO - json_output - Successfully exported 1 posts to Tests/output/test_output_RSS_Analysis_-_everything.json
+2025-06-18 19:51:39,213 - INFO - json_output - JSON validation status: errors_found
+2025-06-18 19:51:39,213 - WARNING - json_output - Validation found 6 issues
+2025-06-18 19:51:39,214 - WARNING - json_output -   - Post post_0: Missing required field 'source'
+2025-06-18 19:51:39,214 - WARNING - json_output -   - Post post_0: Missing required field 'url'
+2025-06-18 19:51:39,214 - WARNING - json_output -   - Post post_0: Missing required field 'date'
+2025-06-18 19:51:39,214 - WARNING - json_output -   - Post post_0: Missing required field 'media_urls'
+2025-06-18 19:51:39,215 - WARNING - json_output -   - Post post_0: Missing required field 'categories'
+2025-06-18 19:51:39,215 - WARNING - json_output -   - Post post_0: Missing required field 'metadata'
+2025-06-18 19:51:39,215 - INFO - test_runner - Test completed successfully: RSS Analysis - everything
+2025-06-18 19:51:42,228 - INFO - test_runner - Starting test: RSS Analysis - www.seangoedecke.com
+2025-06-18 19:51:42,228 - INFO - rss_connector - Analyzing RSS/Atom feed: https://www.seangoedecke.com/rss.xml
+2025-06-18 19:51:42,904 - INFO - rss_connector - Successfully analyzed feed https://www.seangoedecke.com/rss.xml: 30 entries, type: rss
+2025-06-18 19:51:42,906 - INFO - json_output - Successfully exported 1 posts to Tests/output/test_output_RSS_Analysis_-_www.seangoedecke.com.json
+2025-06-18 19:51:42,906 - INFO - json_output - JSON validation status: errors_found
+2025-06-18 19:51:42,907 - WARNING - json_output - Validation found 6 issues
+2025-06-18 19:51:42,907 - WARNING - json_output -   - Post post_0: Missing required field 'source'
+2025-06-18 19:51:42,907 - WARNING - json_output -   - Post post_0: Missing required field 'url'
+2025-06-18 19:51:42,908 - WARNING - json_output -   - Post post_0: Missing required field 'date'
+2025-06-18 19:51:42,908 - WARNING - json_output -   - Post post_0: Missing required field 'media_urls'
+2025-06-18 19:51:42,908 - WARNING - json_output -   - Post post_0: Missing required field 'categories'
+2025-06-18 19:51:42,908 - WARNING - json_output -   - Post post_0: Missing required field 'metadata'
+2025-06-18 19:51:42,909 - INFO - test_runner - Test completed successfully: RSS Analysis - www.seangoedecke.com
+2025-06-18 19:51:45,921 - INFO - test_runner - Starting test: RSS Analysis - feed
+2025-06-18 19:51:45,922 - INFO - rss_connector - Analyzing RSS/Atom feed: https://toska.bearblog.dev/feed/?type=rss
+2025-06-18 19:51:46,904 - INFO - rss_connector - Successfully analyzed feed https://toska.bearblog.dev/feed/?type=rss: 10 entries, type: rss
+2025-06-18 19:51:46,907 - INFO - json_output - Successfully exported 1 posts to Tests/output/test_output_RSS_Analysis_-_feed.json
+2025-06-18 19:51:46,907 - INFO - json_output - JSON validation status: errors_found
+2025-06-18 19:51:46,907 - WARNING - json_output - Validation found 6 issues
+2025-06-18 19:51:46,907 - WARNING - json_output -   - Post post_0: Missing required field 'source'
+2025-06-18 19:51:46,908 - WARNING - json_output -   - Post post_0: Missing required field 'url'
+2025-06-18 19:51:46,908 - WARNING - json_output -   - Post post_0: Missing required field 'date'
+2025-06-18 19:51:46,908 - WARNING - json_output -   - Post post_0: Missing required field 'media_urls'
+2025-06-18 19:51:46,908 - WARNING - json_output -   - Post post_0: Missing required field 'categories'
+2025-06-18 19:51:46,909 - WARNING - json_output -   - Post post_0: Missing required field 'metadata'
+2025-06-18 19:51:46,909 - INFO - test_runner - Test completed successfully: RSS Analysis - feed
+2025-06-18 19:51:49,913 - INFO - test_runner - Starting test: RSS Single Feed - everything (20 posts)
+2025-06-18 19:51:49,914 - INFO - rss_connector - Fetching 20 posts from RSS/Atom feed: https://simonwillison.net/atom/everything/
+2025-06-18 19:51:50,378 - INFO - rss_connector - Detected feed type: atom
+2025-06-18 19:51:50,393 - INFO - rss_connector - Successfully processed 20 posts from https://simonwillison.net/atom/everything/ (atom)
+2025-06-18 19:51:50,396 - INFO - json_output - Successfully exported 20 posts to Tests/output/test_output_RSS_Single_Feed_-_everything_(20_posts).json
+2025-06-18 19:51:50,397 - INFO - json_output - JSON validation status: valid
+2025-06-18 19:51:50,399 - INFO - html_output - Successfully generated HTML dossier: Tests/output/test_output_RSS_Single_Feed_-_everything_(20_posts).html
+2025-06-18 19:51:50,399 - INFO - test_runner - Test completed successfully: RSS Single Feed - everything (20 posts)
+2025-06-18 19:51:53,407 - INFO - test_runner - Starting test: RSS Single Feed - www.seangoedecke.com (20 posts)
+2025-06-18 19:51:53,411 - INFO - rss_connector - Fetching 20 posts from RSS/Atom feed: https://www.seangoedecke.com/rss.xml
+2025-06-18 19:51:53,933 - INFO - rss_connector - Detected feed type: rss
+2025-06-18 19:51:53,943 - INFO - rss_connector - Successfully processed 20 posts from https://www.seangoedecke.com/rss.xml (rss)
+2025-06-18 19:51:53,951 - INFO - json_output - Successfully exported 20 posts to Tests/output/test_output_RSS_Single_Feed_-_www.seangoedecke.com_(20_posts).json
+2025-06-18 19:51:53,952 - INFO - json_output - JSON validation status: valid
+2025-06-18 19:51:53,954 - INFO - html_output - Successfully generated HTML dossier: Tests/output/test_output_RSS_Single_Feed_-_www.seangoedecke.com_(20_posts).html
+2025-06-18 19:51:53,955 - INFO - test_runner - Test completed successfully: RSS Single Feed - www.seangoedecke.com (20 posts)
+2025-06-18 19:51:56,970 - INFO - test_runner - Starting test: RSS Single Feed - feed (20 posts)
+2025-06-18 19:51:56,971 - INFO - rss_connector - Fetching 20 posts from RSS/Atom feed: https://toska.bearblog.dev/feed/?type=rss
+2025-06-18 19:51:57,033 - INFO - rss_connector - Detected feed type: rss
+2025-06-18 19:51:57,036 - INFO - rss_connector - Successfully processed 10 posts from https://toska.bearblog.dev/feed/?type=rss (rss)
+2025-06-18 19:51:57,039 - INFO - json_output - Successfully exported 10 posts to Tests/output/test_output_RSS_Single_Feed_-_feed_(20_posts).json
+2025-06-18 19:51:57,039 - INFO - json_output - JSON validation status: valid
+2025-06-18 19:51:57,040 - INFO - html_output - Successfully generated HTML dossier: Tests/output/test_output_RSS_Single_Feed_-_feed_(20_posts).html
+2025-06-18 19:51:57,041 - INFO - test_runner - Test completed successfully: RSS Single Feed - feed (20 posts)
+2025-06-18 19:52:00,047 - INFO - test_runner - Starting test: RSS Multi-Feed - All feeds (20 posts each)
+2025-06-18 19:52:00,048 - INFO - rss_connector - Fetching 20 posts from RSS/Atom feed: https://simonwillison.net/atom/everything/
+2025-06-18 19:52:00,513 - INFO - rss_connector - Detected feed type: atom
+2025-06-18 19:52:00,518 - INFO - rss_connector - Successfully processed 20 posts from https://simonwillison.net/atom/everything/ (atom)
+2025-06-18 19:52:00,518 - INFO - main - Successfully fetched 20 posts from https://simonwillison.net/atom/everything/
+2025-06-18 19:52:00,518 - INFO - rss_connector - Fetching 20 posts from RSS/Atom feed: https://www.seangoedecke.com/rss.xml
+2025-06-18 19:52:01,042 - INFO - rss_connector - Detected feed type: rss
+2025-06-18 19:52:01,052 - INFO - rss_connector - Successfully processed 20 posts from https://www.seangoedecke.com/rss.xml (rss)
+2025-06-18 19:52:01,053 - INFO - main - Successfully fetched 20 posts from https://www.seangoedecke.com/rss.xml
+2025-06-18 19:52:01,053 - INFO - rss_connector - Fetching 20 posts from RSS/Atom feed: https://toska.bearblog.dev/feed/?type=rss
+2025-06-18 19:52:01,117 - INFO - rss_connector - Detected feed type: rss
+2025-06-18 19:52:01,120 - INFO - rss_connector - Successfully processed 10 posts from https://toska.bearblog.dev/feed/?type=rss (rss)
+2025-06-18 19:52:01,120 - INFO - main - Successfully fetched 10 posts from https://toska.bearblog.dev/feed/?type=rss
+2025-06-18 19:52:01,121 - INFO - main - Multi-RSS operation complete: 3 successful, 0 failed feeds
+2025-06-18 19:52:01,133 - INFO - json_output - Successfully exported 50 posts to Tests/output/test_output_RSS_Multi-Feed_-_All_feeds_(20_posts_each).json
+2025-06-18 19:52:01,134 - INFO - json_output - JSON validation status: valid
+2025-06-18 19:52:01,138 - INFO - html_output - Successfully generated HTML dossier: Tests/output/test_output_RSS_Multi-Feed_-_All_feeds_(20_posts_each).html
+2025-06-18 19:52:01,139 - INFO - test_runner - Test completed successfully: RSS Multi-Feed - All feeds (20 posts each)
+2025-06-18 19:52:04,149 - INFO - test_runner - Starting test: YouTube Transcript - JIYtAnlzMfw
+2025-06-18 19:52:04,153 - INFO - youtube_connector - Extracting intelligence from video JIYtAnlzMfw...
+2025-06-18 19:52:13,016 - INFO - youtube_connector - Successfully extracted transcript from video JIYtAnlzMfw
+2025-06-18 19:52:13,020 - INFO - json_output - Successfully exported 1 posts to Tests/output/test_output_YouTube_Transcript_-_JIYtAnlzMfw.json
+2025-06-18 19:52:13,021 - INFO - json_output - JSON validation status: valid
+2025-06-18 19:52:13,021 - INFO - html_output - Successfully generated HTML dossier: Tests/output/test_output_YouTube_Transcript_-_JIYtAnlzMfw.html
+2025-06-18 19:52:13,022 - INFO - test_runner - Test completed successfully: YouTube Transcript - JIYtAnlzMfw
+2025-06-18 19:52:16,028 - INFO - test_runner - Starting test: YouTube Transcript - CQywdSdi5iA
+2025-06-18 19:52:16,028 - INFO - youtube_connector - Extracting intelligence from video CQywdSdi5iA...
+2025-06-18 19:52:21,941 - INFO - youtube_connector - Successfully extracted transcript from video CQywdSdi5iA
+2025-06-18 19:52:21,943 - INFO - json_output - Successfully exported 1 posts to Tests/output/test_output_YouTube_Transcript_-_CQywdSdi5iA.json
+2025-06-18 19:52:21,943 - INFO - json_output - JSON validation status: valid
+2025-06-18 19:52:21,944 - INFO - html_output - Successfully generated HTML dossier: Tests/output/test_output_YouTube_Transcript_-_CQywdSdi5iA.html
+2025-06-18 19:52:21,944 - INFO - test_runner - Test completed successfully: YouTube Transcript - CQywdSdi5iA
+2025-06-18 19:52:24,951 - INFO - test_runner - Starting test: YouTube Channel - UCrDwWp7EBBv4NwvScIpBDOA (5 videos)
+2025-06-18 19:52:24,952 - INFO - youtube_connector - Starting intelligence extraction from channel UCrDwWp7EBBv4NwvScIpBDOA (limit: 5)...
+2025-06-18 19:52:27,490 - INFO - youtube_connector - Found 3 videos in channel UCrDwWp7EBBv4NwvScIpBDOA
+2025-06-18 19:52:27,491 - INFO - youtube_connector - Processing video 1/3: UCrDwWp7EBBv4NwvScIpBDOA
+2025-06-18 19:52:29,721 - ERROR - youtube_connector - yt-dlp error fetching metadata for video UCrDwWp7EBBv4NwvScIpBDOA: [0;31mERROR:[0m [youtube] UCrDwWp7EBB: Video unavailable
+2025-06-18 19:52:29,721 - WARNING - youtube_connector - WARNING: Could not retrieve metadata for video UCrDwWp7EBBv4NwvScIpBDOA. Skipping.
+2025-06-18 19:52:29,721 - INFO - youtube_connector - Processing video 2/3: UCrDwWp7EBBv4NwvScIpBDOA
+2025-06-18 19:52:31,972 - ERROR - youtube_connector - yt-dlp error fetching metadata for video UCrDwWp7EBBv4NwvScIpBDOA: [0;31mERROR:[0m [youtube] UCrDwWp7EBB: Video unavailable
+2025-06-18 19:52:31,973 - WARNING - youtube_connector - WARNING: Could not retrieve metadata for video UCrDwWp7EBBv4NwvScIpBDOA. Skipping.
+2025-06-18 19:52:31,974 - INFO - youtube_connector - Processing video 3/3: UCrDwWp7EBBv4NwvScIpBDOA
+2025-06-18 19:52:34,048 - ERROR - youtube_connector - yt-dlp error fetching metadata for video UCrDwWp7EBBv4NwvScIpBDOA: [0;31mERROR:[0m [youtube] UCrDwWp7EBB: Video unavailable
+2025-06-18 19:52:34,048 - WARNING - youtube_connector - WARNING: Could not retrieve metadata for video UCrDwWp7EBBv4NwvScIpBDOA. Skipping.
+2025-06-18 19:52:34,048 - INFO - youtube_connector - Channel processing complete: 0 successful, 3 failed extractions
+2025-06-18 19:52:34,048 - INFO - json_output - Successfully exported 0 posts to Tests/output/test_output_YouTube_Channel_-_UCrDwWp7EBBv4NwvScIpBDOA_(5_videos).json
+2025-06-18 19:52:34,048 - INFO - json_output - JSON validation status: valid
+2025-06-18 19:52:34,058 - INFO - html_output - Successfully generated HTML dossier: Tests/output/test_output_YouTube_Channel_-_UCrDwWp7EBBv4NwvScIpBDOA_(5_videos).html
+2025-06-18 19:52:34,058 - INFO - test_runner - Test completed successfully: YouTube Channel - UCrDwWp7EBBv4NwvScIpBDOA (5 videos)
+2025-06-18 19:52:37,068 - INFO - test_runner - Starting test: YouTube Playlist - PLf2m23nhTg1NjL3-jL3s0qZCYzO07ZQPv
+2025-06-18 19:52:37,069 - INFO - youtube_connector - Extracting intelligence from playlist https://youtube.com/playlist?list=PLf2m23nhTg1NjL3-jL3s0qZCYzO07ZQPv...
+2025-06-18 19:52:38,967 - INFO - youtube_connector - Extracting intelligence from video -UN9sNqQ0t4...
+2025-06-18 19:52:44,671 - INFO - youtube_connector - Successfully extracted transcript from video -UN9sNqQ0t4
+2025-06-18 19:52:44,672 - INFO - youtube_connector - Extracting intelligence from video JpGtOfSgR-c...
+2025-06-18 19:52:51,119 - INFO - youtube_connector - Successfully extracted transcript from video JpGtOfSgR-c
+2025-06-18 19:52:51,120 - INFO - youtube_connector - Extracting intelligence from video 4szRHy_CT7s...
+2025-06-18 19:53:36,019 - INFO - youtube_connector - Successfully extracted transcript from video 4szRHy_CT7s
+2025-06-18 19:53:36,020 - INFO - youtube_connector - Extracting intelligence from video W4Ua6XFfX9w...
+2025-06-18 19:53:43,112 - INFO - youtube_connector - Successfully extracted transcript from video W4Ua6XFfX9w
+2025-06-18 19:53:43,112 - INFO - youtube_connector - Extracting intelligence from video RyvXxApfHkk...
+2025-06-18 19:53:49,246 - INFO - youtube_connector - Successfully extracted transcript from video RyvXxApfHkk
+2025-06-18 19:53:49,246 - INFO - youtube_connector - Successfully extracted 5 transcripts from playlist
+2025-06-18 19:53:49,248 - INFO - json_output - Successfully exported 5 posts to Tests/output/test_output_YouTube_Playlist_-_PLf2m23nhTg1NjL3-jL3s0qZCYzO07ZQPv.json
+2025-06-18 19:53:49,249 - INFO - json_output - JSON validation status: valid
+2025-06-18 19:53:49,250 - INFO - html_output - Successfully generated HTML dossier: Tests/output/test_output_YouTube_Playlist_-_PLf2m23nhTg1NjL3-jL3s0qZCYzO07ZQPv.html
+2025-06-18 19:53:49,250 - WARNING - test_runner - Possible rate limiting detected - execution time: 72.18s
+2025-06-18 19:53:49,250 - INFO - test_runner - Test completed successfully: YouTube Playlist - PLf2m23nhTg1NjL3-jL3s0qZCYzO07ZQPv
+2025-06-18 19:53:52,262 - INFO - test_runner - Starting test: Reddit Post Analysis - PixelArtTutorials post with comments
+2025-06-18 19:53:52,262 - INFO - reddit_connector - Extracting Reddit post from URL: https://www.reddit.com/r/PixelArtTutorials/comments/1c2vhu6/how_do_i_start_my_journey_in_pixel_art/ (mode: asyncpraw)
+2025-06-18 19:53:54,526 - INFO - reddit_connector - Successfully extracted post 1c2vhu6 with 5 comments
+2025-06-18 19:53:54,533 - INFO - json_output - Successfully exported 1 posts to Tests/output/test_output_Reddit_Post_Analysis_-_PixelArtTutorials_post_with_comments.json
+2025-06-18 19:53:54,534 - INFO - json_output - JSON validation status: valid
+2025-06-18 19:53:54,538 - INFO - html_output - Successfully generated HTML dossier: Tests/output/test_output_Reddit_Post_Analysis_-_PixelArtTutorials_post_with_comments.html
+2025-06-18 19:53:54,539 - INFO - test_runner - Test completed successfully: Reddit Post Analysis - PixelArtTutorials post with comments
+2025-06-18 19:53:57,556 - INFO - test_runner - Starting test: Reddit Subreddit - PixelArtTutorials (5 posts with comments)
+2025-06-18 19:53:57,558 - INFO - reddit_connector - Fetching 5 hot posts from r/PixelArtTutorials (mode: asyncpraw)
+2025-06-18 19:53:58,168 - INFO - reddit_connector - Processed post 1lef48g: '2 characters portraits...' (0 comments)
+2025-06-18 19:53:58,428 - INFO - reddit_connector - Processed post 1lef4s3: 'First PixelArt 🐧...' (0 comments)
+2025-06-18 19:53:58,948 - INFO - reddit_connector - Processed post 1leess9: 'Beginner here — too many guides, don't know where ...' (1 comments)
+2025-06-18 19:53:59,500 - INFO - reddit_connector - Processed post 1led91n: 'Perhaps the sweetest thing you'll see today...' (1 comments)
+2025-06-18 19:54:04,038 - INFO - reddit_connector - Processed post 1ldr5al: 'Tree 1 or 2?...' (16 comments)
+2025-06-18 19:54:04,040 - INFO - reddit_connector - Async subreddit processing complete: 5 successful, 0 failed extractions
+2025-06-18 19:54:04,042 - INFO - json_output - Successfully exported 5 posts to Tests/output/test_output_Reddit_Subreddit_-_PixelArtTutorials_(5_posts_with_comments).json
+2025-06-18 19:54:04,042 - INFO - json_output - JSON validation status: valid
+2025-06-18 19:54:04,043 - INFO - html_output - Successfully generated HTML dossier: Tests/output/test_output_Reddit_Subreddit_-_PixelArtTutorials_(5_posts_with_comments).html
+2025-06-18 19:54:04,043 - INFO - test_runner - Test completed successfully: Reddit Subreddit - PixelArtTutorials (5 posts with comments)
+2025-06-18 19:54:07,049 - INFO - test_runner - Starting test: Reddit Multi-Source - PixelArtTutorials + LocalLLaMA
+2025-06-18 19:54:07,049 - INFO - reddit_connector - Fetching 5 hot posts from r/PixelArtTutorials (mode: asyncpraw)
+2025-06-18 19:54:07,636 - INFO - reddit_connector - Processed post 1lef48g: '2 characters portraits...' (0 comments)
+2025-06-18 19:54:07,899 - INFO - reddit_connector - Processed post 1lef4s3: 'First PixelArt 🐧...' (0 comments)
+2025-06-18 19:54:08,421 - INFO - reddit_connector - Processed post 1leess9: 'Beginner here — too many guides, don't know where ...' (1 comments)
+2025-06-18 19:54:08,982 - INFO - reddit_connector - Processed post 1led91n: 'Perhaps the sweetest thing you'll see today...' (1 comments)
+2025-06-18 19:54:13,500 - INFO - reddit_connector - Processed post 1ldr5al: 'Tree 1 or 2?...' (16 comments)
+2025-06-18 19:54:13,501 - INFO - reddit_connector - Async subreddit processing complete: 5 successful, 0 failed extractions
+2025-06-18 19:54:13,501 - INFO - reddit_connector - Fetching 5 hot posts from r/LocalLLaMA (mode: asyncpraw)
+2025-06-18 19:54:15,315 - INFO - reddit_connector - Processed post 1lei5mb: 'Oops...' (5 comments)
+2025-06-18 19:54:27,121 - INFO - reddit_connector - Processed post 1leh14g: 'Can your favourite local model solve this?...' (42 comments)
+2025-06-18 19:54:31,966 - INFO - reddit_connector - Processed post 1led0lb: 'Google doubled the price of Gemini 2.5 Flash think...' (18 comments)
+2025-06-18 19:54:41,118 - INFO - reddit_connector - Processed post 1led23c: 'Local AI for a small/median accounting firm - € Bu...' (33 comments)
+2025-06-18 19:54:43,518 - WARNING - main - WARNING: Reddit subreddit r/LocalLLaMA timed out after 30s
+2025-06-18 19:54:43,518 - INFO - main - Reddit multi-subreddit mission: 1 successful, 1 failed
+2025-06-18 19:54:43,521 - INFO - json_output - Successfully exported 5 posts to Tests/output/test_output_Reddit_Multi-Source_-_PixelArtTutorials_+_LocalLLaMA.json
+2025-06-18 19:54:43,521 - INFO - json_output - JSON validation status: valid
+2025-06-18 19:54:43,522 - INFO - html_output - Successfully generated HTML dossier: Tests/output/test_output_Reddit_Multi-Source_-_PixelArtTutorials_+_LocalLLaMA.html
+2025-06-18 19:54:43,522 - WARNING - test_runner - Possible rate limiting detected - execution time: 36.47s
+2025-06-18 19:54:43,523 - INFO - test_runner - Test completed successfully: Reddit Multi-Source - PixelArtTutorials + LocalLLaMA
+2025-06-18 19:54:43,526 - INFO - telegram_connector - Disconnecting from Telegram...
+2025-06-18 19:54:43,526 - INFO - mtprotosender - Disconnecting from 149.154.167.51:443/TcpFull...
+2025-06-18 19:54:43,526 - INFO - mtprotosender - Disconnection from 149.154.167.51:443/TcpFull complete!
+2025-06-18 19:54:43,532 - INFO - main - Disconnected from telegram
+2025-06-18 19:54:43,532 - INFO - rss_connector - RSS connector cleanup complete
+2025-06-18 19:54:43,532 - INFO - main - Disconnected from rss
+2025-06-18 19:54:43,532 - INFO - youtube_connector - YouTube connector disconnected
+2025-06-18 19:54:43,532 - INFO - main - Disconnected from youtube
+2025-06-18 19:54:43,533 - INFO - reddit_connector - Reddit connector disconnected (asyncpraw mode)
+2025-06-18 19:54:43,533 - INFO - main - Disconnected from reddit
