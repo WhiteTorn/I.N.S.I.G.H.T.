@@ -5,7 +5,7 @@ import json
 from datetime import datetime
 from dotenv import load_dotenv
 from connectors import TelegramConnector, RssConnector, YouTubeConnector, RedditConnector
-from html_renderer import HTMLRenderer
+from renderer import HTMLRenderer, ConsoleRenderer
 
 # --- Configuration and Setup ---
 logging.basicConfig(
@@ -680,126 +680,6 @@ class InsightOperator:
         logging.info(f"Reddit multi-subreddit mission: {successful_subreddits} successful, {failed_subreddits} failed")
         return all_posts
     
-    # --- RENDER METHODS (Enhanced for RSS v2.3) ---
-    def render_report_to_console(self, posts: list, title: str):
-        """A generic renderer for a list of posts, supporting Telegram, RSS, and YouTube content."""
-        print("\n" + "#"*25 + f" I.N.S.I.G.H.T. REPORT: {title.upper()} " + "#"*25)
-        if not posts:
-            print("\nNo displayable posts found for this report.")
-        
-        for i, post_data in enumerate(posts):
-            media_count = len(post_data.get('media_urls', []))
-            media_indicator = f"[+{media_count} MEDIA]" if media_count > 0 else ""
-            
-            # Handle platform-specific fields
-            if post_data.get('platform') == 'youtube':
-                video_title = post_data.get('title', 'Unknown Video')
-                channel_name = post_data.get('author', 'Unknown Channel')
-                view_count = post_data.get('view_count', 0)
-                
-                print(f"\n--- Video {i+1}/{len(posts)} | {video_title} ---")
-                print(f"📺 Channel: {channel_name} | 📅 Date: {post_data.get('date', 'Unknown').strftime('%Y-%m-%d %H:%M:%S') if post_data.get('date') else 'Unknown'}")
-                print(f"👀 Views: {view_count:,} | Video ID: {post_data.get('url', 'Unknown')} {media_indicator}")
-                print(f"\n🎬 TRANSCRIPT:")
-                
-            elif post_data.get('platform') == 'rss':
-                title_field = post_data.get('title', 'No title')
-                feed_title = post_data.get('feed_title', 'Unknown Feed')
-                feed_type = post_data.get('feed_type', 'rss').upper()
-                categories = post_data.get('categories', [])
-                
-                print(f"\n--- Post {i+1}/{len(posts)} | {title_field} ---")
-                print(f"Feed: {feed_title} ({feed_type}) | Date: {post_data.get('date', post_data.get('date', 'Unknown')).strftime('%Y-%m-%d %H:%M:%S') if post_data.get('date') or post_data.get('date') else 'Unknown'} {media_indicator}")
-                if categories:
-                    print(f"Categories: {', '.join(categories)}")
-            else:
-                # Telegram and other platforms
-                print(f"\n--- Post {i+1}/{len(posts)} | ID: {post_data.get('id', post_data.get('url', 'Unknown'))} | Date: {post_data.get('date', post_data.get('date', 'Unknown')).strftime('%Y-%m-%d %H:%M:%S') if post_data.get('date') or post_data.get('date') else 'Unknown'} {media_indicator} ---")
-            
-            # Display content (text or transcript)
-            content = post_data.get('content', post_data.get('text', 'No content available'))
-            print(content)
-            
-            # Display link
-            link = post_data.get('url', post_data.get('link', 'No link available'))
-            print(f"🔗 Link: {link}")
-
-            if post_data.get('media_urls'):
-                print("📎 Media Links:")
-                for url in post_data['media_urls']:
-                    print(f"  - {url}")
-            print("-" * 60)
-        print("\n" + "#"*30 + " END OF REPORT " + "#"*30)
-
-    def render_briefing_to_console(self, posts: list, title: str):
-        """Renders a chronologically sorted briefing, supporting both platforms with categories."""
-        print("\n" + "#"*25 + f" I.N.S.I.G.H.T. BRIEFING: {title.upper()} " + "#"*25)
-        if not posts:
-            print("\nNo intelligence gathered for this period.")
-            print("\n" + "#"*30 + " END OF BRIEFING " + "#"*30)
-            return
-
-        posts_by_day = {}
-        for post in posts:
-            day_str = post['date'].strftime('%Y-%m-%d, %A')
-            if day_str not in posts_by_day:
-                posts_by_day[day_str] = []
-            posts_by_day[day_str].append(post)
-        
-        for day, day_posts in sorted(posts_by_day.items()):
-            print(f"\n\n{'='*25} INTEL FOR: {day} {'='*25}")
-            for i, post_data in enumerate(day_posts):
-                media_count = len(post_data.get('media_urls', []))
-                media_indicator = f"[+{media_count} MEDIA]" if media_count > 0 else ""
-                
-                # Handle different source types
-                if post_data.get('platform') == 'rss':
-                    feed_title = post_data.get('feed_title', 'RSS Feed')
-                    feed_type = post_data.get('feed_type', 'rss').upper()
-                    categories = post_data.get('categories', [])
-                    
-                    print(f"\n--- [{post_data['date'].strftime('%H:%M:%S')}] From: {feed_title} ({feed_type}) {media_indicator} ---")
-                    if categories:
-                        print(f"Categories: {', '.join(categories)}")
-                else:
-                    print(f"\n--- [{post_data['date'].strftime('%H:%M:%S')}] From: @{post_data['source']} {media_indicator} ---")
-                
-                print(post_data['content'])
-                print(f"Link: {post_data['url']}")
-
-                if post_data.get('media_urls'):
-                    print("Media Links:")
-                    for url in post_data['media_urls']:
-                        print(f"  - {url}")
-                print("-" * 60)
-
-        print("\n" + "#"*30 + " END OF BRIEFING " + "#"*30)
-
-    def render_feed_info(self, feed_info: dict):
-        """Render RSS/Atom feed analysis information with category insights."""
-        print("\n" + "#"*25 + " RSS/ATOM FEED ANALYSIS " + "#"*25)
-        
-        if feed_info['status'] == 'error':
-            print(f"❌ Error analyzing feed: {feed_info['error']}")
-            return
-        
-        print(f"📰 Feed Title: {feed_info['title']}")
-        print(f"🌐 URL: {feed_info['url']}")
-        print(f"📝 Description: {feed_info['description']}")
-        print(f"🔗 Website: {feed_info['link']}")
-        print(f"🌍 Language: {feed_info['language']}")
-        print(f"📊 Total Entries Available: {feed_info['total_entries']}")
-        print(f"🔄 Feed Type: {feed_info['feed_type'].upper()}")
-        print(f"🏷️  Categories Found: {feed_info['category_count']}")
-        
-        if feed_info.get('common_categories'):
-            print(f"📂 Common Categories: {', '.join(feed_info['common_categories'][:10])}")  # Show first 10
-            if len(feed_info['common_categories']) > 10:
-                print(f"   ... and {len(feed_info['common_categories']) - 10} more")
-        
-        print(f"🕒 Last Updated: {feed_info['last_updated']}")
-        print("\n" + "#"*30 + " END OF ANALYSIS " + "#"*30)
-
     # --- ENHANCED MAIN EXECUTION LOOP ---
     async def run(self):
         """
@@ -813,51 +693,12 @@ class InsightOperator:
                 return
             
             available_connectors = list(self.connectors.keys())
-            print(f"\nI.N.S.I.G.H.T. Mark II (v2.4) - The Inquisitor - Citadel Edition - Operator Online.")
-            print(f"Available connectors: {', '.join(available_connectors)}")
-            print(f"🛡️  Citadel Protection: {self.GLOBAL_TIMEOUT_SECONDS}s global timeout, bulletproof error handling")
-            print("\nChoose your mission:")
-            print("\n--- TELEGRAM MISSIONS ---")
-            print("1. Deep Scan (Get last N posts from one Telegram channel)")
-            print("2. Historical Briefing (Get posts from the last N days from multiple Telegram channels)")
-            print("3. End of Day Briefing (Get all of today's posts from multiple Telegram channels)")
-            print("\n--- RSS/ATOM MISSIONS ---")
-            print("4. RSS Feed Analysis (Analyze a single RSS/Atom feed)")
-            print("5. RSS Single Feed Scan (Get N posts from a single RSS/Atom feed)")
-            print("6. RSS Multi-Feed Scan (Get N posts from multiple RSS/Atom feeds)")
-            print("\n--- YOUTUBE MISSIONS ---")
-            print("7. YouTube Transcript (Get transcript from a single YouTube video)")
-            print("8. YouTube Channel Transcripts (Get transcripts from the latest N videos in a YouTube channel)")
-            print("9. YouTube Playlist Transcripts (Get transcripts from a YouTube playlist)")
-            print("10. YouTube Search (Search for YouTube videos and extract their transcripts)")
-            print("\n--- REDDIT MISSIONS ---")
-            print("12. Reddit Post Analysis (Get single Reddit post with comments by URL)")
-            print("13. Reddit Subreddit Explorer (Browse and select posts from subreddit)")
-            print("14. Reddit Multi-Source Briefing (Get posts from multiple subreddits/URLs)")
-            print("\n--- UNIFIED OUTPUT MISSIONS ---")
-            print("11. JSON Export Test (Export sample data to test Mark III compatibility)")
+            ConsoleRenderer.display_startup_banner(available_connectors, self.GLOBAL_TIMEOUT_SECONDS)
+            ConsoleRenderer.display_mission_menu()
             
             mission_choice = input("\nEnter mission number (1-14): ")
 
-            # Enhanced error reporting for user feedback
-            def report_mission_outcome(posts_collected: int, sources_attempted: int, mission_name: str):
-                """Report mission outcome with Citadel-enhanced feedback."""
-                if posts_collected > 0:
-                    print(f"\n✅ Mission '{mission_name}' completed successfully!")
-                    print(f"   📊 Intelligence gathered: {posts_collected} posts")
-                    if sources_attempted > 1:
-                        print(f"   🎯 Sources processed: {sources_attempted}")
-                elif sources_attempted > 0:
-                    print(f"\n⚠️  Mission '{mission_name}' completed with no intelligence gathered.")
-                    print(f"   🔍 This may indicate:")
-                    print(f"      • Sources are currently inaccessible")
-                    print(f"      • No content available in the specified timeframe")
-                    print(f"      • Network connectivity issues")
-                    print(f"   🛡️  Citadel Protection: System remained stable despite source failures")
-                else:
-                    print(f"\n❌ Mission '{mission_name}' failed to initiate.")
-                    print(f"   🛡️  Citadel Protection: System protected from cascading failures")
-
+            # Enhanced error reporting for user feedback - moved to ConsoleRenderer
             # Telegram missions (enhanced with JSON output)
             if mission_choice in ['1', '2', '3']:
                 if 'telegram' not in self.connectors:
@@ -868,21 +709,14 @@ class InsightOperator:
                     channel = input("\nEnter the target channel username: ")
                     limit = int(input("How many posts to retrieve? "))
                     
-                    print("\nChoose your output format:")
-                    print("1. Console Only")
-                    print("2. HTML Dossier Only")
-                    print("3. JSON Export Only")
-                    print("4. Console + HTML")
-                    print("5. Console + JSON")
-                    print("6. HTML + JSON")
-                    print("7. All Formats (Console + HTML + JSON)")
+                    ConsoleRenderer.display_output_format_menu()
                     output_choice = input("Enter format number (1-7): ")
 
                     posts = await self.get_n_posts(channel, limit)
                     title = f"{limit} posts from @{channel}"
 
                     if output_choice in ['1', '4', '5', '7']:
-                        self.render_report_to_console(posts, title)
+                        ConsoleRenderer.render_report_to_console(posts, title)
                     
                     if output_choice in ['2', '4', '6', '7']:
                         html_dossier = HTMLRenderer(f"I.N.S.I.G.H.T. Deep Scan: {title}")
@@ -895,7 +729,7 @@ class InsightOperator:
                         print("🔄 This file is ready for Mark III 'Scribe' processing.")
                     
                     # Report mission outcome
-                    report_mission_outcome(len(posts), 1, f"Deep Scan @{channel}")
+                    ConsoleRenderer.report_mission_outcome(len(posts), 1, f"Deep Scan @{channel}")
                 
                 elif mission_choice in ['2', '3']:
                     days = 0
@@ -908,14 +742,7 @@ class InsightOperator:
                     channels_str = input("Enter channel usernames, separated by commas: ")
                     channels = [c.strip() for c in channels_str.split(',')]
                     
-                    print("\nChoose your output format:")
-                    print("1. Console Only")
-                    print("2. HTML Dossier Only")
-                    print("3. JSON Export Only")
-                    print("4. Console + HTML")
-                    print("5. Console + JSON")
-                    print("6. HTML + JSON")
-                    print("7. All Formats (Console + HTML + JSON)")
+                    ConsoleRenderer.display_output_format_menu()
                     output_choice = input("Enter format number (1-7): ")
                     
                     all_posts = await self.get_briefing_posts(channels, days)
@@ -923,7 +750,7 @@ class InsightOperator:
                     title = f"{title_prefix} for {', '.join(channels)}"
                     
                     if output_choice in ['1', '4', '5', '7']:
-                        self.render_briefing_to_console(all_posts, title)
+                        ConsoleRenderer.render_briefing_to_console(all_posts, title)
                     
                     if output_choice in ['2', '4', '6', '7']:
                         # Prepare data for HTML renderer
@@ -945,7 +772,7 @@ class InsightOperator:
                         print("🔄 This file is ready for Mark III 'Scribe' processing.")
                     
                     # Report mission outcome
-                    report_mission_outcome(len(all_posts), len(channels), title_prefix)
+                    ConsoleRenderer.report_mission_outcome(len(all_posts), len(channels), title_prefix)
             
             # RSS missions (enhanced with JSON output)
             elif mission_choice in ['4', '5', '6']:
@@ -959,7 +786,7 @@ class InsightOperator:
                     print(f"\n🔍 Analyzing RSS/Atom feed: {feed_url}")
                     
                     feed_info = await self.analyze_rss_feed(feed_url)
-                    self.render_feed_info(feed_info)
+                    ConsoleRenderer.render_feed_info(feed_info)
                 
                 elif mission_choice == '5':
                     # RSS Single Feed Scan
@@ -979,21 +806,14 @@ class InsightOperator:
                     
                     limit = int(input(f"How many posts to retrieve (max {feed_info['total_entries']})? "))
                     
-                    print("\nChoose your output format:")
-                    print("1. Console Only")
-                    print("2. HTML Dossier Only")
-                    print("3. JSON Export Only")
-                    print("4. Console + HTML")
-                    print("5. Console + JSON")
-                    print("6. HTML + JSON")
-                    print("7. All Formats (Console + HTML + JSON)")
+                    ConsoleRenderer.display_output_format_menu()
                     output_choice = input("Enter format number (1-7): ")
                     
                     posts = await self.get_rss_posts(feed_url, limit)
                     title = f"{limit} posts from {feed_info['title']}"
                     
                     if output_choice in ['1', '4', '5', '7']:
-                        self.render_report_to_console(posts, title)
+                        ConsoleRenderer.render_report_to_console(posts, title)
                     
                     if output_choice in ['2', '4', '6', '7']:
                         html_dossier = HTMLRenderer(f"I.N.S.I.G.H.T. RSS Scan: {title}")
@@ -1012,7 +832,7 @@ class InsightOperator:
                         print("🔄 This file is ready for Mark III 'Scribe' processing.")
                     
                     # Report mission outcome
-                    report_mission_outcome(len(posts), 1, f"RSS Scan - {feed_info['title']}")
+                    ConsoleRenderer.report_mission_outcome(len(posts), 1, f"RSS Scan - {feed_info['title']}")
                 
                 elif mission_choice == '6':
                     # RSS Multi-Feed Scan
@@ -1032,21 +852,14 @@ class InsightOperator:
                     
                     limit_per_feed = int(input("\nHow many posts per feed to retrieve? "))
                     
-                    print("\nChoose your output format:")
-                    print("1. Console Only")
-                    print("2. HTML Dossier Only")
-                    print("3. JSON Export Only")
-                    print("4. Console + HTML")
-                    print("5. Console + JSON")
-                    print("6. HTML + JSON")
-                    print("7. All Formats (Console + HTML + JSON)")
+                    ConsoleRenderer.display_output_format_menu()
                     output_choice = input("Enter format number (1-7): ")
                     
                     posts = await self.get_multi_rss_posts(feed_urls, limit_per_feed)
                     title = f"Multi-RSS scan: {limit_per_feed} posts from {len(feed_urls)} feeds"
                     
                     if output_choice in ['1', '4', '5', '7']:
-                        self.render_briefing_to_console(posts, title)
+                        ConsoleRenderer.render_briefing_to_console(posts, title)
                     
                     if output_choice in ['2', '4', '6', '7']:
                         html_renderer = HTMLRenderer(f"I.N.S.I.G.H.T. Multi-RSS Briefing")
@@ -1062,7 +875,7 @@ class InsightOperator:
                         print("🔄 This file is ready for Mark III 'Scribe' processing.")
                     
                     # Report mission outcome
-                    report_mission_outcome(len(posts), len(feed_urls), "Multi-RSS Scan")
+                    ConsoleRenderer.report_mission_outcome(len(posts), len(feed_urls), "Multi-RSS Scan")
             
             # YouTube missions (enhanced with JSON output)
             elif mission_choice in ['7', '8', '9', '10']:
@@ -1079,7 +892,7 @@ class InsightOperator:
                     title = f"YouTube Transcript: {video_url}"
                     
                     if posts:
-                        self.render_report_to_console(posts, title)
+                        ConsoleRenderer.render_report_to_console(posts, title)
                         json_filename = self.export_to_json(posts, f"youtube_transcript_{video_url.replace('/', '_')}.json")
                         print(f"\n📁 JSON export saved to: {json_filename}")
                         print("🔄 This file is ready for Mark III 'Scribe' processing.")
@@ -1097,7 +910,7 @@ class InsightOperator:
                     title = f"YouTube Channel Transcripts: {channel_identifier}"
                     
                     if posts:
-                        self.render_briefing_to_console(posts, title)
+                        ConsoleRenderer.render_briefing_to_console(posts, title)
                         json_filename = self.export_to_json(posts, f"youtube_channel_transcripts_{channel_identifier.replace('/', '_')}.json")
                         print(f"\n📁 JSON export saved to: {json_filename}")
                         print("🔄 This file is ready for Mark III 'Scribe' processing.")
@@ -1115,7 +928,7 @@ class InsightOperator:
                     title = f"YouTube Playlist Transcripts: {playlist_url}"
                     
                     if posts:
-                        self.render_briefing_to_console(posts, title)
+                        ConsoleRenderer.render_briefing_to_console(posts, title)
                         json_filename = self.export_to_json(posts, f"youtube_playlist_transcripts_{playlist_url.replace('/', '_')}.json")
                         print(f"\n📁 JSON export saved to: {json_filename}")
                         print("🔄 This file is ready for Mark III 'Scribe' processing.")
@@ -1133,7 +946,7 @@ class InsightOperator:
                     title = f"YouTube Search Results: {search_query}"
                     
                     if posts:
-                        self.render_briefing_to_console(posts, title)
+                        ConsoleRenderer.render_briefing_to_console(posts, title)
                         json_filename = self.export_to_json(posts, f"youtube_search_{search_query.replace(' ', '_')}.json")
                         print(f"\n📁 JSON export saved to: {json_filename}")
                         print("🔄 This file is ready for Mark III 'Scribe' processing.")
@@ -1151,14 +964,7 @@ class InsightOperator:
                     post_url = input("\nEnter Reddit post URL: ")
                     print(f"\n🔍 Fetching Reddit post with comments for: {post_url}")
                     
-                    print("\nChoose your output format:")
-                    print("1. Console Only")
-                    print("2. HTML Dossier Only")
-                    print("3. JSON Export Only")
-                    print("4. Console + HTML")
-                    print("5. Console + JSON")
-                    print("6. HTML + JSON")
-                    print("7. All Formats (Console + HTML + JSON)")
+                    ConsoleRenderer.display_output_format_menu()
                     output_choice = input("Enter format number (1-7): ")
                     
                     posts = await self.get_reddit_post_with_comments(post_url)
@@ -1166,7 +972,7 @@ class InsightOperator:
                     
                     if posts:
                         if output_choice in ['1', '4', '5', '7']:
-                            self.render_report_to_console(posts, title)
+                            ConsoleRenderer.render_report_to_console(posts, title)
                         
                         if output_choice in ['2', '4', '6', '7']:
                             html_dossier = HTMLRenderer(f"I.N.S.I.G.H.T. Reddit Post Analysis: {title}")
@@ -1180,7 +986,7 @@ class InsightOperator:
                             print("🔄 This file is ready for Mark III 'Scribe' processing.")
                         
                         # Report mission outcome
-                        report_mission_outcome(len(posts), 1, "Reddit Post Analysis")
+                        ConsoleRenderer.report_mission_outcome(len(posts), 1, "Reddit Post Analysis")
                     else:
                         print("\n❌ No comments found for the given post URL.")
                 
@@ -1189,14 +995,7 @@ class InsightOperator:
                     subreddit = input("\nEnter Reddit subreddit name: ")
                     print(f"\n🔍 Exploring posts from subreddit: {subreddit}")
                     
-                    print("\nChoose your output format:")
-                    print("1. Console Only")
-                    print("2. HTML Dossier Only")
-                    print("3. JSON Export Only")
-                    print("4. Console + HTML")
-                    print("5. Console + JSON")
-                    print("6. HTML + JSON")
-                    print("7. All Formats (Console + HTML + JSON)")
+                    ConsoleRenderer.display_output_format_menu()
                     output_choice = input("Enter format number (1-7): ")
                     
                     posts = await self.get_posts_from_subreddit(subreddit)
@@ -1204,7 +1003,7 @@ class InsightOperator:
                     
                     if posts:
                         if output_choice in ['1', '4', '5', '7']:
-                            self.render_briefing_to_console(posts, title)
+                            ConsoleRenderer.render_briefing_to_console(posts, title)
                         
                         if output_choice in ['2', '4', '6', '7']:
                             html_dossier = HTMLRenderer(f"I.N.S.I.G.H.T. Reddit Subreddit Explorer: {title}")
@@ -1217,7 +1016,7 @@ class InsightOperator:
                             print("🔄 This file is ready for Mark III 'Scribe' processing.")
                         
                         # Report mission outcome
-                        report_mission_outcome(len(posts), 1, f"Reddit Subreddit Explorer - {subreddit}")
+                        ConsoleRenderer.report_mission_outcome(len(posts), 1, f"Reddit Subreddit Explorer - {subreddit}")
                     else:
                         print("\n❌ No posts found for the given subreddit.")
                 
@@ -1226,14 +1025,7 @@ class InsightOperator:
                     subreddits_str = input("\nEnter Reddit subreddits, separated by commas: ")
                     subreddits = [sr.strip() for sr in subreddits_str.split(',')]
                     
-                    print("\nChoose your output format:")
-                    print("1. Console Only")
-                    print("2. HTML Dossier Only")
-                    print("3. JSON Export Only")
-                    print("4. Console + HTML")
-                    print("5. Console + JSON")
-                    print("6. HTML + JSON")
-                    print("7. All Formats (Console + HTML + JSON)")
+                    ConsoleRenderer.display_output_format_menu()
                     output_choice = input("Enter format number (1-7): ")
                     
                     print(f"\n🔍 Fetching posts from {len(subreddits)} subreddits...")
@@ -1242,7 +1034,7 @@ class InsightOperator:
                     
                     if posts:
                         if output_choice in ['1', '4', '5', '7']:
-                            self.render_briefing_to_console(posts, title)
+                            ConsoleRenderer.render_briefing_to_console(posts, title)
                         
                         if output_choice in ['2', '4', '6', '7']:
                             html_renderer = HTMLRenderer(f"I.N.S.I.G.H.T. Reddit Multi-Source Briefing")
@@ -1264,7 +1056,7 @@ class InsightOperator:
                             print("🔄 This file is ready for Mark III 'Scribe' processing.")
                         
                         # Report mission outcome
-                        report_mission_outcome(len(posts), len(subreddits), "Reddit Multi-Source Briefing")
+                        ConsoleRenderer.report_mission_outcome(len(posts), len(subreddits), "Reddit Multi-Source Briefing")
                     else:
                         print("\n❌ No posts found for the given subreddits.")
             

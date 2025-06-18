@@ -344,4 +344,4 @@ class HTMLRenderer:
                 f.write(final_html)
             logging.info(f"Successfully generated HTML dossier: {filename}")
         except Exception as e:
-            logging.error(f"Failed to save HTML file: {e}")
+            logging.error(f"Failed to save HTML file: {e}") 
