@@ -146,14 +146,7 @@ class TelegramConnector(BaseConnector):
                     metadata={}  # Empty for Mark II
                 )
                 
-                # Add the legacy 'channel' field for backward compatibility with existing renderers
-                unified_post['channel'] = channel_alias
-                # Add legacy fields for backward compatibility
-                unified_post['id'] = main_msg.id
-                unified_post['date'] = main_msg.date
-                unified_post['text'] = text
-                unified_post['link'] = f'https://t.me/{channel_alias}/{main_msg.id}'
-                
+                # Remove all legacy compatibility fields - use ONLY new unified structure
                 logical_posts.append(unified_post)
         
         return logical_posts
@@ -267,9 +260,11 @@ class TelegramConnector(BaseConnector):
                         
                         for post in synthesized:
                             try:
-                                if post.get('id') and post['id'] not in processed_ids:
+                                # Use URL as unique identifier since we removed id field
+                                post_url = post.get('url')
+                                if post_url and post_url not in processed_ids:
                                     all_synthesized_posts.append(post)
-                                    processed_ids.add(post['id'])
+                                    processed_ids.add(post_url)
                             except Exception as e:
                                 self.logger.warning(f"Error processing synthesized post: {e}")
                                 continue
@@ -289,8 +284,8 @@ class TelegramConnector(BaseConnector):
             
             # Sort and return posts with error handling
             try:
-                # Sort by ID (newest first), then take the limit, then sort chronologically
-                final_posts = sorted(all_synthesized_posts, key=lambda p: p.get('id', 0), reverse=True)[:limit]
+                # Sort by date (newest first), then take the limit, then sort chronologically
+                final_posts = sorted(all_synthesized_posts, key=lambda p: p.get('date', datetime.min.replace(tzinfo=timezone.utc)), reverse=True)[:limit]
                 result = sorted(final_posts, key=lambda p: p.get('date', datetime.min.replace(tzinfo=timezone.utc)))
                 
                 self.logger.info(f"Successfully fetched {len(result)} posts from @{channel_username}")

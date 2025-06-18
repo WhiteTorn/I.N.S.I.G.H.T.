@@ -111,7 +111,7 @@ class InsightOperator:
         
         Returns content type classification for LLM context optimization.
         """
-        source_platform = post.get('source_platform', '')
+        source_platform = post.get('platform', '')
         content = post.get('content', '').lower()
         
         if source_platform == 'rss':
@@ -147,20 +147,20 @@ class InsightOperator:
         }
         
         for i, post in enumerate(posts):
-            post_id = post.get('post_id', f'post_{i}')
+            post_id = post.get('url', f'post_{i}')  # Use URL as ID since we removed post_id
             
-            # Check required fields
-            required_fields = ['source_platform', 'source_id', 'post_id', 'content', 'timestamp']
+            # Check required fields for NEW unified structure
+            required_fields = ['platform', 'source', 'url', 'content', 'date', 'media_urls', 'categories', 'metadata']
             for field in required_fields:
                 if field not in post or post[field] is None:
                     validation_report['issues'].append(f"Post {post_id}: Missing required field '{field}'")
             
-            # Track metadata
-            if 'source_platform' in post:
-                validation_report['metadata']['platforms_included'].add(post['source_platform'])
+            # Track metadata using NEW field names
+            if 'platform' in post:
+                validation_report['metadata']['platforms_included'].add(post['platform'])
             
-            if 'timestamp' in post and isinstance(post['timestamp'], datetime):
-                ts = post['timestamp']
+            if 'date' in post and isinstance(post['date'], datetime):
+                ts = post['date']
                 if validation_report['metadata']['date_range']['earliest'] is None or ts < validation_report['metadata']['date_range']['earliest']:
                     validation_report['metadata']['date_range']['earliest'] = ts
                 if validation_report['metadata']['date_range']['latest'] is None or ts > validation_report['metadata']['date_range']['latest']:
@@ -205,7 +205,7 @@ class InsightOperator:
             enriched_posts = posts
         
         # Sort by timestamp for chronological processing
-        enriched_posts.sort(key=lambda p: p.get('timestamp', datetime.min), reverse=True)
+        enriched_posts.sort(key=lambda p: p.get('date', datetime.min), reverse=True)
         
         # Validate the payload
         validation_report = self._validate_json_payload(enriched_posts)
@@ -236,7 +236,7 @@ class InsightOperator:
             
             if validation_report['issues']:
                 logging.warning(f"Validation found {len(validation_report['issues'])} issues")
-                for issue in validation_report['issues'][:5]:  # Show first 5 issues
+                for issue in validation_report['issues']:
                     logging.warning(f"  - {issue}")
             
             return filename
@@ -478,7 +478,7 @@ class InsightOperator:
         
         # Sort by timestamp for unified timeline
         try:
-            return sorted(all_posts, key=lambda p: p.get('timestamp', datetime.min), reverse=True)
+            return sorted(all_posts, key=lambda p: p.get('date', datetime.min), reverse=True)
         except Exception as e:
             logging.error(f"Error sorting multi-RSS posts: {e}")
             return all_posts
@@ -692,36 +692,36 @@ class InsightOperator:
             media_indicator = f"[+{media_count} MEDIA]" if media_count > 0 else ""
             
             # Handle platform-specific fields
-            if post_data.get('source_platform') == 'youtube':
-                video_title = post_data.get('video_title', 'Unknown Video')
+            if post_data.get('platform') == 'youtube':
+                video_title = post_data.get('title', 'Unknown Video')
                 channel_name = post_data.get('author', 'Unknown Channel')
                 view_count = post_data.get('view_count', 0)
                 
                 print(f"\n--- Video {i+1}/{len(posts)} | {video_title} ---")
-                print(f"📺 Channel: {channel_name} | 📅 Date: {post_data.get('timestamp', 'Unknown').strftime('%Y-%m-%d %H:%M:%S') if post_data.get('timestamp') else 'Unknown'}")
-                print(f"👀 Views: {view_count:,} | Video ID: {post_data.get('post_id', 'Unknown')} {media_indicator}")
+                print(f"📺 Channel: {channel_name} | 📅 Date: {post_data.get('date', 'Unknown').strftime('%Y-%m-%d %H:%M:%S') if post_data.get('date') else 'Unknown'}")
+                print(f"👀 Views: {view_count:,} | Video ID: {post_data.get('url', 'Unknown')} {media_indicator}")
                 print(f"\n🎬 TRANSCRIPT:")
                 
-            elif post_data.get('source_platform') == 'rss':
+            elif post_data.get('platform') == 'rss':
                 title_field = post_data.get('title', 'No title')
                 feed_title = post_data.get('feed_title', 'Unknown Feed')
                 feed_type = post_data.get('feed_type', 'rss').upper()
                 categories = post_data.get('categories', [])
                 
                 print(f"\n--- Post {i+1}/{len(posts)} | {title_field} ---")
-                print(f"Feed: {feed_title} ({feed_type}) | Date: {post_data.get('date', post_data.get('timestamp', 'Unknown')).strftime('%Y-%m-%d %H:%M:%S') if post_data.get('date') or post_data.get('timestamp') else 'Unknown'} {media_indicator}")
+                print(f"Feed: {feed_title} ({feed_type}) | Date: {post_data.get('date', post_data.get('date', 'Unknown')).strftime('%Y-%m-%d %H:%M:%S') if post_data.get('date') or post_data.get('date') else 'Unknown'} {media_indicator}")
                 if categories:
                     print(f"Categories: {', '.join(categories)}")
             else:
                 # Telegram and other platforms
-                print(f"\n--- Post {i+1}/{len(posts)} | ID: {post_data.get('id', post_data.get('post_id', 'Unknown'))} | Date: {post_data.get('date', post_data.get('timestamp', 'Unknown')).strftime('%Y-%m-%d %H:%M:%S') if post_data.get('date') or post_data.get('timestamp') else 'Unknown'} {media_indicator} ---")
+                print(f"\n--- Post {i+1}/{len(posts)} | ID: {post_data.get('id', post_data.get('url', 'Unknown'))} | Date: {post_data.get('date', post_data.get('date', 'Unknown')).strftime('%Y-%m-%d %H:%M:%S') if post_data.get('date') or post_data.get('date') else 'Unknown'} {media_indicator} ---")
             
             # Display content (text or transcript)
             content = post_data.get('content', post_data.get('text', 'No content available'))
             print(content)
             
             # Display link
-            link = post_data.get('post_url', post_data.get('link', 'No link available'))
+            link = post_data.get('url', post_data.get('link', 'No link available'))
             print(f"🔗 Link: {link}")
 
             if post_data.get('media_urls'):
@@ -753,7 +753,7 @@ class InsightOperator:
                 media_indicator = f"[+{media_count} MEDIA]" if media_count > 0 else ""
                 
                 # Handle different source types
-                if post_data.get('source_platform') == 'rss':
+                if post_data.get('platform') == 'rss':
                     feed_title = post_data.get('feed_title', 'RSS Feed')
                     feed_type = post_data.get('feed_type', 'rss').upper()
                     categories = post_data.get('categories', [])
@@ -1314,7 +1314,7 @@ class InsightOperator:
                     print(f"\n🎯 Test JSON export created: {json_filename}")
                     print("\n📋 JSON Export Summary:")
                     print(f"   • Total posts: {len(test_posts)}")
-                    print(f"   • Platforms included: {', '.join(set(p.get('source_platform', 'unknown') for p in test_posts))}")
+                    print(f"   • Platforms included: {', '.join(set(p.get('platform', 'unknown') for p in test_posts))}")
                     print(f"   • Format version: 2.4.0")
                     print(f"   • Mark III ready: ✅")
                     print(f"   • Mark IV ready: ✅")

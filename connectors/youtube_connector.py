@@ -530,7 +530,7 @@ class YouTubeConnector(BaseConnector):
                     continue
             
             # Sort by publish date (newest first)
-            all_posts.sort(key=lambda p: p.get('timestamp', datetime.min.replace(tzinfo=timezone.utc)), reverse=True)
+            all_posts.sort(key=lambda p: p.get('date', datetime.min.replace(tzinfo=timezone.utc)), reverse=True)
             
             self.logger.info(f"Channel processing complete: {successful_extractions} successful, {failed_extractions} failed extractions")
             return all_posts
@@ -573,7 +573,7 @@ class YouTubeConnector(BaseConnector):
                 # Filter by timeframe
                 filtered_posts = [
                     post for post in source_posts
-                    if post.get('timestamp') and post['timestamp'] >= cutoff_date
+                    if post.get('date') and post['date'] >= cutoff_date
                 ]
                 
                 if filtered_posts:
@@ -592,7 +592,7 @@ class YouTubeConnector(BaseConnector):
         
         # Sort chronologically
         try:
-            return sorted(all_posts, key=lambda p: p.get('timestamp', datetime.min.replace(tzinfo=timezone.utc)))
+            return sorted(all_posts, key=lambda p: p.get('date', datetime.min.replace(tzinfo=timezone.utc)))
         except Exception as e:
             self.logger.error(f"Error sorting YouTube posts chronologically: {e}")
             return all_posts

@@ -118,6 +118,14 @@ class BaseConnector(ABC):
             self.logger.error("media_urls must be a list")
             return False
             
+        if not isinstance(post["categories"], list):
+            self.logger.error("categories must be a list")
+            return False
+            
+        if not isinstance(post["metadata"], dict):
+            self.logger.error("metadata must be a dict")
+            return False
+            
         return True
     
     def _create_unified_post(self, **kwargs) -> Dict[str, Any]:

@@ -509,12 +509,7 @@ class RssConnector(BaseConnector):
                         unified_post['feed_type'] = feed_type
                         unified_post['content_html'] = original_html
                         
-                        # Legacy compatibility fields
-                        unified_post['id'] = unified_post['post_id']
-                        unified_post['date'] = timestamp
-                        unified_post['text'] = unified_post['content']
-                        unified_post['link'] = unified_post['post_url']
-                        
+                        # Remove all legacy compatibility fields - use ONLY new structure
                         unified_posts.append(unified_post)
                         entries_processed += 1
                         
@@ -585,7 +580,7 @@ class RssConnector(BaseConnector):
                         original_count = len(feed_posts)
                         feed_posts = [
                             post for post in feed_posts 
-                            if post.get('timestamp') and post['timestamp'] >= cutoff_date
+                            if post.get('date') and post['date'] >= cutoff_date
                         ]
                         self.logger.info(f"Filtered {original_count} posts to {len(feed_posts)} within timeframe from {feed_url}")
                     
@@ -606,7 +601,7 @@ class RssConnector(BaseConnector):
         
         # Sort chronologically with error handling
         try:
-            return sorted(all_posts, key=lambda p: p.get('timestamp', datetime.min.replace(tzinfo=timezone.utc)))
+            return sorted(all_posts, key=lambda p: p.get('date', datetime.min.replace(tzinfo=timezone.utc)))
         except Exception as e:
             self.logger.error(f"Error sorting posts chronologically: {e}")
             return all_posts 

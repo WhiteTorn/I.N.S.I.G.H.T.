@@ -1402,3 +1402,90 @@ KeyError: 'date'
 2025-06-18 17:26:52,834 - INFO - main - Disconnected from youtube
 2025-06-18 17:26:52,834 - INFO - reddit_connector - Reddit connector disconnected (asyncpraw mode)
 2025-06-18 17:26:52,834 - INFO - main - Disconnected from reddit
+2025-06-18 17:39:10,492 - INFO - main - I.N.S.I.G.H.T. Mark II (v2.4) - The Inquisitor - Citadel Edition - Initializing...
+2025-06-18 17:39:10,494 - INFO - telegram_connector - TelegramConnector v2.3 'The Citadel' initialized with hardened error handling
+2025-06-18 17:39:10,494 - INFO - main - Telegram connector registered
+2025-06-18 17:39:10,494 - INFO - rss_connector - RSS Connector v2.3 'The Citadel' initialized with hardened error handling
+2025-06-18 17:39:10,495 - INFO - main - RSS connector registered
+2025-06-18 17:39:10,495 - INFO - youtube_connector - YouTubeConnector v3.0 'The Liberated Spymaster' initialized - NO API KEY REQUIRED!
+2025-06-18 17:39:10,495 - INFO - main - YouTube connector registered (yt-dlp powered - no API key needed)
+2025-06-18 17:39:10,495 - INFO - reddit_connector - Reddit Connector initialized in Async PRAW mode (native async support)
+2025-06-18 17:39:10,495 - INFO - main - Reddit connector registered (PRAW powered)
+2025-06-18 17:39:10,495 - INFO - main - Mark II Orchestrator ready with unified JSON output capabilities and Citadel-grade protection.
+2025-06-18 17:39:10,498 - INFO - telegram_connector - Connecting to Telegram...
+2025-06-18 17:39:10,498 - INFO - mtprotosender - Connecting to 149.154.167.51:443/TcpFull...
+2025-06-18 17:39:10,573 - INFO - mtprotosender - Connection to 149.154.167.51:443/TcpFull complete!
+2025-06-18 17:39:11,314 - INFO - telegram_connector - Telegram connection successful.
+2025-06-18 17:39:11,314 - INFO - main - Connected to telegram
+2025-06-18 17:39:11,314 - INFO - rss_connector - RSS connector ready - feedparser operational
+2025-06-18 17:39:11,314 - INFO - main - Connected to rss
+2025-06-18 17:39:11,393 - INFO - youtube_connector - Connected to YouTube via yt-dlp - Ready for intelligence gathering!
+2025-06-18 17:39:11,393 - INFO - main - Connected to youtube
+2025-06-18 17:39:12,173 - INFO - reddit_connector - Connected to Reddit API successfully (Async PRAW mode)
+2025-06-18 17:39:12,173 - INFO - main - Connected to reddit
+2025-06-18 17:39:44,704 - INFO - rss_connector - Analyzing RSS/Atom feed: https://simonwillison.net/atom/everything
+2025-06-18 17:39:46,753 - INFO - rss_connector - Successfully analyzed feed https://simonwillison.net/atom/everything: 30 entries, type: atom
+2025-06-18 17:39:53,124 - INFO - rss_connector - Fetching 10 posts from RSS/Atom feed: https://simonwillison.net/atom/everything
+2025-06-18 17:39:53,763 - INFO - rss_connector - Detected feed type: atom
+2025-06-18 17:39:53,763 - INFO - rss_connector - Successfully processed 10 posts from https://simonwillison.net/atom/everything (atom)
+2025-06-18 17:39:53,793 - CRITICAL - main - A critical error occurred: 'id'
+Traceback (most recent call last):
+  File "C:\Users\David\Downloads\Pyitonit\PROJS\I.N.S.I.G.H.T\main.py", line 1000, in run
+    html_dossier.render_rss_briefing(posts, title)
+  File "C:\Users\David\Downloads\Pyitonit\PROJS\I.N.S.I.G.H.T\html_renderer.py", line 337, in render_rss_briefing
+    self.body_content += self._format_post(post)
+                         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\David\Downloads\Pyitonit\PROJS\I.N.S.I.G.H.T\html_renderer.py", line 223, in _format_post
+    <strong>ID:</strong> {post_data['id']} |
+                         ~~~~~~~~~^^^^^^
+KeyError: 'id'
+2025-06-18 17:39:53,793 - INFO - telegram_connector - Disconnecting from Telegram...
+2025-06-18 17:39:53,793 - INFO - mtprotosender - Disconnecting from 149.154.167.51:443/TcpFull...
+2025-06-18 17:39:53,793 - INFO - mtprotosender - Disconnection from 149.154.167.51:443/TcpFull complete!
+2025-06-18 17:39:53,803 - INFO - main - Disconnected from telegram
+2025-06-18 17:39:53,803 - INFO - rss_connector - RSS connector cleanup complete
+2025-06-18 17:39:53,803 - INFO - main - Disconnected from rss
+2025-06-18 17:39:53,803 - INFO - youtube_connector - YouTube connector disconnected
+2025-06-18 17:39:53,803 - INFO - main - Disconnected from youtube
+2025-06-18 17:39:53,803 - INFO - reddit_connector - Reddit connector disconnected (asyncpraw mode)
+2025-06-18 17:39:53,803 - INFO - main - Disconnected from reddit
+2025-06-18 17:59:30,829 - INFO - main - I.N.S.I.G.H.T. Mark II (v2.4) - The Inquisitor - Citadel Edition - Initializing...
+2025-06-18 17:59:30,830 - INFO - telegram_connector - TelegramConnector v2.3 'The Citadel' initialized with hardened error handling
+2025-06-18 17:59:30,830 - INFO - main - Telegram connector registered
+2025-06-18 17:59:30,830 - INFO - rss_connector - RSS Connector v2.3 'The Citadel' initialized with hardened error handling
+2025-06-18 17:59:30,831 - INFO - main - RSS connector registered
+2025-06-18 17:59:30,831 - INFO - youtube_connector - YouTubeConnector v3.0 'The Liberated Spymaster' initialized - NO API KEY REQUIRED!
+2025-06-18 17:59:30,831 - INFO - main - YouTube connector registered (yt-dlp powered - no API key needed)
+2025-06-18 17:59:30,831 - INFO - reddit_connector - Reddit Connector initialized in Async PRAW mode (native async support)
+2025-06-18 17:59:30,831 - INFO - main - Reddit connector registered (PRAW powered)
+2025-06-18 17:59:30,831 - INFO - main - Mark II Orchestrator ready with unified JSON output capabilities and Citadel-grade protection.
+2025-06-18 17:59:30,834 - INFO - telegram_connector - Connecting to Telegram...
+2025-06-18 17:59:30,834 - INFO - mtprotosender - Connecting to 149.154.167.51:443/TcpFull...
+2025-06-18 17:59:30,909 - INFO - mtprotosender - Connection to 149.154.167.51:443/TcpFull complete!
+2025-06-18 17:59:31,402 - INFO - telegram_connector - Telegram connection successful.
+2025-06-18 17:59:31,402 - INFO - main - Connected to telegram
+2025-06-18 17:59:31,402 - INFO - rss_connector - RSS connector ready - feedparser operational
+2025-06-18 17:59:31,402 - INFO - main - Connected to rss
+2025-06-18 17:59:31,469 - INFO - youtube_connector - Connected to YouTube via yt-dlp - Ready for intelligence gathering!
+2025-06-18 17:59:31,469 - INFO - main - Connected to youtube
+2025-06-18 17:59:32,529 - INFO - reddit_connector - Connected to Reddit API successfully (Async PRAW mode)
+2025-06-18 17:59:32,529 - INFO - main - Connected to reddit
+2025-06-18 17:59:40,452 - INFO - rss_connector - Analyzing RSS/Atom feed: https://simonwillison.net/atom/everything
+2025-06-18 17:59:42,255 - INFO - rss_connector - Successfully analyzed feed https://simonwillison.net/atom/everything: 30 entries, type: atom
+2025-06-18 17:59:45,746 - INFO - rss_connector - Fetching 10 posts from RSS/Atom feed: https://simonwillison.net/atom/everything
+2025-06-18 17:59:46,709 - INFO - rss_connector - Detected feed type: atom
+2025-06-18 17:59:46,709 - INFO - rss_connector - Successfully processed 10 posts from https://simonwillison.net/atom/everything (atom)
+2025-06-18 17:59:46,739 - INFO - html_renderer - Successfully generated HTML dossier: rss_scan_Simon_Willisons_Weblog.html
+2025-06-18 17:59:46,739 - INFO - main - Successfully exported 10 posts to rss_scan_Simon_Willisons_Weblog.json
+2025-06-18 17:59:46,749 - INFO - main - Validation status: valid
+2025-06-18 17:59:46,749 - INFO - main - Mission complete.
+2025-06-18 17:59:46,749 - INFO - telegram_connector - Disconnecting from Telegram...
+2025-06-18 17:59:46,749 - INFO - mtprotosender - Disconnecting from 149.154.167.51:443/TcpFull...
+2025-06-18 17:59:46,749 - INFO - mtprotosender - Disconnection from 149.154.167.51:443/TcpFull complete!
+2025-06-18 17:59:46,756 - INFO - main - Disconnected from telegram
+2025-06-18 17:59:46,756 - INFO - rss_connector - RSS connector cleanup complete
+2025-06-18 17:59:46,757 - INFO - main - Disconnected from rss
+2025-06-18 17:59:46,757 - INFO - youtube_connector - YouTube connector disconnected
+2025-06-18 17:59:46,757 - INFO - main - Disconnected from youtube
+2025-06-18 17:59:46,757 - INFO - reddit_connector - Reddit connector disconnected (asyncpraw mode)
+2025-06-18 17:59:46,757 - INFO - main - Disconnected from reddit

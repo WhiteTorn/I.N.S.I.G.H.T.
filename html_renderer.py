@@ -191,8 +191,8 @@ class HTMLRenderer:
         media_count = len(post_data.get('media_urls', []))
         media_indicator = f"| {media_count} Media Item(s)" if media_count > 0 else ""
         
-        # Determine post type and styling
-        source_platform = post_data.get('source_platform', 'unknown')
+        # Determine post type and styling using NEW field names
+        source_platform = post_data.get('platform', 'unknown')
         feed_type = post_data.get('feed_type', 'unknown')
         post_class = f"post-block {feed_type}" if feed_type != 'unknown' else "post-block"
         
@@ -212,15 +212,15 @@ class HTMLRenderer:
             </div>
             """
         else:
-            # Telegram post
-            channel_info = ""
-            if show_channel and post_data.get('channel'):
-                channel_info = f"<strong>From:</strong> @{post_data['channel']} | "
+            # Telegram post - use URL instead of legacy id field
+            source_info = ""
+            if show_channel and post_data.get('source'):
+                source_info = f"<strong>From:</strong> {post_data['source']} | "
             
             header_html = f"""
             <div class="post-header">
-                {channel_info}
-                <strong>ID:</strong> {post_data['id']} | 
+                {source_info}
+                <strong>URL:</strong> {post_data.get('url', 'No URL')} | 
                 <strong>Date:</strong> {post_data['date'].strftime('%Y-%m-%d %H:%M:%S')}
                 {media_indicator}
             </div>
@@ -241,8 +241,8 @@ class HTMLRenderer:
             else:
                 post_text_html = content_html
         else:
-            # Use cleaned text for Telegram or fallback
-            post_text_html = f"<p>{html.escape(post_data['text'])}</p>"
+            # Use cleaned text from NEW field name 'content'
+            post_text_html = f"<p>{html.escape(post_data.get('content', 'No content'))}</p>"
         
         # Create the media gallery
         media_gallery_html = ""
@@ -261,7 +261,7 @@ class HTMLRenderer:
                 {media_gallery_html}
             </div>
             <div class="post-footer">
-                <a href="{post_data['link']}" target="_blank">View Original</a>
+                <a href="{post_data.get('url', '#')}" target="_blank">View Original</a>
             </div>
         </div>
         """
@@ -279,7 +279,7 @@ class HTMLRenderer:
             
             # Determine source type for header styling
             first_post = posts[0] if posts else {}
-            source_platform = first_post.get('source_platform', 'telegram')
+            source_platform = first_post.get('platform', 'telegram')
             
             if source_platform == 'rss':
                 feed_title = first_post.get('feed_title', source)

@@ -503,12 +503,7 @@ class RedditConnector(BaseConnector):
             unified_post['comments'] = comments or []
             unified_post['comments_extracted'] = len(comments or [])
             
-            # Add legacy compatibility fields (like other connectors do)
-            unified_post['date'] = unified_post['timestamp']  # Critical: render_briefing_to_console expects 'date' field
-            unified_post['text'] = unified_post['content']     # Backwards compatibility
-            unified_post['link'] = unified_post['post_url']    # Backwards compatibility
-            unified_post['id'] = unified_post['post_id']       # Backwards compatibility
-            
+            # Remove all legacy compatibility fields - use ONLY new unified structure
             return unified_post
             
         except Exception as e:
@@ -799,7 +794,7 @@ class RedditConnector(BaseConnector):
         
         # Sort chronologically
         try:
-            return sorted(all_posts, key=lambda p: p.get('timestamp', datetime.min.replace(tzinfo=timezone.utc)))
+            return sorted(all_posts, key=lambda p: p.get('date', datetime.min.replace(tzinfo=timezone.utc)))
         except Exception as e:
             self.logger.error(f"Error sorting Reddit posts chronologically: {e}")
             return all_posts
