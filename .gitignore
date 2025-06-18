@@ -12,3 +12,4 @@ insight_session.session
 __pycache__
 *.html
 youtube_transcript_https
+reddit_post_analysis_https
