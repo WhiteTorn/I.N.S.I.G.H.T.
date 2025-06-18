@@ -762,10 +762,10 @@ class InsightOperator:
                     if categories:
                         print(f"Categories: {', '.join(categories)}")
                 else:
-                    print(f"\n--- [{post_data['date'].strftime('%H:%M:%S')}] From: @{post_data['channel']} (ID: {post_data['id']}) {media_indicator} ---")
+                    print(f"\n--- [{post_data['date'].strftime('%H:%M:%S')}] From: @{post_data['source']} {media_indicator} ---")
                 
-                print(post_data['text'])
-                print(f"Link: {post_data['link']}")
+                print(post_data['content'])
+                print(f"Link: {post_data['url']}")
 
                 if post_data.get('media_urls'):
                     print("Media Links:")

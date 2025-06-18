@@ -1526,3 +1526,152 @@ KeyError: 'id'
 2025-06-18 18:01:21,573 - INFO - main - Disconnected from youtube
 2025-06-18 18:01:21,573 - INFO - reddit_connector - Reddit connector disconnected (asyncpraw mode)
 2025-06-18 18:01:21,574 - INFO - main - Disconnected from reddit
+2025-06-18 18:02:34,309 - INFO - main - I.N.S.I.G.H.T. Mark II (v2.4) - The Inquisitor - Citadel Edition - Initializing...
+2025-06-18 18:02:34,309 - INFO - telegram_connector - TelegramConnector v2.3 'The Citadel' initialized with hardened error handling
+2025-06-18 18:02:34,309 - INFO - main - Telegram connector registered
+2025-06-18 18:02:34,309 - INFO - rss_connector - RSS Connector v2.3 'The Citadel' initialized with hardened error handling
+2025-06-18 18:02:34,309 - INFO - main - RSS connector registered
+2025-06-18 18:02:34,309 - INFO - youtube_connector - YouTubeConnector v3.0 'The Liberated Spymaster' initialized - NO API KEY REQUIRED!
+2025-06-18 18:02:34,309 - INFO - main - YouTube connector registered (yt-dlp powered - no API key needed)
+2025-06-18 18:02:34,309 - INFO - reddit_connector - Reddit Connector initialized in Async PRAW mode (native async support)
+2025-06-18 18:02:34,309 - INFO - main - Reddit connector registered (PRAW powered)
+2025-06-18 18:02:34,309 - INFO - main - Mark II Orchestrator ready with unified JSON output capabilities and Citadel-grade protection.
+2025-06-18 18:02:34,309 - INFO - telegram_connector - Connecting to Telegram...
+2025-06-18 18:02:34,309 - INFO - mtprotosender - Connecting to 149.154.167.51:443/TcpFull...
+2025-06-18 18:02:34,389 - INFO - mtprotosender - Connection to 149.154.167.51:443/TcpFull complete!
+2025-06-18 18:02:34,849 - INFO - telegram_connector - Telegram connection successful.
+2025-06-18 18:02:34,849 - INFO - main - Connected to telegram
+2025-06-18 18:02:34,849 - INFO - rss_connector - RSS connector ready - feedparser operational
+2025-06-18 18:02:34,849 - INFO - main - Connected to rss
+2025-06-18 18:02:34,939 - INFO - youtube_connector - Connected to YouTube via yt-dlp - Ready for intelligence gathering!
+2025-06-18 18:02:34,939 - INFO - main - Connected to youtube
+2025-06-18 18:02:35,769 - INFO - reddit_connector - Connected to Reddit API successfully (Async PRAW mode)
+2025-06-18 18:02:35,769 - INFO - main - Connected to reddit
+2025-06-18 18:02:48,210 - INFO - reddit_connector - Fetching 10 hot posts from r/PixelArtTutorials (mode: asyncpraw)
+2025-06-18 18:02:49,279 - INFO - reddit_connector - Processed post 1leess9: 'Beginner here — too many guides, don't know where ...' (1 comments)
+2025-06-18 18:02:49,579 - INFO - reddit_connector - Processed post 1lef4s3: 'First PixelArt 🐧...' (0 comments)
+2025-06-18 18:02:49,829 - INFO - reddit_connector - Processed post 1lef48g: '2 characters portraits...' (0 comments)
+2025-06-18 18:02:50,374 - INFO - reddit_connector - Processed post 1led91n: 'Perhaps the sweetest thing you'll see today...' (1 comments)
+2025-06-18 18:02:54,422 - INFO - reddit_connector - Processed post 1ldr5al: 'Tree 1 or 2?...' (15 comments)
+2025-06-18 18:02:54,969 - INFO - reddit_connector - Processed post 1le5qbw: 'developing a style...' (1 comments)
+2025-06-18 18:02:55,769 - INFO - reddit_connector - Processed post 1lebb5b: 'How would I replicate/ learn the style...' (2 comments)
+2025-06-18 18:02:57,099 - INFO - reddit_connector - Processed post 1ldv3mf: 'First time doing pixel art any advices!!?...' (3 comments)
+2025-06-18 18:02:58,149 - INFO - reddit_connector - Processed post 1ldq0ci: 'Im a total noob guys dont judge too hard 😊...' (3 comments)
+2025-06-18 18:02:58,422 - INFO - reddit_connector - Processed post 1le1xl5: 'Trying to "lean out" my character design...' (0 comments)
+2025-06-18 18:02:58,423 - INFO - reddit_connector - Async subreddit processing complete: 10 successful, 0 failed extractions
+2025-06-18 18:02:58,428 - CRITICAL - main - A critical error occurred: 'channel'
+Traceback (most recent call last):
+  File "C:\Users\David\Downloads\Pyitonit\PROJS\I.N.S.I.G.H.T\main.py", line 1207, in run
+    self.render_briefing_to_console(posts, title)
+  File "C:\Users\David\Downloads\Pyitonit\PROJS\I.N.S.I.G.H.T\main.py", line 765, in render_briefing_to_console
+    print(f"\n--- [{post_data['date'].strftime('%H:%M:%S')}] From: @{post_data['channel']} (ID: {post_data['id']}) {media_indicator} ---")
+                                                                     ~~~~~~~~~^^^^^^^^^^^
+KeyError: 'channel'
+2025-06-18 18:02:58,432 - INFO - telegram_connector - Disconnecting from Telegram...
+2025-06-18 18:02:58,432 - INFO - mtprotosender - Disconnecting from 149.154.167.51:443/TcpFull...
+2025-06-18 18:02:58,433 - INFO - mtprotosender - Disconnection from 149.154.167.51:443/TcpFull complete!
+2025-06-18 18:02:58,438 - INFO - main - Disconnected from telegram
+2025-06-18 18:02:58,438 - INFO - rss_connector - RSS connector cleanup complete
+2025-06-18 18:02:58,438 - INFO - main - Disconnected from rss
+2025-06-18 18:02:58,439 - INFO - youtube_connector - YouTube connector disconnected
+2025-06-18 18:02:58,439 - INFO - main - Disconnected from youtube
+2025-06-18 18:02:58,439 - INFO - reddit_connector - Reddit connector disconnected (asyncpraw mode)
+2025-06-18 18:02:58,439 - INFO - main - Disconnected from reddit
+2025-06-18 18:04:46,961 - INFO - main - I.N.S.I.G.H.T. Mark II (v2.4) - The Inquisitor - Citadel Edition - Initializing...
+2025-06-18 18:04:46,961 - INFO - telegram_connector - TelegramConnector v2.3 'The Citadel' initialized with hardened error handling
+2025-06-18 18:04:46,961 - INFO - main - Telegram connector registered
+2025-06-18 18:04:46,961 - INFO - rss_connector - RSS Connector v2.3 'The Citadel' initialized with hardened error handling
+2025-06-18 18:04:46,961 - INFO - main - RSS connector registered
+2025-06-18 18:04:46,961 - INFO - youtube_connector - YouTubeConnector v3.0 'The Liberated Spymaster' initialized - NO API KEY REQUIRED!
+2025-06-18 18:04:46,961 - INFO - main - YouTube connector registered (yt-dlp powered - no API key needed)
+2025-06-18 18:04:46,961 - INFO - reddit_connector - Reddit Connector initialized in Async PRAW mode (native async support)
+2025-06-18 18:04:46,961 - INFO - main - Reddit connector registered (PRAW powered)
+2025-06-18 18:04:46,961 - INFO - main - Mark II Orchestrator ready with unified JSON output capabilities and Citadel-grade protection.
+2025-06-18 18:04:46,968 - INFO - telegram_connector - Connecting to Telegram...
+2025-06-18 18:04:46,968 - INFO - mtprotosender - Connecting to 149.154.167.51:443/TcpFull...
+2025-06-18 18:04:47,038 - INFO - mtprotosender - Connection to 149.154.167.51:443/TcpFull complete!
+2025-06-18 18:04:47,479 - INFO - telegram_connector - Telegram connection successful.
+2025-06-18 18:04:47,479 - INFO - main - Connected to telegram
+2025-06-18 18:04:47,479 - INFO - rss_connector - RSS connector ready - feedparser operational
+2025-06-18 18:04:47,479 - INFO - main - Connected to rss
+2025-06-18 18:04:47,578 - INFO - youtube_connector - Connected to YouTube via yt-dlp - Ready for intelligence gathering!
+2025-06-18 18:04:47,578 - INFO - main - Connected to youtube
+2025-06-18 18:04:48,368 - INFO - reddit_connector - Connected to Reddit API successfully (Async PRAW mode)
+2025-06-18 18:04:48,379 - INFO - main - Connected to reddit
+2025-06-18 18:04:56,935 - INFO - reddit_connector - Fetching 10 hot posts from r/PixelArtTutorials (mode: asyncpraw)
+2025-06-18 18:04:57,859 - INFO - reddit_connector - Processed post 1leess9: 'Beginner here — too many guides, don't know where ...' (1 comments)
+2025-06-18 18:04:58,126 - INFO - reddit_connector - Processed post 1lef4s3: 'First PixelArt 🐧...' (0 comments)
+2025-06-18 18:04:58,379 - INFO - reddit_connector - Processed post 1lef48g: '2 characters portraits...' (0 comments)
+2025-06-18 18:04:59,005 - INFO - reddit_connector - Processed post 1led91n: 'Perhaps the sweetest thing you'll see today...' (1 comments)
+2025-06-18 18:05:03,099 - INFO - reddit_connector - Processed post 1ldr5al: 'Tree 1 or 2?...' (15 comments)
+2025-06-18 18:05:03,699 - INFO - reddit_connector - Processed post 1le5qbw: 'developing a style...' (1 comments)
+2025-06-18 18:05:04,488 - INFO - reddit_connector - Processed post 1lebb5b: 'How would I replicate/ learn the style...' (2 comments)
+2025-06-18 18:05:05,568 - INFO - reddit_connector - Processed post 1ldv3mf: 'First time doing pixel art any advices!!?...' (3 comments)
+2025-06-18 18:05:06,608 - INFO - reddit_connector - Processed post 1ldq0ci: 'Im a total noob guys dont judge too hard 😊...' (3 comments)
+2025-06-18 18:05:06,858 - INFO - reddit_connector - Processed post 1le1xl5: 'Trying to "lean out" my character design...' (0 comments)
+2025-06-18 18:05:06,858 - INFO - reddit_connector - Async subreddit processing complete: 10 successful, 0 failed extractions
+2025-06-18 18:05:06,861 - CRITICAL - main - A critical error occurred: 'text'
+Traceback (most recent call last):
+  File "C:\Users\David\Downloads\Pyitonit\PROJS\I.N.S.I.G.H.T\main.py", line 1207, in run
+    self.render_briefing_to_console(posts, title)
+  File "C:\Users\David\Downloads\Pyitonit\PROJS\I.N.S.I.G.H.T\main.py", line 767, in render_briefing_to_console
+    print(post_data['text'])
+          ~~~~~~~~~^^^^^^^^
+KeyError: 'text'
+2025-06-18 18:05:06,864 - INFO - telegram_connector - Disconnecting from Telegram...
+2025-06-18 18:05:06,864 - INFO - mtprotosender - Disconnecting from 149.154.167.51:443/TcpFull...
+2025-06-18 18:05:06,864 - INFO - mtprotosender - Disconnection from 149.154.167.51:443/TcpFull complete!
+2025-06-18 18:05:06,868 - INFO - main - Disconnected from telegram
+2025-06-18 18:05:06,868 - INFO - rss_connector - RSS connector cleanup complete
+2025-06-18 18:05:06,868 - INFO - main - Disconnected from rss
+2025-06-18 18:05:06,868 - INFO - youtube_connector - YouTube connector disconnected
+2025-06-18 18:05:06,869 - INFO - main - Disconnected from youtube
+2025-06-18 18:05:06,869 - INFO - reddit_connector - Reddit connector disconnected (asyncpraw mode)
+2025-06-18 18:05:06,869 - INFO - main - Disconnected from reddit
+2025-06-18 18:05:46,108 - INFO - main - I.N.S.I.G.H.T. Mark II (v2.4) - The Inquisitor - Citadel Edition - Initializing...
+2025-06-18 18:05:46,108 - INFO - telegram_connector - TelegramConnector v2.3 'The Citadel' initialized with hardened error handling
+2025-06-18 18:05:46,108 - INFO - main - Telegram connector registered
+2025-06-18 18:05:46,108 - INFO - rss_connector - RSS Connector v2.3 'The Citadel' initialized with hardened error handling
+2025-06-18 18:05:46,108 - INFO - main - RSS connector registered
+2025-06-18 18:05:46,108 - INFO - youtube_connector - YouTubeConnector v3.0 'The Liberated Spymaster' initialized - NO API KEY REQUIRED!
+2025-06-18 18:05:46,108 - INFO - main - YouTube connector registered (yt-dlp powered - no API key needed)
+2025-06-18 18:05:46,108 - INFO - reddit_connector - Reddit Connector initialized in Async PRAW mode (native async support)
+2025-06-18 18:05:46,108 - INFO - main - Reddit connector registered (PRAW powered)
+2025-06-18 18:05:46,108 - INFO - main - Mark II Orchestrator ready with unified JSON output capabilities and Citadel-grade protection.
+2025-06-18 18:05:46,113 - INFO - telegram_connector - Connecting to Telegram...
+2025-06-18 18:05:46,113 - INFO - mtprotosender - Connecting to 149.154.167.51:443/TcpFull...
+2025-06-18 18:05:46,178 - INFO - mtprotosender - Connection to 149.154.167.51:443/TcpFull complete!
+2025-06-18 18:05:46,777 - INFO - telegram_connector - Telegram connection successful.
+2025-06-18 18:05:46,778 - INFO - main - Connected to telegram
+2025-06-18 18:05:46,780 - INFO - rss_connector - RSS connector ready - feedparser operational
+2025-06-18 18:05:46,781 - INFO - main - Connected to rss
+2025-06-18 18:05:46,858 - INFO - youtube_connector - Connected to YouTube via yt-dlp - Ready for intelligence gathering!
+2025-06-18 18:05:46,858 - INFO - main - Connected to youtube
+2025-06-18 18:05:47,652 - INFO - reddit_connector - Connected to Reddit API successfully (Async PRAW mode)
+2025-06-18 18:05:47,652 - INFO - main - Connected to reddit
+2025-06-18 18:05:53,723 - INFO - reddit_connector - Fetching 10 hot posts from r/PixelArtTutorials (mode: asyncpraw)
+2025-06-18 18:05:54,754 - INFO - reddit_connector - Processed post 1leess9: 'Beginner here — too many guides, don't know where ...' (1 comments)
+2025-06-18 18:05:55,028 - INFO - reddit_connector - Processed post 1lef4s3: 'First PixelArt 🐧...' (0 comments)
+2025-06-18 18:05:55,288 - INFO - reddit_connector - Processed post 1lef48g: '2 characters portraits...' (0 comments)
+2025-06-18 18:05:55,829 - INFO - reddit_connector - Processed post 1led91n: 'Perhaps the sweetest thing you'll see today...' (1 comments)
+2025-06-18 18:06:00,108 - INFO - reddit_connector - Processed post 1ldr5al: 'Tree 1 or 2?...' (15 comments)
+2025-06-18 18:06:00,759 - INFO - reddit_connector - Processed post 1le5qbw: 'developing a style...' (1 comments)
+2025-06-18 18:06:01,608 - INFO - reddit_connector - Processed post 1lebb5b: 'How would I replicate/ learn the style...' (2 comments)
+2025-06-18 18:06:02,729 - INFO - reddit_connector - Processed post 1ldv3mf: 'First time doing pixel art any advices!!?...' (3 comments)
+2025-06-18 18:06:04,148 - INFO - reddit_connector - Processed post 1ldq0ci: 'Im a total noob guys dont judge too hard 😊...' (3 comments)
+2025-06-18 18:06:04,398 - INFO - reddit_connector - Processed post 1le1xl5: 'Trying to "lean out" my character design...' (0 comments)
+2025-06-18 18:06:04,398 - INFO - reddit_connector - Async subreddit processing complete: 10 successful, 0 failed extractions
+2025-06-18 18:06:04,410 - INFO - html_renderer - Successfully generated HTML dossier: reddit_subreddit_PixelArtTutorials.html
+2025-06-18 18:06:04,417 - INFO - main - Successfully exported 10 posts to reddit_subreddit_explorer_PixelArtTutorials.json
+2025-06-18 18:06:04,417 - INFO - main - Validation status: valid
+2025-06-18 18:06:04,418 - INFO - main - Mission complete.
+2025-06-18 18:06:04,418 - INFO - telegram_connector - Disconnecting from Telegram...
+2025-06-18 18:06:04,419 - INFO - mtprotosender - Disconnecting from 149.154.167.51:443/TcpFull...
+2025-06-18 18:06:04,419 - INFO - mtprotosender - Disconnection from 149.154.167.51:443/TcpFull complete!
+2025-06-18 18:06:04,422 - INFO - main - Disconnected from telegram
+2025-06-18 18:06:04,422 - INFO - rss_connector - RSS connector cleanup complete
+2025-06-18 18:06:04,422 - INFO - main - Disconnected from rss
+2025-06-18 18:06:04,422 - INFO - youtube_connector - YouTube connector disconnected
+2025-06-18 18:06:04,422 - INFO - main - Disconnected from youtube
+2025-06-18 18:06:04,422 - INFO - reddit_connector - Reddit connector disconnected (asyncpraw mode)
+2025-06-18 18:06:04,422 - INFO - main - Disconnected from reddit
