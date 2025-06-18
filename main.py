@@ -5,7 +5,7 @@ import json
 from datetime import datetime
 from dotenv import load_dotenv
 from connectors import TelegramConnector, RssConnector, YouTubeConnector, RedditConnector
-from renderer import HTMLRenderer, ConsoleRenderer
+from output import ConsoleOutput, HTMLOutput, JSONOutput
 
 # --- Configuration and Setup ---
 logging.basicConfig(
@@ -49,201 +49,10 @@ class InsightOperator:
         self.connectors = {}
         self._setup_connectors()
         
-        # JSON output configuration
-        self.json_config = {
-            'ensure_ascii': False,
-            'indent': 4,
-            'sort_keys': True,
-            'default': self._json_serializer
-        }
-        
         # Global timeout configuration for The Citadel
         self.GLOBAL_TIMEOUT_SECONDS = 30
         
-        logging.info("Mark II Orchestrator ready with unified JSON output capabilities and Citadel-grade protection.")
-    
-    def _json_serializer(self, obj):
-        """
-        Custom JSON serializer for handling datetime objects and other non-serializable types.
-        
-        This ensures that our unified data model can be cleanly serialized to JSON
-        for Mark III consumption while maintaining all temporal and metadata information.
-        """
-        if isinstance(obj, datetime):
-            return obj.isoformat() + 'Z'  # ISO format with UTC indicator
-        raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
-    
-    def _enrich_post_metadata(self, post: dict) -> dict:
-        """
-        Enrich a post with additional metadata for enhanced Mark III processing.
-        
-        This adds computed fields that will be valuable for Mark IV LLM analysis
-        while maintaining backward compatibility with existing connectors.
-        """
-        enriched_post = post.copy()
-        
-        # Add Mark II processing metadata
-        enriched_post['processing_metadata'] = {
-            'processed_by': 'I.N.S.I.G.H.T. Mark II v2.4',
-            'processed_at': datetime.utcnow().isoformat() + 'Z',
-            'data_version': '2.4.0',
-            'content_length': len(post.get('content', '')),
-            'has_media': len(post.get('media_urls', [])) > 0,
-            'media_count': len(post.get('media_urls', []))
-        }
-        
-        # Add content analysis hints for Mark IV
-        content = post.get('content', '')
-        enriched_post['content_analysis_hints'] = {
-            'estimated_reading_time_seconds': max(1, len(content.split()) * 0.25),  # ~250 WPM
-            'contains_urls': 'http' in content.lower(),
-            'contains_mentions': '@' in content,
-            'contains_hashtags': '#' in content,
-            'language_hint': 'en',  # Default, can be enhanced with detection
-            'content_type': self._classify_content_type(post)
-        }
-        
-        return enriched_post
-    
-    def _classify_content_type(self, post: dict) -> str:
-        """
-        Classify the type of content for enhanced Mark IV processing.
-        
-        Returns content type classification for LLM context optimization.
-        """
-        source_platform = post.get('platform', '')
-        content = post.get('content', '').lower()
-        
-        if source_platform == 'rss':
-            if post.get('categories'):
-                return 'news_article'
-            return 'feed_content'
-        elif source_platform == 'telegram':
-            if len(post.get('media_urls', [])) > 0:
-                return 'media_post'
-            elif len(content) > 500:
-                return 'long_form_message'
-            else:
-                return 'short_message'
-        
-        return 'unknown'
-    
-    def _validate_json_payload(self, posts: list) -> dict:
-        """
-        Validate the JSON payload before export to ensure Mark III compatibility.
-        
-        Returns validation report with any issues found.
-        """
-        validation_report = {
-            'status': 'valid',
-            'total_posts': len(posts),
-            'issues': [],
-            'warnings': [],
-            'metadata': {
-                'platforms_included': set(),
-                'date_range': {'earliest': None, 'latest': None},
-                'total_media_items': 0
-            }
-        }
-        
-        for i, post in enumerate(posts):
-            post_id = post.get('url', f'post_{i}')  # Use URL as ID since we removed post_id
-            
-            # Check required fields for NEW unified structure
-            required_fields = ['platform', 'source', 'url', 'content', 'date', 'media_urls', 'categories', 'metadata']
-            for field in required_fields:
-                if field not in post or post[field] is None:
-                    validation_report['issues'].append(f"Post {post_id}: Missing required field '{field}'")
-            
-            # Track metadata using NEW field names
-            if 'platform' in post:
-                validation_report['metadata']['platforms_included'].add(post['platform'])
-            
-            if 'date' in post and isinstance(post['date'], datetime):
-                ts = post['date']
-                if validation_report['metadata']['date_range']['earliest'] is None or ts < validation_report['metadata']['date_range']['earliest']:
-                    validation_report['metadata']['date_range']['earliest'] = ts
-                if validation_report['metadata']['date_range']['latest'] is None or ts > validation_report['metadata']['date_range']['latest']:
-                    validation_report['metadata']['date_range']['latest'] = ts
-            
-            if 'media_urls' in post and isinstance(post['media_urls'], list):
-                validation_report['metadata']['total_media_items'] += len(post['media_urls'])
-        
-        # Convert set to list for JSON serialization
-        validation_report['metadata']['platforms_included'] = list(validation_report['metadata']['platforms_included'])
-        
-        if validation_report['issues']:
-            validation_report['status'] = 'errors_found'
-        elif validation_report['warnings']:
-            validation_report['status'] = 'warnings_found'
-        
-        return validation_report
-    
-    def export_to_json(self, posts: list, filename: str = None, include_metadata: bool = True) -> str:
-        """
-        Export posts to a standardized JSON file for Mark III consumption.
-        
-        This is the core method that transforms our unified data into the standard
-        payload format that Mark III "The Scribe" will consume for database storage.
-        
-        Args:
-            posts: List of posts in unified format
-            filename: Output filename (auto-generated if None)
-            include_metadata: Whether to include enriched metadata
-            
-        Returns:
-            The filename of the exported JSON file
-        """
-        if not filename:
-            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            filename = f"inquisitor_report_{timestamp}.json"
-        
-        # Enrich posts with metadata if requested
-        if include_metadata:
-            enriched_posts = [self._enrich_post_metadata(post) for post in posts]
-        else:
-            enriched_posts = posts
-        
-        # Sort by timestamp for chronological processing
-        enriched_posts.sort(key=lambda p: p.get('date', datetime.min), reverse=True)
-        
-        # Validate the payload
-        validation_report = self._validate_json_payload(enriched_posts)
-        
-        # Create the complete JSON payload
-        json_payload = {
-            'report_metadata': {
-                'generated_by': 'I.N.S.I.G.H.T. Mark II v2.4',
-                'generated_at': datetime.utcnow().isoformat() + 'Z',
-                'total_posts': len(enriched_posts),
-                'platforms_included': validation_report['metadata']['platforms_included'],
-                'date_range': validation_report['metadata']['date_range'],
-                'total_media_items': validation_report['metadata']['total_media_items'],
-                'format_version': '2.4.0',
-                'compatible_with': ['Mark III v3.0+', 'Mark IV v4.0+']
-            },
-            'validation_report': validation_report,
-            'posts': enriched_posts
-        }
-        
-        # Write to file
-        try:
-            with open(filename, 'w', encoding='utf-8') as f:
-                json.dump(json_payload, f, **self.json_config)
-            
-            logging.info(f"Successfully exported {len(enriched_posts)} posts to {filename}")
-            logging.info(f"Validation status: {validation_report['status']}")
-            
-            if validation_report['issues']:
-                logging.warning(f"Validation found {len(validation_report['issues'])} issues")
-                for issue in validation_report['issues']:
-                    logging.warning(f"  - {issue}")
-            
-            return filename
-            
-        except Exception as e:
-            logging.error(f"Failed to export JSON file {filename}: {e}")
-            raise
+        logging.info("Mark II Orchestrator ready with Citadel-grade protection.")
     
     def _setup_connectors(self):
         """Initialize and register all available connectors."""
@@ -693,12 +502,12 @@ class InsightOperator:
                 return
             
             available_connectors = list(self.connectors.keys())
-            ConsoleRenderer.display_startup_banner(available_connectors, self.GLOBAL_TIMEOUT_SECONDS)
-            ConsoleRenderer.display_mission_menu()
+            ConsoleOutput.display_startup_banner(available_connectors, self.GLOBAL_TIMEOUT_SECONDS)
+            ConsoleOutput.display_mission_menu()
             
             mission_choice = input("\nEnter mission number (1-14): ")
 
-            # Enhanced error reporting for user feedback - moved to ConsoleRenderer
+            # Enhanced error reporting for user feedback - moved to ConsoleOutput
             # Telegram missions (enhanced with JSON output)
             if mission_choice in ['1', '2', '3']:
                 if 'telegram' not in self.connectors:
@@ -709,27 +518,29 @@ class InsightOperator:
                     channel = input("\nEnter the target channel username: ")
                     limit = int(input("How many posts to retrieve? "))
                     
-                    ConsoleRenderer.display_output_format_menu()
+                    ConsoleOutput.display_output_format_menu()
                     output_choice = input("Enter format number (1-7): ")
 
                     posts = await self.get_n_posts(channel, limit)
                     title = f"{limit} posts from @{channel}"
 
                     if output_choice in ['1', '4', '5', '7']:
-                        ConsoleRenderer.render_report_to_console(posts, title)
+                        ConsoleOutput.render_report_to_console(posts, title)
                     
                     if output_choice in ['2', '4', '6', '7']:
-                        html_dossier = HTMLRenderer(f"I.N.S.I.G.H.T. Deep Scan: {title}")
-                        html_dossier.render_report(posts)
-                        html_dossier.save_to_file(f"deep_scan_{channel.lstrip('@')}.html")
+                        html_output = HTMLOutput(f"I.N.S.I.G.H.T. Deep Scan: {title}")
+                        html_output.render_report(posts)
+                        html_output.save_to_file(f"deep_scan_{channel.lstrip('@')}.html")
                     
                     if output_choice in ['3', '5', '6', '7']:
-                        json_filename = self.export_to_json(posts, f"deep_scan_{channel.lstrip('@')}.json")
-                        print(f"\n📁 JSON export saved to: {json_filename}")
+                        json_output = JSONOutput()
+                        mission_context = json_output.create_mission_summary(posts, f"Deep Scan @{channel}", [channel])
+                        filename = json_output.export_to_file(posts, f"deep_scan_{channel.lstrip('@')}.json", mission_context=mission_context)
+                        print(f"\n📁 JSON export saved to: {filename}")
                         print("🔄 This file is ready for Mark III 'Scribe' processing.")
                     
                     # Report mission outcome
-                    ConsoleRenderer.report_mission_outcome(len(posts), 1, f"Deep Scan @{channel}")
+                    ConsoleOutput.report_mission_outcome(len(posts), 1, f"Deep Scan @{channel}")
                 
                 elif mission_choice in ['2', '3']:
                     days = 0
@@ -742,7 +553,7 @@ class InsightOperator:
                     channels_str = input("Enter channel usernames, separated by commas: ")
                     channels = [c.strip() for c in channels_str.split(',')]
                     
-                    ConsoleRenderer.display_output_format_menu()
+                    ConsoleOutput.display_output_format_menu()
                     output_choice = input("Enter format number (1-7): ")
                     
                     all_posts = await self.get_briefing_posts(channels, days)
@@ -750,29 +561,31 @@ class InsightOperator:
                     title = f"{title_prefix} for {', '.join(channels)}"
                     
                     if output_choice in ['1', '4', '5', '7']:
-                        ConsoleRenderer.render_briefing_to_console(all_posts, title)
+                        ConsoleOutput.render_briefing_to_console(all_posts, title)
                     
                     if output_choice in ['2', '4', '6', '7']:
-                        # Prepare data for HTML renderer
-                        html_renderer = HTMLRenderer()
+                        # Prepare data for HTML output
+                        html_output = HTMLOutput()
                         briefing_data_for_html = {channel: [] for channel in channels}
                         for post in all_posts:
-                            briefing_data_for_html[post['channel']].append(post)
+                            briefing_data_for_html[post['source']].append(post)
 
-                        html_renderer.render_briefing(briefing_data_for_html, days)
+                        html_output.render_briefing(briefing_data_for_html, days)
                         
                         filename_date = datetime.now().strftime('%Y-%m-%d')
                         filename = f"briefing_{filename_date}.html"
-                        html_renderer.save_to_file(filename)
+                        html_output.save_to_file(filename)
                     
                     if output_choice in ['3', '5', '6', '7']:
+                        json_output = JSONOutput()
+                        mission_context = json_output.create_mission_summary(all_posts, title, channels)
                         filename_date = datetime.now().strftime('%Y%m%d')
-                        json_filename = self.export_to_json(all_posts, f"briefing_{filename_date}.json")
-                        print(f"\n📁 JSON export saved to: {json_filename}")
+                        filename = json_output.export_to_file(all_posts, f"briefing_{filename_date}.json", mission_context=mission_context)
+                        print(f"\n📁 JSON export saved to: {filename}")
                         print("🔄 This file is ready for Mark III 'Scribe' processing.")
                     
                     # Report mission outcome
-                    ConsoleRenderer.report_mission_outcome(len(all_posts), len(channels), title_prefix)
+                    ConsoleOutput.report_mission_outcome(len(all_posts), len(channels), title_prefix)
             
             # RSS missions (enhanced with JSON output)
             elif mission_choice in ['4', '5', '6']:
@@ -786,7 +599,7 @@ class InsightOperator:
                     print(f"\n🔍 Analyzing RSS/Atom feed: {feed_url}")
                     
                     feed_info = await self.analyze_rss_feed(feed_url)
-                    ConsoleRenderer.render_feed_info(feed_info)
+                    ConsoleOutput.render_feed_info(feed_info)
                 
                 elif mission_choice == '5':
                     # RSS Single Feed Scan
@@ -806,33 +619,35 @@ class InsightOperator:
                     
                     limit = int(input(f"How many posts to retrieve (max {feed_info['total_entries']})? "))
                     
-                    ConsoleRenderer.display_output_format_menu()
+                    ConsoleOutput.display_output_format_menu()
                     output_choice = input("Enter format number (1-7): ")
                     
                     posts = await self.get_rss_posts(feed_url, limit)
                     title = f"{limit} posts from {feed_info['title']}"
                     
                     if output_choice in ['1', '4', '5', '7']:
-                        ConsoleRenderer.render_report_to_console(posts, title)
+                        ConsoleOutput.render_report_to_console(posts, title)
                     
                     if output_choice in ['2', '4', '6', '7']:
-                        html_dossier = HTMLRenderer(f"I.N.S.I.G.H.T. RSS Scan: {title}")
-                        html_dossier.render_rss_briefing(posts, title)
+                        html_output = HTMLOutput(f"I.N.S.I.G.H.T. RSS Scan: {title}")
+                        html_output.render_rss_briefing(posts, title)
                         
                         # Create safe filename from feed title
                         safe_name = "".join(c for c in feed_info['title'] if c.isalnum() or c in (' ', '-', '_')).rstrip()
                         safe_name = safe_name.replace(' ', '_')[:50]  # Limit length
-                        html_dossier.save_to_file(f"rss_scan_{safe_name}.html")
+                        html_output.save_to_file(f"rss_scan_{safe_name}.html")
                     
                     if output_choice in ['3', '5', '6', '7']:
                         safe_name = "".join(c for c in feed_info['title'] if c.isalnum() or c in (' ', '-', '_')).rstrip()
                         safe_name = safe_name.replace(' ', '_')[:50]
-                        json_filename = self.export_to_json(posts, f"rss_scan_{safe_name}.json")
-                        print(f"\n📁 JSON export saved to: {json_filename}")
+                        json_output = JSONOutput()
+                        mission_context = json_output.create_mission_summary(posts, f"RSS Scan - {feed_info['title']}", [feed_info['title']])
+                        filename = json_output.export_to_file(posts, f"rss_scan_{safe_name}.json", mission_context=mission_context)
+                        print(f"\n📁 JSON export saved to: {filename}")
                         print("🔄 This file is ready for Mark III 'Scribe' processing.")
                     
                     # Report mission outcome
-                    ConsoleRenderer.report_mission_outcome(len(posts), 1, f"RSS Scan - {feed_info['title']}")
+                    ConsoleOutput.report_mission_outcome(len(posts), 1, f"RSS Scan - {feed_info['title']}")
                 
                 elif mission_choice == '6':
                     # RSS Multi-Feed Scan
@@ -852,30 +667,32 @@ class InsightOperator:
                     
                     limit_per_feed = int(input("\nHow many posts per feed to retrieve? "))
                     
-                    ConsoleRenderer.display_output_format_menu()
+                    ConsoleOutput.display_output_format_menu()
                     output_choice = input("Enter format number (1-7): ")
                     
                     posts = await self.get_multi_rss_posts(feed_urls, limit_per_feed)
                     title = f"Multi-RSS scan: {limit_per_feed} posts from {len(feed_urls)} feeds"
                     
                     if output_choice in ['1', '4', '5', '7']:
-                        ConsoleRenderer.render_briefing_to_console(posts, title)
+                        ConsoleOutput.render_briefing_to_console(posts, title)
                     
                     if output_choice in ['2', '4', '6', '7']:
-                        html_renderer = HTMLRenderer(f"I.N.S.I.G.H.T. Multi-RSS Briefing")
-                        html_renderer.render_rss_briefing(posts, title)
+                        html_output = HTMLOutput(f"I.N.S.I.G.H.T. Multi-RSS Briefing")
+                        html_output.render_rss_briefing(posts, title)
                         
                         filename_date = datetime.now().strftime('%Y-%m-%d')
-                        html_renderer.save_to_file(f"multi_rss_briefing_{filename_date}.html")
+                        html_output.save_to_file(f"multi_rss_briefing_{filename_date}.html")
                     
                     if output_choice in ['3', '5', '6', '7']:
+                        json_output = JSONOutput()
+                        mission_context = json_output.create_mission_summary(posts, title, [f.split('/')[-1] for f in feed_urls])
                         filename_date = datetime.now().strftime('%Y%m%d')
-                        json_filename = self.export_to_json(posts, f"multi_rss_briefing_{filename_date}.json")
-                        print(f"\n📁 JSON export saved to: {json_filename}")
+                        filename = json_output.export_to_file(posts, f"multi_rss_briefing_{filename_date}.json", mission_context=mission_context)
+                        print(f"\n📁 JSON export saved to: {filename}")
                         print("🔄 This file is ready for Mark III 'Scribe' processing.")
                     
                     # Report mission outcome
-                    ConsoleRenderer.report_mission_outcome(len(posts), len(feed_urls), "Multi-RSS Scan")
+                    ConsoleOutput.report_mission_outcome(len(posts), len(feed_urls), "Multi-RSS Scan")
             
             # YouTube missions (enhanced with JSON output)
             elif mission_choice in ['7', '8', '9', '10']:
@@ -892,9 +709,11 @@ class InsightOperator:
                     title = f"YouTube Transcript: {video_url}"
                     
                     if posts:
-                        ConsoleRenderer.render_report_to_console(posts, title)
-                        json_filename = self.export_to_json(posts, f"youtube_transcript_{video_url.replace('/', '_')}.json")
-                        print(f"\n📁 JSON export saved to: {json_filename}")
+                        ConsoleOutput.render_report_to_console(posts, title)
+                        json_output = JSONOutput()
+                        mission_context = json_output.create_mission_summary(posts, title, [video_url])
+                        filename = json_output.export_to_file(posts, f"youtube_transcript_{video_url.replace('/', '_')}.json", mission_context=mission_context)
+                        print(f"\n📁 JSON export saved to: {filename}")
                         print("🔄 This file is ready for Mark III 'Scribe' processing.")
                     else:
                         print("\n❌ No transcript found for the given video URL.")
@@ -910,9 +729,11 @@ class InsightOperator:
                     title = f"YouTube Channel Transcripts: {channel_identifier}"
                     
                     if posts:
-                        ConsoleRenderer.render_briefing_to_console(posts, title)
-                        json_filename = self.export_to_json(posts, f"youtube_channel_transcripts_{channel_identifier.replace('/', '_')}.json")
-                        print(f"\n📁 JSON export saved to: {json_filename}")
+                        ConsoleOutput.render_briefing_to_console(posts, title)
+                        json_output = JSONOutput()
+                        mission_context = json_output.create_mission_summary(posts, title, [channel_identifier])
+                        filename = json_output.export_to_file(posts, f"youtube_channel_transcripts_{channel_identifier.replace('/', '_')}.json", mission_context=mission_context)
+                        print(f"\n📁 JSON export saved to: {filename}")
                         print("🔄 This file is ready for Mark III 'Scribe' processing.")
                     else:
                         print("\n❌ No transcripts found for the given channel identifier.")
@@ -928,9 +749,11 @@ class InsightOperator:
                     title = f"YouTube Playlist Transcripts: {playlist_url}"
                     
                     if posts:
-                        ConsoleRenderer.render_briefing_to_console(posts, title)
-                        json_filename = self.export_to_json(posts, f"youtube_playlist_transcripts_{playlist_url.replace('/', '_')}.json")
-                        print(f"\n📁 JSON export saved to: {json_filename}")
+                        ConsoleOutput.render_briefing_to_console(posts, title)
+                        json_output = JSONOutput()
+                        mission_context = json_output.create_mission_summary(posts, title, [playlist_url])
+                        filename = json_output.export_to_file(posts, f"youtube_playlist_transcripts_{playlist_url.replace('/', '_')}.json", mission_context=mission_context)
+                        print(f"\n📁 JSON export saved to: {filename}")
                         print("🔄 This file is ready for Mark III 'Scribe' processing.")
                     else:
                         print("\n❌ No transcripts found for the given playlist URL.")
@@ -946,9 +769,11 @@ class InsightOperator:
                     title = f"YouTube Search Results: {search_query}"
                     
                     if posts:
-                        ConsoleRenderer.render_briefing_to_console(posts, title)
-                        json_filename = self.export_to_json(posts, f"youtube_search_{search_query.replace(' ', '_')}.json")
-                        print(f"\n📁 JSON export saved to: {json_filename}")
+                        ConsoleOutput.render_briefing_to_console(posts, title)
+                        json_output = JSONOutput()
+                        mission_context = json_output.create_mission_summary(posts, title, [search_query])
+                        filename = json_output.export_to_file(posts, f"youtube_search_{search_query.replace(' ', '_')}.json", mission_context=mission_context)
+                        print(f"\n📁 JSON export saved to: {filename}")
                         print("🔄 This file is ready for Mark III 'Scribe' processing.")
                     else:
                         print("\n❌ No search results found for the given query.")
@@ -964,7 +789,7 @@ class InsightOperator:
                     post_url = input("\nEnter Reddit post URL: ")
                     print(f"\n🔍 Fetching Reddit post with comments for: {post_url}")
                     
-                    ConsoleRenderer.display_output_format_menu()
+                    ConsoleOutput.display_output_format_menu()
                     output_choice = input("Enter format number (1-7): ")
                     
                     posts = await self.get_reddit_post_with_comments(post_url)
@@ -972,21 +797,23 @@ class InsightOperator:
                     
                     if posts:
                         if output_choice in ['1', '4', '5', '7']:
-                            ConsoleRenderer.render_report_to_console(posts, title)
+                            ConsoleOutput.render_report_to_console(posts, title)
                         
                         if output_choice in ['2', '4', '6', '7']:
-                            html_dossier = HTMLRenderer(f"I.N.S.I.G.H.T. Reddit Post Analysis: {title}")
-                            html_dossier.render_report(posts)
+                            html_output = HTMLOutput(f"I.N.S.I.G.H.T. Reddit Post Analysis: {title}")
+                            html_output.render_report(posts)
                             safe_url = post_url.replace('/', '_').replace('.', '_').replace(':', '_')
-                            html_dossier.save_to_file(f"reddit_post_analysis_{safe_url}.html")
+                            html_output.save_to_file(f"reddit_post_analysis_{safe_url}.html")
                         
                         if output_choice in ['3', '5', '6', '7']:
-                            json_filename = self.export_to_json(posts, f"reddit_post_analysis_{post_url.replace('/', '_').replace('.', '_')}.json")
-                            print(f"\n📁 JSON export saved to: {json_filename}")
+                            json_output = JSONOutput()
+                            mission_context = json_output.create_mission_summary(posts, title, [post_url])
+                            filename = json_output.export_to_file(posts, f"reddit_post_analysis_{safe_url}.json", mission_context=mission_context)
+                            print(f"\n📁 JSON export saved to: {filename}")
                             print("🔄 This file is ready for Mark III 'Scribe' processing.")
                         
                         # Report mission outcome
-                        ConsoleRenderer.report_mission_outcome(len(posts), 1, "Reddit Post Analysis")
+                        ConsoleOutput.report_mission_outcome(len(posts), 1, "Reddit Post Analysis")
                     else:
                         print("\n❌ No comments found for the given post URL.")
                 
@@ -995,7 +822,7 @@ class InsightOperator:
                     subreddit = input("\nEnter Reddit subreddit name: ")
                     print(f"\n🔍 Exploring posts from subreddit: {subreddit}")
                     
-                    ConsoleRenderer.display_output_format_menu()
+                    ConsoleOutput.display_output_format_menu()
                     output_choice = input("Enter format number (1-7): ")
                     
                     posts = await self.get_posts_from_subreddit(subreddit)
@@ -1003,20 +830,22 @@ class InsightOperator:
                     
                     if posts:
                         if output_choice in ['1', '4', '5', '7']:
-                            ConsoleRenderer.render_briefing_to_console(posts, title)
+                            ConsoleOutput.render_briefing_to_console(posts, title)
                         
                         if output_choice in ['2', '4', '6', '7']:
-                            html_dossier = HTMLRenderer(f"I.N.S.I.G.H.T. Reddit Subreddit Explorer: {title}")
-                            html_dossier.render_briefing({subreddit: posts}, 0)  # 0 days for current posts
-                            html_dossier.save_to_file(f"reddit_subreddit_{subreddit.replace('/', '_')}.html")
+                            html_output = HTMLOutput(f"I.N.S.I.G.H.T. Reddit Subreddit Explorer: {title}")
+                            html_output.render_briefing({subreddit: posts}, 0)  # 0 days for current posts
+                            html_output.save_to_file(f"reddit_subreddit_{subreddit.replace('/', '_')}.html")
                         
                         if output_choice in ['3', '5', '6', '7']:
-                            json_filename = self.export_to_json(posts, f"reddit_subreddit_explorer_{subreddit.replace('/', '_')}.json")
-                            print(f"\n📁 JSON export saved to: {json_filename}")
+                            json_output = JSONOutput()
+                            mission_context = json_output.create_mission_summary(posts, title, [subreddit])
+                            filename = json_output.export_to_file(posts, f"reddit_subreddit_explorer_{subreddit.replace('/', '_')}.json", mission_context=mission_context)
+                            print(f"\n📁 JSON export saved to: {filename}")
                             print("🔄 This file is ready for Mark III 'Scribe' processing.")
                         
                         # Report mission outcome
-                        ConsoleRenderer.report_mission_outcome(len(posts), 1, f"Reddit Subreddit Explorer - {subreddit}")
+                        ConsoleOutput.report_mission_outcome(len(posts), 1, f"Reddit Subreddit Explorer - {subreddit}")
                     else:
                         print("\n❌ No posts found for the given subreddit.")
                 
@@ -1025,7 +854,7 @@ class InsightOperator:
                     subreddits_str = input("\nEnter Reddit subreddits, separated by commas: ")
                     subreddits = [sr.strip() for sr in subreddits_str.split(',')]
                     
-                    ConsoleRenderer.display_output_format_menu()
+                    ConsoleOutput.display_output_format_menu()
                     output_choice = input("Enter format number (1-7): ")
                     
                     print(f"\n🔍 Fetching posts from {len(subreddits)} subreddits...")
@@ -1034,10 +863,10 @@ class InsightOperator:
                     
                     if posts:
                         if output_choice in ['1', '4', '5', '7']:
-                            ConsoleRenderer.render_briefing_to_console(posts, title)
+                            ConsoleOutput.render_briefing_to_console(posts, title)
                         
                         if output_choice in ['2', '4', '6', '7']:
-                            html_renderer = HTMLRenderer(f"I.N.S.I.G.H.T. Reddit Multi-Source Briefing")
+                            html_output = HTMLOutput(f"I.N.S.I.G.H.T. Reddit Multi-Source Briefing")
                             # Organize posts by subreddit for HTML rendering
                             briefing_data_for_html = {sr: [] for sr in subreddits}
                             for post in posts:
@@ -1045,18 +874,20 @@ class InsightOperator:
                                 if subreddit_name in briefing_data_for_html:
                                     briefing_data_for_html[subreddit_name].append(post)
                             
-                            html_renderer.render_briefing(briefing_data_for_html, 0)
+                            html_output.render_briefing(briefing_data_for_html, 0)
                             
                             filename_date = datetime.now().strftime('%Y-%m-%d')
-                            html_renderer.save_to_file(f"reddit_multi_source_briefing_{filename_date}.html")
+                            html_output.save_to_file(f"reddit_multi_source_briefing_{filename_date}.html")
                         
                         if output_choice in ['3', '5', '6', '7']:
-                            json_filename = self.export_to_json(posts, f"reddit_multi_source_briefing_{'_'.join(subreddits).replace('/', '_')}.json")
-                            print(f"\n📁 JSON export saved to: {json_filename}")
+                            json_output = JSONOutput()
+                            mission_context = json_output.create_mission_summary(posts, title, subreddits)
+                            filename = json_output.export_to_file(posts, f"reddit_multi_source_briefing_{'_'.join(subreddits).replace('/', '_')}.json", mission_context=mission_context)
+                            print(f"\n📁 JSON export saved to: {filename}")
                             print("🔄 This file is ready for Mark III 'Scribe' processing.")
                         
                         # Report mission outcome
-                        ConsoleRenderer.report_mission_outcome(len(posts), len(subreddits), "Reddit Multi-Source Briefing")
+                        ConsoleOutput.report_mission_outcome(len(posts), len(subreddits), "Reddit Multi-Source Briefing")
                     else:
                         print("\n❌ No posts found for the given subreddits.")
             
@@ -1102,8 +933,10 @@ class InsightOperator:
                             print(f"❌ Failed to fetch YouTube data: {e}")
                 
                 if test_posts:
-                    json_filename = self.export_to_json(test_posts, "mark_iii_compatibility_test.json")
-                    print(f"\n🎯 Test JSON export created: {json_filename}")
+                    json_output = JSONOutput()
+                    mission_context = json_output.create_mission_summary(test_posts, "Mark III Compatibility Test", [f"{p.get('platform', 'unknown')} ({p.get('source', 'unknown')})" for p in test_posts])
+                    filename = json_output.export_to_file(test_posts, "mark_iii_compatibility_test.json", mission_context=mission_context)
+                    print(f"\n🎯 Test JSON export created: {filename}")
                     print("\n📋 JSON Export Summary:")
                     print(f"   • Total posts: {len(test_posts)}")
                     print(f"   • Platforms included: {', '.join(set(p.get('platform', 'unknown') for p in test_posts))}")
@@ -1113,7 +946,7 @@ class InsightOperator:
                     
                     print("\n🔍 Would you like to view the JSON structure? (y/n): ", end="")
                     if input().lower() == 'y':
-                        with open(json_filename, 'r', encoding='utf-8') as f:
+                        with open(filename, 'r', encoding='utf-8') as f:
                             sample_data = json.load(f)
                         
                         print("\n" + "="*60)
