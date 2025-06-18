@@ -493,21 +493,20 @@ class RssConnector(BaseConnector):
                     # Create unified post using base connector helper
                     try:
                         unified_post = self._create_unified_post(
-                            source_platform="rss",
-                            source_id=feed_url,
-                            post_id=getattr(entry, 'id', getattr(entry, 'link', f"rss_{entries_processed}")),
-                            author=getattr(entry, 'author', getattr(feed.feed, 'title', 'Unknown')),
+                            platform="rss",
+                            source=feed_url,  # Exactly as user enters
+                            url=getattr(entry, 'link', feed_url),
                             content=cleaned_text,
-                            timestamp=timestamp,
+                            date=timestamp,
                             media_urls=media_urls,
-                            post_url=getattr(entry, 'link', feed_url)
+                            categories=categories,  # Use extracted categories
+                            metadata={}  # Empty for Mark II
                         )
                         
                         # Add RSS/Atom-specific fields for backward compatibility
                         unified_post['title'] = getattr(entry, 'title', 'No title')
                         unified_post['feed_title'] = getattr(feed.feed, 'title', 'Unknown Feed')
                         unified_post['feed_type'] = feed_type
-                        unified_post['categories'] = categories
                         unified_post['content_html'] = original_html
                         
                         # Legacy compatibility fields

@@ -13,15 +13,19 @@ class BaseConnector(ABC):
     The Unified Data Model:
     Every connector must return data in this standardized format:
     {
-        "source_platform": str,    # Platform identifier ("telegram", "rss", etc.)
-        "source_id": str,          # Source identifier (channel name, feed URL, etc.)
-        "post_id": str,            # Unique post ID within the source
-        "author": str,             # Best effort author identification
-        "content": str,            # Full text content of the post
-        "timestamp": datetime,     # UTC timestamp as datetime object
-        "media_urls": List[str],   # List of media URLs
-        "post_url": str           # Direct link to original post
+        "platform": str,           # Platform identifier ("telegram", "youtube", "reddit", "rss")  
+        "source": str,             # Source exactly as user enters (no normalization)
+        "url": str,                # Direct link to original post (serves as unique ID)
+        "content": str,            # Full text content
+        "date": datetime,          # Precise UTC timestamp
+        "media_urls": List[str],   # Media URLs
+        "categories": List[str],   # Tags/topics/hashtags (empty list if none)
+        "metadata": Dict[str, Any] # Platform-specific data (empty dict for Mark II)
     }
+    
+    This structure follows the principle of maximum simplicity while maintaining
+    all essential information needed for post rendering and processing.
+    Future-ready with categories and metadata for advanced features.
     """
     
     def __init__(self, platform_name: str):
@@ -101,8 +105,7 @@ class BaseConnector(ABC):
             True if valid, False otherwise
         """
         required_fields = [
-            "source_platform", "source_id", "post_id", "author", 
-            "content", "timestamp", "media_urls", "post_url"
+            "platform", "source", "url", "content", "date", "media_urls", "categories", "metadata"
         ]
         
         for field in required_fields:
@@ -124,14 +127,14 @@ class BaseConnector(ABC):
         This ensures all connectors create posts with the same structure.
         """
         post = {
-            "source_platform": kwargs.get("source_platform", self.platform_name),
-            "source_id": kwargs.get("source_id", ""),
-            "post_id": str(kwargs.get("post_id", "")),
-            "author": kwargs.get("author", ""),
+            "platform": kwargs.get("platform", self.platform_name),
+            "source": kwargs.get("source", ""),
+            "url": kwargs.get("url", ""),
             "content": kwargs.get("content", ""),
-            "timestamp": kwargs.get("timestamp", None),
+            "date": kwargs.get("date", None),
             "media_urls": kwargs.get("media_urls", []),
-            "post_url": kwargs.get("post_url", "")
+            "categories": kwargs.get("categories", []),
+            "metadata": kwargs.get("metadata", {})
         }
         
         if not self._validate_unified_post(post):

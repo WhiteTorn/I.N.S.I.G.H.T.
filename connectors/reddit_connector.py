@@ -414,14 +414,14 @@ class RedditConnector(BaseConnector):
                 
                 # Create main post
                 unified_post = self._create_unified_post(
-                    source_platform="reddit",
-                    source_id=source_id,
-                    post_id=submission_data.id,
-                    author=str(submission_data.author) if submission_data.author else '[deleted]',
+                    platform="reddit",
+                    source=source_id,
+                    url=f"https://reddit.com{submission_data.permalink}",
                     content=post_content,
-                    timestamp=datetime.fromtimestamp(submission_data.created_utc, tz=timezone.utc),
+                    date=datetime.fromtimestamp(submission_data.created_utc, tz=timezone.utc),
                     media_urls=media_urls,
-                    post_url=f"https://reddit.com{submission_data.permalink}"
+                    categories=[submission_data.link_flair_text] if submission_data.link_flair_text else [],
+                    metadata={}  # Empty for Mark II
                 )
                 
                 # Add Reddit-specific metadata
@@ -449,14 +449,14 @@ class RedditConnector(BaseConnector):
                 
                 # Create main post
                 unified_post = self._create_unified_post(
-                    source_platform="reddit",
-                    source_id=source_id,
-                    post_id=submission_data.id,
-                    author=str(submission_data.author) if submission_data.author else '[deleted]',
+                    platform="reddit",
+                    source=source_id,
+                    url=f"https://reddit.com{submission_data.permalink}",
                     content=post_content,
-                    timestamp=datetime.fromtimestamp(submission_data.created_utc, tz=timezone.utc),
+                    date=datetime.fromtimestamp(submission_data.created_utc, tz=timezone.utc),
                     media_urls=media_urls,
-                    post_url=f"https://reddit.com{submission_data.permalink}"
+                    categories=[submission_data.link_flair_text] if submission_data.link_flair_text else [],
+                    metadata={}  # Empty for Mark II
                 )
                 
                 # Add Reddit-specific metadata
@@ -481,14 +481,14 @@ class RedditConnector(BaseConnector):
                 
                 # Create main post
                 unified_post = self._create_unified_post(
-                    source_platform="reddit",
-                    source_id=source_id,
-                    post_id=post_data['id'],
-                    author=post_data.get('author', '[deleted]'),
+                    platform="reddit",
+                    source=source_id,
+                    url=f"https://reddit.com{post_data['permalink']}",
                     content=post_content,
-                    timestamp=datetime.fromtimestamp(post_data['created_utc'], tz=timezone.utc),
+                    date=datetime.fromtimestamp(post_data['created_utc'], tz=timezone.utc),
                     media_urls=media_urls,
-                    post_url=f"https://reddit.com{post_data['permalink']}"
+                    categories=[post_data.get('link_flair_text')] if post_data.get('link_flair_text') else [],
+                    metadata={}  # Empty for Mark II
                 )
                 
                 # Add Reddit-specific metadata

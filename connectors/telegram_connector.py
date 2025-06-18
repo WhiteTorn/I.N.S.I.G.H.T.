@@ -89,7 +89,7 @@ class TelegramConnector(BaseConnector):
             self.logger.info("Disconnecting from Telegram...")
             await self.client.disconnect()
     
-    async def _synthesize_messages(self, raw_messages: List, channel_alias: str) -> List[Dict[str, Any]]:
+    async def _synthesize_messages(self, raw_messages: List, channel_alias: str, source_identifier: str) -> List[Dict[str, Any]]:
         """
         A private helper method to handle the advanced album synthesis logic.
         This preserves the exact logic from Mark I that groups related media posts.
@@ -97,6 +97,7 @@ class TelegramConnector(BaseConnector):
         Args:
             raw_messages: List of raw Telegram messages
             channel_alias: Channel username for URL generation
+            source_identifier: Original source as entered by user
             
         Returns:
             List of synthesized logical posts in unified format
@@ -135,14 +136,14 @@ class TelegramConnector(BaseConnector):
                 
                 # Create unified post using the base connector helper
                 unified_post = self._create_unified_post(
-                    source_platform="telegram",
-                    source_id=f"@{channel_alias}",
-                    post_id=str(main_msg.id),
-                    author=channel_alias,  # Best effort author identification
+                    platform="telegram",
+                    source=source_identifier,  # Exactly as user enters
+                    url=f'https://t.me/{channel_alias}/{main_msg.id}',
                     content=text,
-                    timestamp=main_msg.date,
+                    date=main_msg.date,
                     media_urls=media_urls,
-                    post_url=f'https://t.me/{channel_alias}/{main_msg.id}'
+                    categories=[],  # Telegram posts don't have built-in categories, but hashtags could be extracted here in future
+                    metadata={}  # Empty for Mark II
                 )
                 
                 # Add the legacy 'channel' field for backward compatibility with existing renderers
@@ -262,7 +263,7 @@ class TelegramConnector(BaseConnector):
                     
                     # Synthesize messages with error handling
                     try:
-                        synthesized = await self._synthesize_messages(messages, channel_username)
+                        synthesized = await self._synthesize_messages(messages, channel_username, source_identifier)
                         
                         for post in synthesized:
                             try:
@@ -424,7 +425,7 @@ class TelegramConnector(BaseConnector):
                                         m for m in channel_messages 
                                         if m and m.grouped_id == message.grouped_id
                                     ]
-                                    synthesized = await self._synthesize_messages(group, channel_username)
+                                    synthesized = await self._synthesize_messages(group, channel_username, channel)
                                     # Mark all parts of this group as processed
                                     for m in group:
                                         processed_ids.add(m.id)
@@ -434,7 +435,7 @@ class TelegramConnector(BaseConnector):
                             else:
                                 # This is a single message
                                 try:
-                                    synthesized = await self._synthesize_messages([message], channel_username)
+                                    synthesized = await self._synthesize_messages([message], channel_username, channel)
                                     processed_ids.add(message.id)
                                 except Exception as e:
                                     self.logger.warning(f"Error processing single message from @{channel_username}: {e}")

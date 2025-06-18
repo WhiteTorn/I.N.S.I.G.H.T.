@@ -369,17 +369,18 @@ class YouTubeConnector(BaseConnector):
         
         if video_id:
             # Single video mode
-            return await self._fetch_single_video_transcript(video_id)
+            return await self._fetch_single_video_transcript(video_id, source_identifier)
         else:
             # Channel mode
             return await self._fetch_channel_transcripts(source_identifier, limit)
     
-    async def _fetch_single_video_transcript(self, video_id: str) -> List[Dict[str, Any]]:
+    async def _fetch_single_video_transcript(self, video_id: str, source_identifier: str) -> List[Dict[str, Any]]:
         """
         Fetches transcript from a single YouTube video.
         
         Args:
             video_id: YouTube video ID
+            source_identifier: Original source as entered by user
             
         Returns:
             List containing single post with transcript or empty list if failed
@@ -417,14 +418,14 @@ class YouTubeConnector(BaseConnector):
                 publish_date = datetime.now(timezone.utc)
             
             unified_post = self._create_unified_post(
-                source_platform="youtube",
-                source_id=f"video:{video_id}",
-                post_id=video_id,
-                author=snippet['channelTitle'],
+                platform="youtube",
+                source=source_identifier,  # Exactly as user enters
+                url=f"https://www.youtube.com/watch?v={video_id}",
                 content=transcript,
-                timestamp=publish_date,
+                date=publish_date,
                 media_urls=[f"https://www.youtube.com/watch?v={video_id}"],
-                post_url=f"https://www.youtube.com/watch?v={video_id}"
+                categories=[],  # YouTube tags could be extracted here in future
+                metadata={}  # Empty for Mark II
             )
             
             # Add YouTube-specific metadata
@@ -504,14 +505,14 @@ class YouTubeConnector(BaseConnector):
                         publish_date = datetime.now(timezone.utc)
                     
                     unified_post = self._create_unified_post(
-                        source_platform="youtube",
-                        source_id=f"channel:{channel_identifier}",
-                        post_id=video_id,
-                        author=snippet['channelTitle'],
+                        platform="youtube",
+                        source=channel_identifier,
+                        url=f"https://www.youtube.com/watch?v={video_id}",
                         content=transcript,
-                        timestamp=publish_date,
+                        date=publish_date,
                         media_urls=[f"https://www.youtube.com/watch?v={video_id}"],
-                        post_url=f"https://www.youtube.com/watch?v={video_id}"
+                        categories=[],
+                        metadata={}
                     )
                     
                     # Add YouTube-specific metadata
@@ -620,7 +621,7 @@ class YouTubeConnector(BaseConnector):
             # Process each video
             all_posts = []
             for video_id in video_ids:
-                video_posts = await self._fetch_single_video_transcript(video_id)
+                video_posts = await self._fetch_single_video_transcript(video_id, playlist_url)
                 if video_posts:
                     # Update source_id to indicate playlist
                     video_posts[0]['source_id'] = f"playlist:{playlist_url}"
@@ -657,7 +658,7 @@ class YouTubeConnector(BaseConnector):
             # Process each video
             all_posts = []
             for video_id in video_ids:
-                video_posts = await self._fetch_single_video_transcript(video_id)
+                video_posts = await self._fetch_single_video_transcript(video_id, search_query)
                 if video_posts:
                     # Update source_id to indicate search
                     video_posts[0]['source_id'] = f"search:{search_query}"
