@@ -13,3 +13,4 @@ __pycache__
 *.html
 youtube_transcript_https
 reddit_post_analysis_https
+!sources.json
