@@ -1,8 +1,40 @@
 {
-    "sources": [
+    "metadata": {
+        "name": "Mark II",
+        "description": "Autonomous AI Agent",
+        "version": "1.0.0"
+    },
+    "sources": {
+        "telegram":
         {
-            "name": "source1",
-            "url": "https://source1.com"
+            "enabled": true,
+            "channels": [
+                "durov",
+                "seeallochnaya",
+                "denissexy",
+                "ai_newz"
+            ]
+        },
+        "rss":
+        {
+            "enabled": true,
+            "feeds": [
+                "https://simonwillison.net/atom/everything/"
+            ]
+        },
+        "youtube":
+        {
+            "enabled": true,
+            "channels": [
+                "UCoryWpk4QVYKFCJul9KBdyw" 
+            ]
+        },
+        "reddit":
+        {
+            "enabled": true,
+            "subreddits": [
+                "r/LocalLLaMA"
+            ]
         }
-    ]
+    }
 }

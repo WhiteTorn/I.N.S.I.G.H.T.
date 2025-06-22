@@ -90,5 +90,8 @@ class ConfigManager:
 
 
 config_manager = ConfigManager()
+
+config_manager.load_config()
 config_manager.print_config()
+print(config_manager.validate_config())
 
