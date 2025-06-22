@@ -48,6 +48,50 @@ class ConfigManager:
     def get_config(self):
         """Returns the loaded configuration dictionary."""
         return self.config
+    
+    def validate_config(self):
+        """Validates the loaded configuration dictionary."""
+        errors = []
+
+        # Check if the config is a dictionary
+        if not isinstance(self.config, dict):
+            errors.append("the config is not a valid dictionary.")
+            return False, errors
+        
+        # Check required keys
+        required_keys = ['metadata', 'sources']
+        for key in required_keys:
+            if key not in self.config:
+                errors.append(f"The key '{key}' is missing from the config.")
+
+        # Check data types
+        if "metadata" in self.config:
+            if not isinstance(self.config['metadata'], dict):
+                errors.append("The metadata key must be a dictionary.")
+            else:
+                # Check metadata fields
+                metadata = self.config['metadata']
+                required_metadata_fields = ['name', 'description', 'version']
+                for field in required_metadata_fields:
+                    if field not in metadata:
+                        errors.append(f"The field '{field}' is missing from the metadata.")
+                    # also check the data types of fields
+                    
+        if "sources" in self.config:
+            if not isinstance(self.config['sources'], list):
+                errors.append("The sources key must be a list.")
+            # check data types of each source in the list
+
+
+        if not isinstance(self.config, dict):
+            errors.append("The config is not a valid dictionary.")
+        if not isinstance(self.config.get('sources'), list):
+            errors.append("The sources key must be a list.")
+        if not all(isinstance(source, dict) for source in self.config.get('sources', [])):
+            errors.append("All sources must be dictionaries.")
+        if errors:
+            raise ValueError(errors)
+        return True
 
 
 config_manager = ConfigManager()
