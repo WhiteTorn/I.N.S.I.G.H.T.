@@ -5,6 +5,10 @@ class ConfigManager:
     def __init__(self):
         self.config = {}
         self.config_path = os.path.join(os.path.dirname(__file__), 'sources.json')
+        # if config_path can't be found, how __init__ should manage it?
+        # is not it is better to have config_path in the load config method and assign from the load_config to init?
+        # because load_config has error handling and everything needed?
+        # what you think about it?
 
     def load_config(self):
         """
@@ -40,6 +44,10 @@ class ConfigManager:
         except Exception as e:
             print(f"Error: An unexpected error occurred while printing the config file: {e}")
             self.config = {}
+
+    def get_config(self):
+        """Returns the loaded configuration dictionary."""
+        return self.config
 
 
 config_manager = ConfigManager()
