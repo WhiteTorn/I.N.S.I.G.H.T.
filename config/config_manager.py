@@ -82,16 +82,11 @@ class ConfigManager:
                 errors.append("The sources key must be a list.")
             # check data types of each source in the list
 
-
-        if not isinstance(self.config, dict):
-            errors.append("The config is not a valid dictionary.")
-        if not isinstance(self.config.get('sources'), list):
-            errors.append("The sources key must be a list.")
-        if not all(isinstance(source, dict) for source in self.config.get('sources', [])):
-            errors.append("All sources must be dictionaries.")
-        if errors:
-            raise ValueError(errors)
-        return True
+        # Return validation result
+        if len(errors) > 0:
+            return False, errors
+        
+        return True, "The config is valid."
 
 
 config_manager = ConfigManager()
