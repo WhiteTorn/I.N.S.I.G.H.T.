@@ -4,6 +4,7 @@ import asyncio
 import json
 from datetime import datetime
 from dotenv import load_dotenv
+from config.config_manager import ConfigManager
 
 # Modules
 from connectors import TelegramConnector, RssConnector, YouTubeConnector, RedditConnector
@@ -46,6 +47,15 @@ class InsightOperator:
     def __init__(self):
         logging.info("I.N.S.I.G.H.T. Mark II (v2.4) - The Inquisitor - Citadel Edition - Initializing...")
         load_dotenv()
+
+        self.config_manager = ConfigManager()
+        self.config = self.config_manager.load_config()
+        logging.info(self.config_manager.validate_config(self.config))
+
+        # How to use it now
+        # enabled_sources = self.config_manager.get_enabled_sources(self.config)
+        # if enabled_sources.get("telegram", {}).get("enabled", False):
+        # else logging.info("Telegram is not enabled")
         
         # Initialize available connectors
         self.connectors = {}
