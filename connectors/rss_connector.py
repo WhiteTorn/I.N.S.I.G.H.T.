@@ -3,6 +3,7 @@ import html
 import re
 import urllib.error
 import socket
+import os
 from datetime import datetime, timezone, timedelta
 from typing import List, Dict, Any
 from email.utils import parsedate_to_datetime
@@ -11,7 +12,7 @@ from .base_connector import BaseConnector
 
 class RssConnector(BaseConnector):
     """
-    I.N.S.I.G.H.T. RSS Connector v2.3 - The Citadel
+    I.N.S.I.G.H.T. RSS Connector v2.6 - The Grand Marshal Edition
     
     Handles RSS/Atom feed processing including:
     - Feed parsing and validation
@@ -23,20 +24,54 @@ class RssConnector(BaseConnector):
     - Adaptive feed format handling
     - ENHANCED: Comprehensive error handling and resilience
     
-    This connector follows the unified architecture while providing
-    RSS-specific functionality for feed analysis and content retrieval.
-    Hardened in v2.3 with bulletproof error handling.
+    Updated with two-phase initialization for automatic discovery support.
     """
     
     def __init__(self):
-        """Initialize the RSS connector."""
+        """
+        Phase 1: Create blank RSS connector object.
+        Configuration will be handled by setup_connector().
+        """
         super().__init__("rss")
         
-        # RSS-specific configuration
-        self.timeout = 30  # Feed fetch timeout in seconds
-        self.user_agent = "I.N.S.I.G.H.T. Mark II RSS Connector v2.3 - The Citadel"
+        # Default values - will be set in setup_connector()
+        self.timeout = None
+        self.user_agent = None
         
-        self.logger.info("RSS Connector initialized")
+        self.logger.info("RSS Connector object created (pending setup)")
+    
+    def setup_connector(self) -> bool:
+        """
+        Phase 2: Configure the RSS connector with settings.
+        
+        Returns:
+            bool: True if setup was successful (RSS always succeeds - no credentials needed)
+        """
+        try:
+            # Load configuration from environment variables with defaults
+            self.timeout = int(os.getenv('RSS_TIMEOUT_SECONDS', '30'))
+            self.user_agent = os.getenv(
+                'RSS_USER_AGENT', 
+                'I.N.S.I.G.H.T. Mark II RSS Connector v2.6 - The Grand Marshal'
+            )
+            
+            # Validate timeout value
+            if self.timeout <= 0:
+                self.logger.warning("Invalid timeout value, using default 30 seconds")
+                self.timeout = 30
+                
+            self.logger.info("✅ RSS connector setup successful")
+            self.logger.info(f"   Timeout: {self.timeout} seconds")
+            self.logger.info(f"   User-Agent: {self.user_agent}")
+            
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"❌ Failed to setup RSS connector: {e}")
+            # Set defaults on failure
+            self.timeout = 30
+            self.user_agent = "I.N.S.I.G.H.T. Mark II RSS Connector v2.6 - The Grand Marshal"
+            return True  # RSS never fails setup since no credentials needed
     
     async def connect(self) -> None:
         """
