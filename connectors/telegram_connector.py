@@ -22,28 +22,25 @@ class TelegramConnector(BaseConnector):
     Hardened in v2.3 with bulletproof error handling.
     """
     
-    def __init__(self, api_id: str, api_hash: str, session_file: str = "insight_session"):
+    def __init__(self):
         """
-        Initialize the Telegram connector.
-        
-        Args:
-            api_id: Telegram API ID from developer portal
-            api_hash: Telegram API hash from developer portal
-            session_file: Path to store Telegram session data
+        Phase 1: Create blank connector object.
+        No credentials needed - setup_connector() handles that.
         """
         super().__init__("telegram")
         
-        self.api_id = int(api_id)
-        self.api_hash = api_hash
-        self.session_file = session_file
+        # Placeholder values - will be set in setup_connector()
+        self.api_id = None
+        self.api_hash = None
+        self.session_file = None
         self.client = None
         
-        # Rate limiting configuration
+        # Rate limiting defaults
         self.request_counter = 0
         self.REQUEST_THRESHOLD = 15
         self.COOLDOWN_SECONDS = 60
         
-        self.logger.info("TelegramConnector initialized")
+        self.logger.info("TelegramConnector object created (pending setup)")
     
     async def throttle_if_needed(self):
         """
@@ -59,12 +56,69 @@ class TelegramConnector(BaseConnector):
             self.request_counter = 0
             self.logger.info("Cooldown complete. Resuming operations.")
         self.request_counter += 1
+
+    
+    def setup_connector(self) -> bool:
+        """
+        Phase 2: Load credentials and configure the connector.
+        
+        Returns:
+            bool: True if setup was successful, False otherwise
+        """
+        try:
+            self.logger.info("Setting up Telegram connector...")
+            
+            # Load required credentials from environment
+            api_id = os.getenv('TELEGRAM_API_ID')
+            api_hash = os.getenv('TELEGRAM_API_HASH')
+            
+            # Validate required credentials
+            if not api_id:
+                self.logger.error("❌ TELEGRAM_API_ID not found in environment variables")
+                return False
+            
+            if not api_hash:
+                self.logger.error("❌ TELEGRAM_API_HASH not found in environment variables")
+                return False
+            
+            # Convert and validate API ID
+            try:
+                self.api_id = int(api_id)
+            except ValueError:
+                self.logger.error("❌ TELEGRAM_API_ID must be a valid integer")
+                return False
+            
+            # Set up core configuration
+            self.api_hash = api_hash
+            self.session_file = os.getenv('TELEGRAM_SESSION_FILE', 'insight_session')
+            
+            # Load optional rate limiting configuration
+            try:
+                self.REQUEST_THRESHOLD = int(os.getenv('TELEGRAM_REQUEST_THRESHOLD', '15'))
+                self.COOLDOWN_SECONDS = int(os.getenv('TELEGRAM_COOLDOWN_SECONDS', '60'))
+            except ValueError:
+                self.logger.warning("⚠️ Invalid rate limiting config, using defaults")
+                self.REQUEST_THRESHOLD = 15
+                self.COOLDOWN_SECONDS = 60
+            
+            self.logger.info("✅ Telegram connector setup successful")
+            self.logger.info(f"   Session file: {self.session_file}")
+            self.logger.info(f"   Rate limiting: {self.REQUEST_THRESHOLD} requests/{self.COOLDOWN_SECONDS}s")
+            
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"❌ Failed to setup Telegram connector: {e}")
+            return False
+        
     
     async def connect(self) -> None:
         """
-        Establishes and authorizes the Telegram client connection.
-        Preserves the original Mark I connection logic.
+        Phase 3: Establish connection using configured credentials.
         """
+        if not self.api_id or not self.api_hash:
+            raise RuntimeError("Connector not properly setup - call setup_connector() first")
+        
         self.client = TelegramClient(self.session_file, self.api_id, self.api_hash)
         self.logger.info("Connecting to Telegram...")
         
@@ -79,7 +133,7 @@ class TelegramConnector(BaseConnector):
             except Exception:
                 await self.client.sign_in(password=input("2FA Password Required. Please enter: "))
         
-        self.logger.info("Telegram connection successful.")
+        self.logger.info("✅ Telegram connection successful.")
     
     async def disconnect(self) -> None:
         """
@@ -89,56 +143,7 @@ class TelegramConnector(BaseConnector):
             self.logger.info("Disconnecting from Telegram...")
             await self.client.disconnect()
     
-    def setup_connector(self) -> bool:
-        """
-        Setup the Telegram connector with credentials from environment variables.
-        
-        Returns:
-            bool: True if setup was successful, False otherwise
-        """
-        try:
-            # Load credentials from environment variables
-            api_id = os.getenv('TELEGRAM_API_ID')
-            api_hash = os.getenv('TELEGRAM_API_HASH')
-            session_file = os.getenv('TELEGRAM_SESSION_FILE', 'insight_session')
-            
-            # Validate required credentials
-            if not api_id:
-                self.logger.error("TELEGRAM_API_ID not found in environment variables")
-                return False
-            
-            if not api_hash:
-                self.logger.error("TELEGRAM_API_HASH not found in environment variables")
-                return False
-            
-            # Convert and store credentials
-            try:
-                self.api_id = int(api_id)
-            except ValueError:
-                self.logger.error("TELEGRAM_API_ID must be a valid integer")
-                return False
-                
-            self.api_hash = api_hash
-            self.session_file = session_file
-            
-            # Load optional configuration from environment
-            threshold = os.getenv('TELEGRAM_REQUEST_THRESHOLD', '15')
-            cooldown = os.getenv('TELEGRAM_COOLDOWN_SECONDS', '60')
-            
-            try:
-                self.REQUEST_THRESHOLD = int(threshold)
-                self.COOLDOWN_SECONDS = int(cooldown)
-            except ValueError:
-                self.logger.warning("Invalid rate limiting configuration, using defaults")
-                self.REQUEST_THRESHOLD = 15
-                self.COOLDOWN_SECONDS = 60
-            
-            self.logger.info("✅ Telegram connector setup successful")
-            return True
-            
-        except Exception as e:
-            self.logger.error(f"❌ Failed to setup Telegram connector: {e}")
-            return False
+    
 
     async def _synthesize_messages(self, raw_messages: List, channel_alias: str, source_identifier: str) -> List[Dict[str, Any]]:
         """

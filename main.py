@@ -10,7 +10,7 @@ from logs.core.logger_config import setup_logging, get_component_logger
 from config.config_manager import ConfigManager
 
 # Modules
-from connectors import TelegramConnector, RssConnector, YouTubeConnector, RedditConnector
+from connectors import setup_connectors
 from output import ConsoleOutput, HTMLOutput, JSONOutput
 
 # Old self.logger configuration.
@@ -68,79 +68,44 @@ class InsightOperator:
         # else self.logger.info("Telegram is not enabled")
         
         # Initialize available connectors
-        self.connectors = {}
-        self._setup_connectors()
+        self.connectors = setup_connectors(self.config_manager)
+
+        # Log connector setup results
+        enabled_sources = self.config_manager.get_enabled_sources(self.config)
+        setup_count = len(self.connectors)
+        enabled_count = len(enabled_sources)
+
+        self.logger.info(f"Connector Setup Summary: {setup_count}/{enabled_count} connectors ready")
+        for platform in enabled_sources:
+            status = "✅ Ready" if platform in self.connectors else "❌ Failed"
+            self.logger.info(f"  {platform.title()}: {status}")
         
         # Global timeout configuration for The Citadel
         self.GLOBAL_TIMEOUT_SECONDS = 30
         
         self.logger.info("Mark II Orchestrator ready with Citadel-grade protection.")
     
-    def _setup_connectors(self):
-        """Initialize and register all available connectors based on the configuration."""
-        enabled_sources = self.config_manager.get_enabled_sources(self.config)
-
-        if "telegram" in enabled_sources:
-            # Telegram Connector
-            api_id = os.getenv('TELEGRAM_API_ID')
-            api_hash = os.getenv('TELEGRAM_API_HASH')
-        
-            if api_id and api_hash:
-                self.connectors['telegram'] = TelegramConnector(
-                    api_id=api_id,
-                    api_hash=api_hash,
-                    session_file='insight_session'
-                )
-                self.logger.info("Telegram connector registered")
-            else:
-                self.logger.warning("Telegram credentials not found in .env file")
-        else:
-            self.logger.info("telegram Connectors disabled in configuration")
-        
-        if "rss" in enabled_sources:
-            # RSS Connector (always available - no credentials needed)
-            self.connectors['rss'] = RssConnector()
-            self.logger.info("RSS connector registered")
-        else:
-            self.logger.info("RSS Connectors disabled in configuration")
-
-        if "youtube" in enabled_sources:
-            # YouTube Connector - NO API KEY REQUIRED (uses yt-dlp)
-            self.connectors['youtube'] = YouTubeConnector(
-                preferred_languages=['en', 'ru', 'ka']  # Configurable language preferences
-            )
-            self.logger.info("YouTube connector registered (yt-dlp powered - no API key needed)")
-        else:
-            self.logger.info("YouTube Connectors disabled in configuration")
-        
-        if "reddit" in enabled_sources:
-            # Reddit Connector - Requires Reddit API credentials
-            reddit_client_id = os.getenv('REDDIT_CLIENT_ID')
-            reddit_client_secret = os.getenv('REDDIT_CLIENT_SECRET')
-            reddit_user_agent = os.getenv('REDDIT_USER_AGENT', 'I.N.S.I.G.H.T. v2.6 The Crowd Crier')
-            
-            if reddit_client_id and reddit_client_secret:
-                self.connectors['reddit'] = RedditConnector(
-                    client_id=reddit_client_id,
-                    client_secret=reddit_client_secret,
-                    user_agent=reddit_user_agent
-                )
-                self.logger.info("Reddit connector registered (PRAW powered)")
-            else:
-                self.logger.warning("Reddit credentials not found in .env file")
-        else:
-            self.logger.info("Reddit Connectors disabled in configuration")
-    
     async def connect_all(self):
         """Connect all available connectors."""
+        connected_platforms = []
+        failed_platforms = []
+        
         for platform, connector in self.connectors.items():
             try:
                 await connector.connect()
-                self.logger.info(f"Connected to {platform}")
+                connected_platforms.append(platform)
+                self.logger.info(f"✅ Connected to {platform}")
             except Exception as e:
-                self.logger.error(f"Failed to connect to {platform}: {e}")
-                # Remove failed connector to prevent issues
+                failed_platforms.append(platform)
+                self.logger.error(f"❌ Failed to connect to {platform}: {e}")
+        
+        # Remove failed connectors to prevent issues
+        for platform in failed_platforms:
+            if platform in self.connectors:
                 del self.connectors[platform]
+        
+        self.logger.info(f"Connection Summary: {len(connected_platforms)} connected, {len(failed_platforms)} failed")
+        return connected_platforms
     
     async def disconnect_all(self):
         """Disconnect all connectors gracefully."""
