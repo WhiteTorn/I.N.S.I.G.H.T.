@@ -1,5 +1,5 @@
 import os
-import logging
+import self.logger
 import asyncio
 import json
 from datetime import datetime
@@ -13,14 +13,14 @@ from config.config_manager import ConfigManager
 from connectors import TelegramConnector, RssConnector, YouTubeConnector, RedditConnector
 from output import ConsoleOutput, HTMLOutput, JSONOutput
 
-# Old Logging configuration.
+# Old self.logger configuration.
 # # --- Configuration and Setup ---
-# logging.basicConfig(
-#     level=logging.INFO,
+# self.logger.basicConfig(
+#     level=self.logger.INFO,
 #     format='%(asctime)s - %(levelname)s - %(module)s - %(message)s',
 #     handlers=[
-#         logging.FileHandler("insight_debug.log", encoding='utf-8'),
-#         logging.StreamHandler()
+#         self.logger.FileHandler("insight_debug.log", encoding='utf-8'),
+#         self.logger.StreamHandler()
 #     ]
 # )
 
@@ -49,22 +49,23 @@ class InsightOperator:
     """
     
     def __init__(self, debug_mode: bool = False):
-        # Set up Logging first
-        self.logging_config = setup_logging(debug_mode = debug_mode)
+        # Set up self.logger first
+        self.logger_config = setup_logging(debug_mode = debug_mode)
         self.logger = get_component_logger('insight_operator')
 
         self.logger.info("I.N.S.I.G.H.T. Mark II (v2.6) - The Grand Marshal - Citadel Edition - Initializing...")
-        
+
         load_dotenv()
 
         self.config_manager = ConfigManager()
         self.config = self.config_manager.load_config()
-        logging.info(self.config_manager.validate_config(self.config))
+        # Validate the config
+        self.logger.info(self.config_manager.validate_config(self.config))
 
         # How to use it now
         # enabled_sources = self.config_manager.get_enabled_sources(self.config)
         # if enabled_sources.get("telegram", {}).get("enabled", False):
-        # else logging.info("Telegram is not enabled")
+        # else self.logger.info("Telegram is not enabled")
         
         # Initialize available connectors
         self.connectors = {}
@@ -73,57 +74,71 @@ class InsightOperator:
         # Global timeout configuration for The Citadel
         self.GLOBAL_TIMEOUT_SECONDS = 30
         
-        logging.info("Mark II Orchestrator ready with Citadel-grade protection.")
+        self.logger.info("Mark II Orchestrator ready with Citadel-grade protection.")
     
     def _setup_connectors(self):
-        """Initialize and register all available connectors."""
-        # Telegram Connector
-        api_id = os.getenv('TELEGRAM_API_ID')
-        api_hash = os.getenv('TELEGRAM_API_HASH')
+        """Initialize and register all available connectors based on the configuration."""
+        enabled_sources = self.config_manager.get_enabled_sources(self.config)
+
+        if enabled_sources.get("telegram", {}).get("enabled", False):
+            # Telegram Connector
+            api_id = os.getenv('TELEGRAM_API_ID')
+            api_hash = os.getenv('TELEGRAM_API_HASH')
         
-        if api_id and api_hash:
-            self.connectors['telegram'] = TelegramConnector(
-                api_id=api_id,
-                api_hash=api_hash,
-                session_file='insight_session'
-            )
-            logging.info("Telegram connector registered")
+            if api_id and api_hash:
+                self.connectors['telegram'] = TelegramConnector(
+                    api_id=api_id,
+                    api_hash=api_hash,
+                    session_file='insight_session'
+                )
+                self.logger.info("Telegram connector registered")
+            else:
+                self.logger.warning("Telegram credentials not found in .env file")
         else:
-            logging.warning("Telegram credentials not found in .env file")
+            self.logger.info("telegram Connectors disabled in configuration")
         
-        # RSS Connector (always available - no credentials needed)
-        self.connectors['rss'] = RssConnector()
-        logging.info("RSS connector registered")
-        
-        # YouTube Connector - NO API KEY REQUIRED (uses yt-dlp)
-        self.connectors['youtube'] = YouTubeConnector(
-            preferred_languages=['en', 'ru', 'ka']  # Configurable language preferences
-        )
-        logging.info("YouTube connector registered (yt-dlp powered - no API key needed)")
-        
-        # Reddit Connector - Requires Reddit API credentials
-        reddit_client_id = os.getenv('REDDIT_CLIENT_ID')
-        reddit_client_secret = os.getenv('REDDIT_CLIENT_SECRET')
-        reddit_user_agent = os.getenv('REDDIT_USER_AGENT', 'I.N.S.I.G.H.T. v2.6 The Crowd Crier')
-        
-        if reddit_client_id and reddit_client_secret:
-            self.connectors['reddit'] = RedditConnector(
-                client_id=reddit_client_id,
-                client_secret=reddit_client_secret,
-                user_agent=reddit_user_agent
-            )
-            logging.info("Reddit connector registered (PRAW powered)")
+        if enabled_sources.get("rss", {}).get("enabled", False):
+            # RSS Connector (always available - no credentials needed)
+            self.connectors['rss'] = RssConnector()
+            self.logger.info("RSS connector registered")
         else:
-            logging.warning("Reddit credentials not found in .env file")
+            self.logger.info("RSS Connectors disabled in configuration")
+
+        if enabled_sources.get("youtube", {}).get("enabled", False):
+            # YouTube Connector - NO API KEY REQUIRED (uses yt-dlp)
+            self.connectors['youtube'] = YouTubeConnector(
+                preferred_languages=['en', 'ru', 'ka']  # Configurable language preferences
+            )
+            self.logger.info("YouTube connector registered (yt-dlp powered - no API key needed)")
+        else:
+            self.logger.info("YouTube Connectors disabled in configuration")
+        
+        if enabled_sources.get("reddit", {}).get("enabled", False):
+            # Reddit Connector - Requires Reddit API credentials
+            reddit_client_id = os.getenv('REDDIT_CLIENT_ID')
+            reddit_client_secret = os.getenv('REDDIT_CLIENT_SECRET')
+            reddit_user_agent = os.getenv('REDDIT_USER_AGENT', 'I.N.S.I.G.H.T. v2.6 The Crowd Crier')
+            
+            if reddit_client_id and reddit_client_secret:
+                self.connectors['reddit'] = RedditConnector(
+                    client_id=reddit_client_id,
+                    client_secret=reddit_client_secret,
+                    user_agent=reddit_user_agent
+                )
+                self.logger.info("Reddit connector registered (PRAW powered)")
+            else:
+                self.logger.warning("Reddit credentials not found in .env file")
+        else:
+            self.logger.info("Reddit Connectors disabled in configuration")
     
     async def connect_all(self):
         """Connect all available connectors."""
         for platform, connector in self.connectors.items():
             try:
                 await connector.connect()
-                logging.info(f"Connected to {platform}")
+                self.logger.info(f"Connected to {platform}")
             except Exception as e:
-                logging.error(f"Failed to connect to {platform}: {e}")
+                self.logger.error(f"Failed to connect to {platform}: {e}")
                 # Remove failed connector to prevent issues
                 del self.connectors[platform]
     
@@ -132,9 +147,9 @@ class InsightOperator:
         for platform, connector in self.connectors.items():
             try:
                 await connector.disconnect()
-                logging.info(f"Disconnected from {platform}")
+                self.logger.info(f"Disconnected from {platform}")
             except Exception as e:
-                logging.error(f"Error disconnecting from {platform}: {e}")
+                self.logger.error(f"Error disconnecting from {platform}: {e}")
     
     # --- MISSION PROFILE 1: DEEP SCAN (Telegram) ---
     async def get_n_posts(self, channel_username: str, limit: int):
@@ -143,7 +158,7 @@ class InsightOperator:
         HARDENED: Protected by global timeout and comprehensive error handling.
         """
         if 'telegram' not in self.connectors:
-            logging.error("Telegram connector not available")
+            self.logger.error("Telegram connector not available")
             return []
         
         connector = self.connectors['telegram']
@@ -157,10 +172,10 @@ class InsightOperator:
             return posts
             
         except asyncio.TimeoutError:
-            logging.warning(f"WARNING: Fetch from @{channel_username} timed out after {self.GLOBAL_TIMEOUT_SECONDS}s")
+            self.logger.warning(f"WARNING: Fetch from @{channel_username} timed out after {self.GLOBAL_TIMEOUT_SECONDS}s")
             return []
         except Exception as e:
-            logging.error(f"ERROR: Critical failure fetching from @{channel_username}: {str(e)}")
+            self.logger.error(f"ERROR: Critical failure fetching from @{channel_username}: {str(e)}")
             return []
     
     # --- MISSION PROFILE 2 & 3: BRIEFINGS (Telegram) ---
@@ -170,7 +185,7 @@ class InsightOperator:
         HARDENED: Protected by global timeout and comprehensive error handling.
         """
         if 'telegram' not in self.connectors:
-            logging.error("Telegram connector not available")
+            self.logger.error("Telegram connector not available")
             return []
         
         connector = self.connectors['telegram']
@@ -184,10 +199,10 @@ class InsightOperator:
             return posts
             
         except asyncio.TimeoutError:
-            logging.warning(f"WARNING: Briefing fetch from {len(channels)} channels timed out after {self.GLOBAL_TIMEOUT_SECONDS * len(channels)}s")
+            self.logger.warning(f"WARNING: Briefing fetch from {len(channels)} channels timed out after {self.GLOBAL_TIMEOUT_SECONDS * len(channels)}s")
             return []
         except Exception as e:
-            logging.error(f"ERROR: Critical failure fetching briefing from channels: {str(e)}")
+            self.logger.error(f"ERROR: Critical failure fetching briefing from channels: {str(e)}")
             return []
     
     # --- RSS MISSIONS (Enhanced in v2.3 with Citadel protection) ---
@@ -197,7 +212,7 @@ class InsightOperator:
         HARDENED: Protected by global timeout and comprehensive error handling.
         """
         if 'rss' not in self.connectors:
-            logging.error("RSS connector not available")
+            self.logger.error("RSS connector not available")
             return None
         
         connector = self.connectors['rss']
@@ -211,7 +226,7 @@ class InsightOperator:
             return feed_info
             
         except asyncio.TimeoutError:
-            logging.warning(f"WARNING: RSS feed analysis of {feed_url} timed out after {self.GLOBAL_TIMEOUT_SECONDS}s")
+            self.logger.warning(f"WARNING: RSS feed analysis of {feed_url} timed out after {self.GLOBAL_TIMEOUT_SECONDS}s")
             return {
                 "url": feed_url,
                 "title": "Timeout Error",
@@ -224,7 +239,7 @@ class InsightOperator:
                 "error": f"Analysis timed out after {self.GLOBAL_TIMEOUT_SECONDS}s"
             }
         except Exception as e:
-            logging.error(f"ERROR: Critical failure analyzing RSS feed {feed_url}: {str(e)}")
+            self.logger.error(f"ERROR: Critical failure analyzing RSS feed {feed_url}: {str(e)}")
             return {
                 "url": feed_url,
                 "title": "Critical Error",
@@ -243,7 +258,7 @@ class InsightOperator:
         HARDENED: Protected by global timeout and comprehensive error handling.
         """
         if 'rss' not in self.connectors:
-            logging.error("RSS connector not available")
+            self.logger.error("RSS connector not available")
             return []
         
         connector = self.connectors['rss']
@@ -257,10 +272,10 @@ class InsightOperator:
             return posts
             
         except asyncio.TimeoutError:
-            logging.warning(f"WARNING: RSS fetch from {feed_url} timed out after {self.GLOBAL_TIMEOUT_SECONDS}s")
+            self.logger.warning(f"WARNING: RSS fetch from {feed_url} timed out after {self.GLOBAL_TIMEOUT_SECONDS}s")
             return []
         except Exception as e:
-            logging.error(f"ERROR: Critical failure fetching RSS posts from {feed_url}: {str(e)}")
+            self.logger.error(f"ERROR: Critical failure fetching RSS posts from {feed_url}: {str(e)}")
             return []
     
     async def get_multi_rss_posts(self, feed_urls: list, limit_per_feed: int):
@@ -270,7 +285,7 @@ class InsightOperator:
         Individual feed failures do not affect other feeds.
         """
         if 'rss' not in self.connectors:
-            logging.error("RSS connector not available")
+            self.logger.error("RSS connector not available")
             return []
         
         connector = self.connectors['rss']
@@ -289,28 +304,28 @@ class InsightOperator:
                 if posts:
                     all_posts.extend(posts)
                     successful_feeds += 1
-                    logging.info(f"Successfully fetched {len(posts)} posts from {feed_url}")
+                    self.logger.info(f"Successfully fetched {len(posts)} posts from {feed_url}")
                 else:
                     failed_feeds += 1
-                    logging.warning(f"No posts retrieved from {feed_url}")
+                    self.logger.warning(f"No posts retrieved from {feed_url}")
                     
             except asyncio.TimeoutError:
                 failed_feeds += 1
-                logging.warning(f"WARNING: RSS fetch from {feed_url} timed out after {self.GLOBAL_TIMEOUT_SECONDS}s")
+                self.logger.warning(f"WARNING: RSS fetch from {feed_url} timed out after {self.GLOBAL_TIMEOUT_SECONDS}s")
                 continue  # Continue processing other feeds
                 
             except Exception as e:
                 failed_feeds += 1
-                logging.error(f"ERROR: Failed to fetch from {feed_url}: {str(e)}")
+                self.logger.error(f"ERROR: Failed to fetch from {feed_url}: {str(e)}")
                 continue  # Continue processing other feeds
         
-        logging.info(f"Multi-RSS operation complete: {successful_feeds} successful, {failed_feeds} failed feeds")
+        self.logger.info(f"Multi-RSS operation complete: {successful_feeds} successful, {failed_feeds} failed feeds")
         
         # Sort by timestamp for unified timeline
         try:
             return sorted(all_posts, key=lambda p: p.get('date', datetime.min), reverse=True)
         except Exception as e:
-            logging.error(f"Error sorting multi-RSS posts: {e}")
+            self.logger.error(f"Error sorting multi-RSS posts: {e}")
             return all_posts
     
     # --- YOUTUBE MISSIONS (New in v2.4 "The Spymaster") ---
@@ -320,7 +335,7 @@ class InsightOperator:
         HARDENED: Protected by global timeout and comprehensive error handling.
         """
         if 'youtube' not in self.connectors:
-            logging.error("YouTube connector not available")
+            self.logger.error("YouTube connector not available")
             return []
         
         connector = self.connectors['youtube']
@@ -334,10 +349,10 @@ class InsightOperator:
             return posts
             
         except asyncio.TimeoutError:
-            logging.warning(f"WARNING: YouTube transcript fetch from {video_url} timed out after {self.GLOBAL_TIMEOUT_SECONDS}s")
+            self.logger.warning(f"WARNING: YouTube transcript fetch from {video_url} timed out after {self.GLOBAL_TIMEOUT_SECONDS}s")
             return []
         except Exception as e:
-            logging.error(f"ERROR: Critical failure fetching YouTube transcript from {video_url}: {str(e)}")
+            self.logger.error(f"ERROR: Critical failure fetching YouTube transcript from {video_url}: {str(e)}")
             return []
     
     async def get_youtube_channel_transcripts(self, channel_identifier: str, limit: int):
@@ -346,7 +361,7 @@ class InsightOperator:
         HARDENED: Protected by global timeout and comprehensive error handling.
         """
         if 'youtube' not in self.connectors:
-            logging.error("YouTube connector not available")
+            self.logger.error("YouTube connector not available")
             return []
         
         connector = self.connectors['youtube']
@@ -360,10 +375,10 @@ class InsightOperator:
             return posts
             
         except asyncio.TimeoutError:
-            logging.warning(f"WARNING: YouTube channel transcript fetch from {channel_identifier} timed out after {self.GLOBAL_TIMEOUT_SECONDS * 2}s")
+            self.logger.warning(f"WARNING: YouTube channel transcript fetch from {channel_identifier} timed out after {self.GLOBAL_TIMEOUT_SECONDS * 2}s")
             return []
         except Exception as e:
-            logging.error(f"ERROR: Critical failure fetching YouTube channel transcripts from {channel_identifier}: {str(e)}")
+            self.logger.error(f"ERROR: Critical failure fetching YouTube channel transcripts from {channel_identifier}: {str(e)}")
             return []
     
     async def get_youtube_playlist_transcripts(self, playlist_url: str, limit: int):
@@ -372,7 +387,7 @@ class InsightOperator:
         HARDENED: Protected by global timeout and comprehensive error handling.
         """
         if 'youtube' not in self.connectors:
-            logging.error("YouTube connector not available")
+            self.logger.error("YouTube connector not available")
             return []
         
         connector = self.connectors['youtube']
@@ -386,10 +401,10 @@ class InsightOperator:
             return posts
             
         except asyncio.TimeoutError:
-            logging.warning(f"WARNING: YouTube playlist transcript fetch from {playlist_url} timed out after {self.GLOBAL_TIMEOUT_SECONDS * 3}s")
+            self.logger.warning(f"WARNING: YouTube playlist transcript fetch from {playlist_url} timed out after {self.GLOBAL_TIMEOUT_SECONDS * 3}s")
             return []
         except Exception as e:
-            logging.error(f"ERROR: Critical failure fetching YouTube playlist transcripts from {playlist_url}: {str(e)}")
+            self.logger.error(f"ERROR: Critical failure fetching YouTube playlist transcripts from {playlist_url}: {str(e)}")
             return []
     
     async def search_youtube_transcripts(self, search_query: str, limit: int):
@@ -398,7 +413,7 @@ class InsightOperator:
         HARDENED: Protected by global timeout and comprehensive error handling.
         """
         if 'youtube' not in self.connectors:
-            logging.error("YouTube connector not available")
+            self.logger.error("YouTube connector not available")
             return []
         
         connector = self.connectors['youtube']
@@ -412,10 +427,10 @@ class InsightOperator:
             return posts
             
         except asyncio.TimeoutError:
-            logging.warning(f"WARNING: YouTube search for '{search_query}' timed out after {self.GLOBAL_TIMEOUT_SECONDS * 2}s")
+            self.logger.warning(f"WARNING: YouTube search for '{search_query}' timed out after {self.GLOBAL_TIMEOUT_SECONDS * 2}s")
             return []
         except Exception as e:
-            logging.error(f"ERROR: Critical failure searching YouTube for '{search_query}': {str(e)}")
+            self.logger.error(f"ERROR: Critical failure searching YouTube for '{search_query}': {str(e)}")
             return []
     
     # --- REDDIT MISSIONS (v2.6 "The Crowd Crier") ---
@@ -425,7 +440,7 @@ class InsightOperator:
         HARDENED: Protected by global timeout and comprehensive error handling.
         """
         if 'reddit' not in self.connectors:
-            logging.error("Reddit connector not available")
+            self.logger.error("Reddit connector not available")
             return []
         
         connector = self.connectors['reddit']
@@ -439,10 +454,10 @@ class InsightOperator:
             return posts
             
         except asyncio.TimeoutError:
-            logging.warning(f"WARNING: Reddit post fetch from '{post_url}' timed out after {self.GLOBAL_TIMEOUT_SECONDS * 2}s")
+            self.logger.warning(f"WARNING: Reddit post fetch from '{post_url}' timed out after {self.GLOBAL_TIMEOUT_SECONDS * 2}s")
             return []
         except Exception as e:
-            logging.error(f"ERROR: Critical failure fetching Reddit post '{post_url}': {str(e)}")
+            self.logger.error(f"ERROR: Critical failure fetching Reddit post '{post_url}': {str(e)}")
             return []
     
     async def get_posts_from_subreddit(self, subreddit: str, limit: int = 10, sort: str = 'hot'):
@@ -451,7 +466,7 @@ class InsightOperator:
         HARDENED: Protected by global timeout and comprehensive error handling.
         """
         if 'reddit' not in self.connectors:
-            logging.error("Reddit connector not available")
+            self.logger.error("Reddit connector not available")
             return []
         
         connector = self.connectors['reddit']
@@ -465,10 +480,10 @@ class InsightOperator:
             return posts
             
         except asyncio.TimeoutError:
-            logging.warning(f"WARNING: Reddit subreddit fetch from 'r/{subreddit}' timed out after {self.GLOBAL_TIMEOUT_SECONDS * 3}s")
+            self.logger.warning(f"WARNING: Reddit subreddit fetch from 'r/{subreddit}' timed out after {self.GLOBAL_TIMEOUT_SECONDS * 3}s")
             return []
         except Exception as e:
-            logging.error(f"ERROR: Critical failure fetching Reddit subreddit 'r/{subreddit}': {str(e)}")
+            self.logger.error(f"ERROR: Critical failure fetching Reddit subreddit 'r/{subreddit}': {str(e)}")
             return []
     
     async def get_posts_from_multiple_subreddits(self, subreddits: list, limit_per_subreddit: int = 5):
@@ -477,7 +492,7 @@ class InsightOperator:
         HARDENED: Protected by global timeout and comprehensive error handling.
         """
         if 'reddit' not in self.connectors:
-            logging.error("Reddit connector not available")
+            self.logger.error("Reddit connector not available")
             return []
         
         connector = self.connectors['reddit']
@@ -498,16 +513,16 @@ class InsightOperator:
                     successful_subreddits += 1
                 else:
                     failed_subreddits += 1
-                    logging.warning(f"No posts retrieved from r/{subreddit}")
+                    self.logger.warning(f"No posts retrieved from r/{subreddit}")
                     
             except asyncio.TimeoutError:
                 failed_subreddits += 1
-                logging.warning(f"WARNING: Reddit subreddit r/{subreddit} timed out after {self.GLOBAL_TIMEOUT_SECONDS}s")
+                self.logger.warning(f"WARNING: Reddit subreddit r/{subreddit} timed out after {self.GLOBAL_TIMEOUT_SECONDS}s")
             except Exception as e:
                 failed_subreddits += 1
-                logging.error(f"ERROR: Failed to fetch from r/{subreddit}: {str(e)}")
+                self.logger.error(f"ERROR: Failed to fetch from r/{subreddit}: {str(e)}")
         
-        logging.info(f"Reddit multi-subreddit mission: {successful_subreddits} successful, {failed_subreddits} failed")
+        self.logger.info(f"Reddit multi-subreddit mission: {successful_subreddits} successful, {failed_subreddits} failed")
         return all_posts
     
     # --- ENHANCED MAIN EXECUTION LOOP ---
@@ -982,10 +997,10 @@ class InsightOperator:
             else:
                 print("Invalid mission choice. Aborting.")
 
-            logging.info("Mission complete.")
+            self.logger.info("Mission complete.")
 
         except Exception as e:
-            logging.critical(f"A critical error occurred: {e}", exc_info=True)
+            self.logger.critical(f"A critical error occurred: {e}", exc_info=True)
         finally:
             await self.disconnect_all()
 
