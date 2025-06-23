@@ -1,5 +1,4 @@
 import asyncio
-import logging
 from datetime import datetime, timedelta, timezone
 from typing import List, Dict, Any
 from telethon.sync import TelegramClient
@@ -43,7 +42,7 @@ class TelegramConnector(BaseConnector):
         self.REQUEST_THRESHOLD = 15
         self.COOLDOWN_SECONDS = 60
         
-        self.logger.info("TelegramConnector v2.3 'The Citadel' initialized with hardened error handling")
+        self.logger.info("TelegramConnector initialized")
     
     async def throttle_if_needed(self):
         """

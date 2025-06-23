@@ -1,6 +1,3 @@
-import asyncio
-import logging
-import re
 from datetime import datetime, timedelta, timezone
 from typing import List, Dict, Any, Optional
 from urllib.parse import urlparse, parse_qs
@@ -57,7 +54,7 @@ class YouTubeConnector(BaseConnector):
             'writeautomaticsub': False,
         }
         
-        self.logger.info("YouTubeConnector v3.0 'The Liberated Spymaster' initialized - NO API KEY REQUIRED!")
+        self.logger.info("YouTubeConnector initialized")
     
     async def connect(self) -> None:
         """

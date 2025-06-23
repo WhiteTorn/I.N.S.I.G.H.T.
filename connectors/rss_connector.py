@@ -1,5 +1,4 @@
 import asyncio
-import logging
 import html
 import re
 import urllib.error
@@ -37,7 +36,7 @@ class RssConnector(BaseConnector):
         self.timeout = 30  # Feed fetch timeout in seconds
         self.user_agent = "I.N.S.I.G.H.T. Mark II RSS Connector v2.3 - The Citadel"
         
-        self.logger.info("RSS Connector v2.3 'The Citadel' initialized with hardened error handling")
+        self.logger.info("RSS Connector initialized")
     
     async def connect(self) -> None:
         """
