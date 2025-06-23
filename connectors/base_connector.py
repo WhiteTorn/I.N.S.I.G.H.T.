@@ -56,6 +56,26 @@ class BaseConnector(ABC):
         Clean up resources, close connections, etc.
         """
         pass
+
+    @abstractmethod
+    def setup_connector(self) -> bool:
+        """
+        Setup the connector with platform-specific configuration and credentials.
+        
+        This method should handle:
+        - Loading credentials from environment variables
+        - Validating required configuration
+        - Initializing platform-specific clients/sessions
+        - Setting up any platform-specific parameters
+        
+        Returns:
+            bool: True if setup was successful, False otherwise
+            
+        Note:
+            This method should NOT establish connection - that's handled by connect().
+            This is purely for initialization and credential validation.
+        """
+        pass
     
     @abstractmethod
     async def fetch_posts(self, source_identifier: str, limit: int) -> List[Dict[str, Any]]:

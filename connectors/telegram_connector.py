@@ -1,4 +1,5 @@
 import asyncio
+import os
 from datetime import datetime, timedelta, timezone
 from typing import List, Dict, Any
 from telethon.sync import TelegramClient
@@ -88,6 +89,57 @@ class TelegramConnector(BaseConnector):
             self.logger.info("Disconnecting from Telegram...")
             await self.client.disconnect()
     
+    def setup_connector(self) -> bool:
+        """
+        Setup the Telegram connector with credentials from environment variables.
+        
+        Returns:
+            bool: True if setup was successful, False otherwise
+        """
+        try:
+            # Load credentials from environment variables
+            api_id = os.getenv('TELEGRAM_API_ID')
+            api_hash = os.getenv('TELEGRAM_API_HASH')
+            session_file = os.getenv('TELEGRAM_SESSION_FILE', 'insight_session')
+            
+            # Validate required credentials
+            if not api_id:
+                self.logger.error("TELEGRAM_API_ID not found in environment variables")
+                return False
+            
+            if not api_hash:
+                self.logger.error("TELEGRAM_API_HASH not found in environment variables")
+                return False
+            
+            # Convert and store credentials
+            try:
+                self.api_id = int(api_id)
+            except ValueError:
+                self.logger.error("TELEGRAM_API_ID must be a valid integer")
+                return False
+                
+            self.api_hash = api_hash
+            self.session_file = session_file
+            
+            # Load optional configuration from environment
+            threshold = os.getenv('TELEGRAM_REQUEST_THRESHOLD', '15')
+            cooldown = os.getenv('TELEGRAM_COOLDOWN_SECONDS', '60')
+            
+            try:
+                self.REQUEST_THRESHOLD = int(threshold)
+                self.COOLDOWN_SECONDS = int(cooldown)
+            except ValueError:
+                self.logger.warning("Invalid rate limiting configuration, using defaults")
+                self.REQUEST_THRESHOLD = 15
+                self.COOLDOWN_SECONDS = 60
+            
+            self.logger.info("✅ Telegram connector setup successful")
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"❌ Failed to setup Telegram connector: {e}")
+            return False
+
     async def _synthesize_messages(self, raw_messages: List, channel_alias: str, source_identifier: str) -> List[Dict[str, Any]]:
         """
         A private helper method to handle the advanced album synthesis logic.
