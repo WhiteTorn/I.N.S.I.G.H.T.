@@ -4,21 +4,25 @@ import asyncio
 import json
 from datetime import datetime
 from dotenv import load_dotenv
+
+# Core Modules
+from logs.core.logger_config import setup_logging, get_component_logger
 from config.config_manager import ConfigManager
 
 # Modules
 from connectors import TelegramConnector, RssConnector, YouTubeConnector, RedditConnector
 from output import ConsoleOutput, HTMLOutput, JSONOutput
 
-# --- Configuration and Setup ---
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(module)s - %(message)s',
-    handlers=[
-        logging.FileHandler("insight_debug.log", encoding='utf-8'),
-        logging.StreamHandler()
-    ]
-)
+# Old Logging configuration.
+# # --- Configuration and Setup ---
+# logging.basicConfig(
+#     level=logging.INFO,
+#     format='%(asctime)s - %(levelname)s - %(module)s - %(message)s',
+#     handlers=[
+#         logging.FileHandler("insight_debug.log", encoding='utf-8'),
+#         logging.StreamHandler()
+#     ]
+# )
 
 # --- The Core Application Class (Mark II Orchestrator) ---
 class InsightOperator:
@@ -44,8 +48,13 @@ class InsightOperator:
     - HARDENED: Global timeout and error isolation
     """
     
-    def __init__(self):
-        logging.info("I.N.S.I.G.H.T. Mark II (v2.4) - The Inquisitor - Citadel Edition - Initializing...")
+    def __init__(self, debug_mode: bool = False):
+        # Set up Logging first
+        self.logging_config = setup_logging(debug_mode = debug_mode)
+        self.logger = get_component_logger('insight_operator')
+
+        self.logger.info("I.N.S.I.G.H.T. Mark II (v2.6) - The Grand Marshal - Citadel Edition - Initializing...")
+        
         load_dotenv()
 
         self.config_manager = ConfigManager()
