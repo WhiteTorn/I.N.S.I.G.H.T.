@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import List, Dict, Any
-import logging
+# import logging
+
+from logs.core.logger_config import get_component_logger
 
 class BaseConnector(ABC):
     """
@@ -36,7 +38,8 @@ class BaseConnector(ABC):
             platform_name: The name of the platform this connector handles
         """
         self.platform_name = platform_name
-        self.logger = logging.getLogger(f"{__name__}.{platform_name}")
+        # self.logger = logging.getLogger(f"{__name__}.{platform_name}")
+        self.logger = get_component_logger(f"{platform_name} Connector")
         
     @abstractmethod
     async def connect(self) -> None:
