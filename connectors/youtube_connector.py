@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from typing import List, Dict, Any, Optional
 from urllib.parse import urlparse, parse_qs
+import os
 
 import yt_dlp
 from youtube_transcript_api import YouTubeTranscriptApi, NoTranscriptFound, TranscriptsDisabled
@@ -11,7 +12,7 @@ from .base_connector import BaseConnector
 
 class YouTubeConnector(BaseConnector):
     """
-    I.N.S.I.G.H.T. YouTube Connector v3.0 - "The Liberated Spymaster"
+    I.N.S.I.G.H.T. YouTube Connector v3.1 - "The Liberated Spymaster" - Grand Marshal Edition
     
     Now FREE from Google API dependencies! Uses yt-dlp for metadata extraction
     and youtube_transcript_api for transcripts.
@@ -27,34 +28,71 @@ class YouTubeConnector(BaseConnector):
     
     This connector treats transcript failures as expected battlefield conditions
     and continues operations despite individual video failures.
+    
+    Updated with two-phase initialization for automatic discovery support.
     """
     
-    def __init__(self, preferred_languages: List[str] = None):
+    def __init__(self):
         """
-        Initialize the YouTube connector.
-        
-        Args:
-            preferred_languages: List of preferred language codes (e.g., ['en', 'es', 'fr'])
-                                If None, defaults to ['en'] with auto-fallback to available languages
+        Phase 1: Create blank YouTube connector object.
+        Configuration will be handled by setup_connector().
         """
         super().__init__("youtube")
         
-        self.preferred_languages = preferred_languages or ['en']
-        self.transcript_formatter = TextFormatter()
+        # Default values - will be set in setup_connector()
+        self.preferred_languages = None
+        self.transcript_formatter = None
+        self.prefer_manual = None
+        self.ydl_opts = None
         
-        # Quality preferences - prefer manual transcripts over auto-generated
-        self.prefer_manual = True
+        self.logger.info("YouTube Connector object created (pending setup)")
+    
+    def setup_connector(self) -> bool:
+        """
+        Phase 2: Configure the YouTube connector with language preferences and settings.
         
-        # yt-dlp configuration
-        self.ydl_opts = {
-            'quiet': True,
-            'no_warnings': True,
-            'extract_flat': False,  # We need full info for metadata
-            'writesubtitles': False,  # We use youtube_transcript_api instead
-            'writeautomaticsub': False,
-        }
-        
-        self.logger.info("YouTubeConnector initialized")
+        Returns:
+            bool: True if setup was successful
+        """
+        try:
+            self.logger.info("Setting up YouTube connector...")
+            
+            # Load language preferences from environment or use defaults
+            languages_env = os.getenv('YOUTUBE_PREFERRED_LANGUAGES', 'en,ru,ka')
+            self.preferred_languages = [lang.strip() for lang in languages_env.split(',')]
+            
+            # Initialize transcript formatter
+            self.transcript_formatter = TextFormatter()
+            
+            # Quality preferences - prefer manual transcripts over auto-generated
+            self.prefer_manual = os.getenv('YOUTUBE_PREFER_MANUAL', 'true').lower() == 'true'
+            
+            # yt-dlp configuration
+            self.ydl_opts = {
+                'quiet': True,
+                'no_warnings': True,
+                'extract_flat': False,  # We need full info for metadata
+                'writesubtitles': False,  # We use youtube_transcript_api instead
+                'writeautomaticsub': False,
+            }
+            
+            # Test that yt-dlp is available
+            try:
+                with yt_dlp.YoutubeDL({'quiet': True}) as ydl:
+                    pass  # Just test that it works
+            except Exception as e:
+                self.logger.error(f"❌ yt-dlp not available: {e}")
+                return False
+            
+            self.logger.info("✅ YouTube connector setup successful")
+            self.logger.info(f"   Preferred languages: {self.preferred_languages}")
+            self.logger.info(f"   Prefer manual transcripts: {self.prefer_manual}")
+            
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"❌ Failed to setup YouTube connector: {e}")
+            return False
     
     async def connect(self) -> None:
         """
