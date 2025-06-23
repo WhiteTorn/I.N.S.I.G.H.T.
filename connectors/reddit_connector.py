@@ -1,4 +1,5 @@
 import re
+import os
 from datetime import datetime, timezone, timedelta
 from typing import List, Dict, Any, Optional
 from urllib.parse import urlparse, parse_qs
@@ -32,67 +33,77 @@ from .base_connector import BaseConnector
 
 class RedditConnector(BaseConnector):
     """
-    I.N.S.I.G.H.T. Reddit Connector v2.7 - "The Crowd Crier" - ASYNC EDITION
+    I.N.S.I.G.H.T. Reddit Connector v2.8 - "The Crowd Crier" - Grand Marshal Edition
     
-    Taps into the real-time pulse of public opinion and breaking news through Reddit.
-    
-    🔄 HYBRID APPROACH WITH ASYNC SUPPORT:
-    • PRIMARY: Async PRAW - Native async/await support, perfect for async environments
-    • FALLBACK: Regular PRAW - For backwards compatibility
-    • TERTIARY: JSON Scraping - No API keys needed, YARS-style functionality
-    
-    Features:
-    - Single post URL extraction (post + comments)
-    - Subreddit monitoring with multiple sorting options (Hot, New, Top, Best, Rising)
-    - Interactive post selection from subreddit listings
-    - Automatic comment extraction and threading
-    - HARDENED: Bulletproof error handling for all Reddit scenarios
-    - Rate limiting compliance and timeout protection
-    - Automatic fallback when API credentials not available
-    - Native async/await support with Async PRAW
-    
-    This connector treats Reddit API failures as expected battlefield conditions
-    and continues operations despite individual post/comment failures.
+    Updated with two-phase initialization for automatic discovery support.
     """
     
-    def __init__(self, client_id: str = None, client_secret: str = None, user_agent: str = None):
+    def __init__(self):
         """
-        Initialize the Reddit connector with hybrid async approach.
-        
-        Args:
-            client_id: Reddit API client ID (optional)
-            client_secret: Reddit API client secret (optional) 
-            user_agent: User agent string for Reddit API (optional)
+        Phase 1: Create blank Reddit connector object.
+        Configuration will be handled by setup_connector().
         """
         super().__init__("reddit")
         
-        # Configuration
-        self.max_comments_per_post = 50  # Limit comments to prevent overwhelming data
-        self.comment_depth_limit = 3     # How deep to traverse comment threads
+        # Default values - will be set in setup_connector()
+        self.max_comments_per_post = 50
+        self.comment_depth_limit = 3
+        self.mode = None
+        self.client_id = None
+        self.client_secret = None
+        self.user_agent = None
+        self.reddit = None
+        self.session = None
         
-        # Determine mode based on available libraries and credentials
-        if client_id and client_secret:
-            if ASYNCPRAW_AVAILABLE:
-                self.mode = "asyncpraw"
-                self.logger.info("Reddit Connector initialized in Async PRAW mode (native async support)")
-            elif PRAW_AVAILABLE:
-                self.mode = "praw"
-                self.logger.warning("Async PRAW not available, falling back to regular PRAW (may show async warnings)")
+        self.logger.info("Reddit Connector object created (pending setup)")
+    
+    def setup_connector(self) -> bool:
+        """
+        Phase 2: Configure the Reddit connector with credentials and settings.
+        
+        Returns:
+            bool: True if setup was successful
+        """
+        try:
+            self.logger.info("Setting up Reddit connector...")
+            
+            # Load credentials from environment variables
+            self.client_id = os.getenv('REDDIT_CLIENT_ID')
+            self.client_secret = os.getenv('REDDIT_CLIENT_SECRET')
+            self.user_agent = os.getenv(
+                'REDDIT_USER_AGENT', 
+                'I.N.S.I.G.H.T. v2.8 The Crowd Crier - Grand Marshal Edition'
+            )
+            
+            # Load optional configuration
+            self.max_comments_per_post = int(os.getenv('REDDIT_MAX_COMMENTS', '50'))
+            self.comment_depth_limit = int(os.getenv('REDDIT_COMMENT_DEPTH', '3'))
+            
+            # Determine mode based on available libraries and credentials
+            if self.client_id and self.client_secret:
+                if ASYNCPRAW_AVAILABLE:
+                    self.mode = "asyncpraw"
+                    self.logger.info("Reddit connector configured for Async PRAW mode")
+                elif PRAW_AVAILABLE:
+                    self.mode = "praw"
+                    self.logger.info("Reddit connector configured for regular PRAW mode")
+                else:
+                    self.mode = "scraper"
+                    self.logger.warning("No PRAW libraries available, will use scraper mode")
             else:
                 self.mode = "scraper"
-                self.logger.warning("No PRAW libraries available, using scraper mode")
+                self.logger.info("No Reddit API credentials provided, will use scraper mode")
             
-            self.client_id = client_id
-            self.client_secret = client_secret
-            self.user_agent = user_agent or "I.N.S.I.G.H.T. v2.7 The Crowd Crier - Async Edition"
-            self.reddit = None
-        else:
-            self.mode = "scraper"
-            self.session = requests.Session()
-            self.session.headers.update({
-                'User-Agent': user_agent or 'I.N.S.I.G.H.T. v2.7 The Crowd Crier - Async Edition/1.0'
-            })
-            self.logger.info("No Reddit API credentials provided, using scraper mode")
+            self.logger.info("✅ Reddit connector setup successful")
+            self.logger.info(f"   Mode: {self.mode}")
+            self.logger.info(f"   Max comments per post: {self.max_comments_per_post}")
+            self.logger.info(f"   Comment depth limit: {self.comment_depth_limit}")
+            
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"❌ Failed to setup Reddit connector: {e}")
+            return False
     
     async def connect(self) -> None:
         """
