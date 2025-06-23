@@ -8,9 +8,9 @@
 *.jsonl.gz
 *.jsonl.gz.part
 insight_debug.log
-insight_session.session
 __pycache__
 *.html
 youtube_transcript_https
 reddit_post_analysis_https
 !sources.json
+insight_session.session
