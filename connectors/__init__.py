@@ -7,17 +7,13 @@ with automatic setup and configuration management.
 """
 
 import os
-from typing import Dict, List, Optional
+import importlib
+import inspect
+from typing import Dict, List, Optional, Type
 from dotenv import load_dotenv
 
 from logs.core.logger_config import get_component_logger
 from config.config_manager import ConfigManager
-
-from .base_connector import BaseConnector
-from .telegram_connector import TelegramConnector
-from .rss_connector import RssConnector
-from .youtube_connector import YouTubeConnector
-from .reddit_connector import RedditConnector
 
 # __all__ = ['BaseConnector', 'TelegramConnector', 'RssConnector', 'YouTubeConnector', 'RedditConnector'] 
 
@@ -27,14 +23,61 @@ load_dotenv()
 # Initialize logger for connector management
 logger = get_component_logger('connector_package')
 
-AVAILABLE_CONNECTORS = {
-    'telegram': TelegramConnector,
-    'rss': RssConnector,
-    'youtube': YouTubeConnector,
-    'reddit': RedditConnector
-}
+def discover_connectors() -> Dict[str, Type]:
+    """
+    Automatically discover all connector classes in the connectors package.
+    
+    Convention: 
+    - Files must be named *_connector.py
+    - Must contain a class inheriting from BaseConnector
+    - Class name should end with 'Connector'
+    
+    Returns:
+        Dictionary mapping platform names to connector classes
+    """
+    # Import BaseConnector first
+    from .base_connector import BaseConnector
+    
+    connectors = {}
+    connectors_dir = os.path.dirname(__file__)
+    
+    logger.info("🔍 Discovering connectors...")
+    
+    # Scan for connector files
+    for filename in os.listdir(connectors_dir):
+        if not filename.endswith('_connector.py') or filename.startswith('base_'):
+            continue
+        
+        module_name = filename[:-3]  # Remove .py extension
+        platform_name = module_name.replace('_connector', '')
+        
+        try:
+            # Dynamic import
+            module = importlib.import_module(f'.{module_name}', package='connectors')
+            
+            # Find connector classes in the module
+            for name, obj in inspect.getmembers(module, inspect.isclass):
+                # Check if it's a connector class (inherits from BaseConnector but isn't BaseConnector itself)
+                if (issubclass(obj, BaseConnector) and 
+                    obj != BaseConnector and 
+                    name.endswith('Connector')):
+                    
+                    connectors[platform_name] = obj
+                    logger.info(f"✅ Discovered {platform_name} connector: {name}")
+                    break
+            else:
+                logger.warning(f"⚠️ No valid connector class found in {filename}")
+                
+        except Exception as e:
+            logger.error(f"❌ Failed to import {filename}: {e}")
+    
+    logger.info(f"🎯 Discovery complete: {len(connectors)} connectors found")
+    return connectors
 
-def setup_connectors(config_manager: ConfigManager) -> Dict[str, BaseConnector]:
+# Automatically discover all available connectors
+AVAILABLE_CONNECTORS = discover_connectors()
+
+def setup_connectors(config_manager: ConfigManager) -> Dict[str, 'BaseConnector']:
     """
     Setup all enabled connectors based on configuration.
     
@@ -49,11 +92,12 @@ def setup_connectors(config_manager: ConfigManager) -> Dict[str, BaseConnector]:
     
     setup_connectors_dict = {}
     
-    logger.info(f"Setting up connectors for enabled sources: {enabled_sources}")
+    logger.info(f"🚀 Setting up connectors for enabled sources: {enabled_sources}")
     
     for source_name in enabled_sources:
         if source_name not in AVAILABLE_CONNECTORS:
-            logger.warning(f"No connector available for source: {source_name}")
+            logger.warning(f"❌ No connector available for source: {source_name}")
+            logger.info(f"📋 Available connectors: {list(AVAILABLE_CONNECTORS.keys())}")
             continue
             
         try:
@@ -71,7 +115,7 @@ def setup_connectors(config_manager: ConfigManager) -> Dict[str, BaseConnector]:
         except Exception as e:
             logger.error(f"❌ Failed to initialize {source_name} connector: {e}")
     
-    logger.info(f"Successfully setup {len(setup_connectors_dict)} out of {len(enabled_sources)} enabled connectors")
+    logger.info(f"🎉 Setup complete: {len(setup_connectors_dict)}/{len(enabled_sources)} connectors ready")
     return setup_connectors_dict
 
 def get_available_connector_types() -> List[str]:
@@ -83,18 +127,19 @@ def get_available_connector_types() -> List[str]:
     """
     return list(AVAILABLE_CONNECTORS.keys())
 
-def create_connector(platform: str) -> Optional[BaseConnector]:
+def create_connector(platform: str) -> Optional['BaseConnector']:
     """
     Create a single connector instance for the specified platform.
     
     Args:
-        platform: Platform name (telegram, rss, youtube, reddit)
+        platform: Platform name (automatically detected from available connectors)
         
     Returns:
         Connector instance if successful, None otherwise
     """
     if platform not in AVAILABLE_CONNECTORS:
-        logger.error(f"No connector available for platform: {platform}")
+        logger.error(f"❌ No connector available for platform: {platform}")
+        logger.info(f"📋 Available platforms: {list(AVAILABLE_CONNECTORS.keys())}")
         return None
         
     try:
@@ -111,6 +156,18 @@ def create_connector(platform: str) -> Optional[BaseConnector]:
     except Exception as e:
         logger.error(f"❌ Failed to create {platform} connector: {e}")
         return None
+
+def list_discovered_connectors() -> Dict[str, str]:
+    """
+    Get detailed information about all discovered connectors.
+    
+    Returns:
+        Dictionary mapping platform names to their class names
+    """
+    return {platform: cls.__name__ for platform, cls in AVAILABLE_CONNECTORS.items()}
+
+# Import BaseConnector for external use
+from .base_connector import BaseConnector
 
 __all__ = [
     'BaseConnector', 
