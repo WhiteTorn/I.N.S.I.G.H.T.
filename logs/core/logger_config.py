@@ -119,7 +119,6 @@ class LoggerConfig:
 def setup_logging(debug_mode=False):
     """Convenience function to set up logging."""
     config = LoggerConfig(debug_mode=debug_mode)
-    config.setup_logging()
     return config
 
 def get_connector_logger(connector_name):

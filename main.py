@@ -1,9 +1,9 @@
 import os
-import self.logger
 import asyncio
 import json
 from datetime import datetime
 from dotenv import load_dotenv
+import sys
 
 # Core Modules
 from logs.core.logger_config import setup_logging, get_component_logger
@@ -80,7 +80,7 @@ class InsightOperator:
         """Initialize and register all available connectors based on the configuration."""
         enabled_sources = self.config_manager.get_enabled_sources(self.config)
 
-        if enabled_sources.get("telegram", {}).get("enabled", False):
+        if "telegram" in enabled_sources:
             # Telegram Connector
             api_id = os.getenv('TELEGRAM_API_ID')
             api_hash = os.getenv('TELEGRAM_API_HASH')
@@ -97,14 +97,14 @@ class InsightOperator:
         else:
             self.logger.info("telegram Connectors disabled in configuration")
         
-        if enabled_sources.get("rss", {}).get("enabled", False):
+        if "rss" in enabled_sources:
             # RSS Connector (always available - no credentials needed)
             self.connectors['rss'] = RssConnector()
             self.logger.info("RSS connector registered")
         else:
             self.logger.info("RSS Connectors disabled in configuration")
 
-        if enabled_sources.get("youtube", {}).get("enabled", False):
+        if "youtube" in enabled_sources:
             # YouTube Connector - NO API KEY REQUIRED (uses yt-dlp)
             self.connectors['youtube'] = YouTubeConnector(
                 preferred_languages=['en', 'ru', 'ka']  # Configurable language preferences
@@ -113,7 +113,7 @@ class InsightOperator:
         else:
             self.logger.info("YouTube Connectors disabled in configuration")
         
-        if enabled_sources.get("reddit", {}).get("enabled", False):
+        if "reddit" in enabled_sources:
             # Reddit Connector - Requires Reddit API credentials
             reddit_client_id = os.getenv('REDDIT_CLIENT_ID')
             reddit_client_secret = os.getenv('REDDIT_CLIENT_SECRET')
@@ -1006,5 +1006,8 @@ class InsightOperator:
 
 # --- Execution ---
 if __name__ == "__main__":
-    app = InsightOperator()
+
+    debug_mode = '--debug' in sys.argv
+
+    app = InsightOperator(debug_mode=debug_mode)
     asyncio.run(app.run())

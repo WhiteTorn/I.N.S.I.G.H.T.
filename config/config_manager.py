@@ -20,6 +20,7 @@ class ConfigManager:
         try:
             with open(self.config_path, 'r') as file:
                 self.config = json.load(file)
+                return self.config
         except FileNotFoundError:
             print(f"Error: The file {self.config_path} does not exist.")
             self.config = {}
@@ -94,8 +95,8 @@ class ConfigManager:
         """Returns a list of enabled sources from the config."""
         enabled_sources = []
         for source in config['sources']:
-            if source['enabled']:
-                enabled_sources.append(source['name'])
+            if config['sources'][source]['enabled']:
+                enabled_sources.append(source)
         return enabled_sources
 
     def get_platform_config(self, config: Dict, platform: str) -> Dict:
