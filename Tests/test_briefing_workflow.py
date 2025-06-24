@@ -120,7 +120,7 @@ class BriefingWorkflowTest:
             
             try:
                 # Test with small limit first
-                recent_posts = await self.telegram_connector.fetch_posts(test_channel, 6)
+                recent_posts = await self.telegram_connector.fetch_posts(test_channel, 3)
                 
                 tool_test_results["fetch_recent_posts"] = {
                     "success": True,
