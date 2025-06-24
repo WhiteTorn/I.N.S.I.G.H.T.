@@ -2,6 +2,7 @@
 import html
 from datetime import datetime
 import logging
+import re
 
 class HTMLOutput:
     """
@@ -10,11 +11,81 @@ class HTMLOutput:
     
     Enhanced in v2.3 with RSS/Atom feed support, category display,
     and adaptive rendering for different content types.
+    Enhanced in v2.4 with markdown-to-HTML conversion support.
     """
 
     def __init__(self, report_title="I.N.S.I.G.H.T. Report"):
         self.title = html.escape(report_title)
         self.body_content = ""
+
+    def _convert_markdown_to_html(self, text: str) -> str:
+        """
+        Convert basic markdown to HTML.
+        Supports: links, bold, italic, code, strikethrough, and line breaks.
+        """
+        if not text:
+            return ""
+        
+        # Convert markdown patterns to HTML (order matters!)
+        
+        # Convert markdown links [text](url) to HTML
+        text = re.sub(r'\[([^\]]+)\]\(([^)]+)\)', r'<a href="\2" target="_blank">\1</a>', text)
+        
+        # Convert strikethrough ~~text~~ to <del>
+        text = re.sub(r'~~([^~]+)~~', r'<del>\1</del>', text)
+        
+        # Convert bold **text** or __text__ to <strong>
+        text = re.sub(r'\*\*([^*]+)\*\*', r'<strong>\1</strong>', text)
+        text = re.sub(r'__([^_]+)__', r'<strong>\1</strong>', text)
+        
+        # Convert italic *text* or _text_ to <em> (but not if surrounded by **)
+        text = re.sub(r'(?<!\*)\*([^*\n]+)\*(?!\*)', r'<em>\1</em>', text)
+        text = re.sub(r'(?<!_)_([^_\n]+)_(?!_)', r'<em>\1</em>', text)
+        
+        # Convert inline code `text` to <code>
+        text = re.sub(r'`([^`\n]+)`', r'<code>\1</code>', text)
+        
+        # Convert headers ### text to <h3>
+        text = re.sub(r'^### (.+)$', r'<h3>\1</h3>', text, flags=re.MULTILINE)
+        text = re.sub(r'^## (.+)$', r'<h2>\1</h2>', text, flags=re.MULTILINE)
+        text = re.sub(r'^# (.+)$', r'<h1>\1</h1>', text, flags=re.MULTILINE)
+        
+        # Convert line breaks to <br> tags
+        text = text.replace('\n', '<br>')
+        
+        # Now escape any remaining HTML that wasn't part of our markdown conversion
+        # Split by our generated tags and escape the content between them
+        html_tag_pattern = r'(<a[^>]*>.*?</a>|<strong>.*?</strong>|<em>.*?</em>|<code>.*?</code>|<del>.*?</del>|<h[1-6]>.*?</h[1-6]>|<br>)'
+        parts = re.split(html_tag_pattern, text)
+        
+        escaped_parts = []
+        for i, part in enumerate(parts):
+            if i % 2 == 0:  # Even indices are plain text that should be escaped
+                escaped_parts.append(html.escape(part))
+            else:  # Odd indices are our HTML tags that should be preserved
+                escaped_parts.append(part)
+        
+        return ''.join(escaped_parts)
+
+    def _is_likely_markdown(self, text: str) -> bool:
+        """
+        Detect if text contains markdown patterns.
+        """
+        if not text:
+            return False
+            
+        markdown_patterns = [
+            r'\[.+\]\(.+\)',          # Links [text](url)
+            r'\*\*.+\*\*',            # Bold **text**
+            r'__.+__',                # Bold __text__
+            r'(?<!\*)\*.+\*(?!\*)',   # Italic *text*
+            r'(?<!_)_.+_(?!_)',       # Italic _text_
+            r'`.+`',                  # Code `text`
+            r'~~.+~~',                # Strikethrough ~~text~~
+            r'^#{1,6} .+$',           # Headers # text
+        ]
+        
+        return any(re.search(pattern, text, re.MULTILINE) for pattern in markdown_patterns)
 
     def _get_html_template(self):
         """Returns the basic structure of the HTML document with embedded CSS."""
@@ -82,6 +153,53 @@ class HTMLOutput:
         .post-content p {{
             margin: 0 0 1em 0;
             white-space: pre-wrap; /* Preserve line breaks */
+        }}
+        .post-content a {{
+            color: #00aaff;
+            text-decoration: none;
+            border-bottom: 1px solid transparent;
+            transition: border-color 0.2s;
+        }}
+        .post-content a:hover {{
+            border-bottom-color: #00aaff;
+        }}
+        .post-content strong {{
+            color: #ffffff;
+            font-weight: 600;
+        }}
+        .post-content em {{
+            color: #ffcc00;
+            font-style: italic;
+        }}
+        .post-content code {{
+            background-color: #333;
+            color: #ff6b6b;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.9em;
+        }}
+        .post-content del {{
+            color: #888;
+            text-decoration: line-through;
+        }}
+        .post-content h1, .post-content h2, .post-content h3 {{
+            color: #00aaff;
+            margin-top: 1em;
+            margin-bottom: 0.5em;
+        }}
+        .post-content h1 {{
+            font-size: 1.4em;
+            border-bottom: 2px solid #00aaff;
+            padding-bottom: 5px;
+        }}
+        .post-content h2 {{
+            font-size: 1.2em;
+            border-bottom: 1px solid #555;
+            padding-bottom: 3px;
+        }}
+        .post-content h3 {{
+            font-size: 1.1em;
         }}
         .categories {{
             margin: 10px 0;
@@ -231,7 +349,7 @@ class HTMLOutput:
         if post_data.get('categories'):
             categories_html = self._format_categories(post_data['categories'])
 
-        # Choose content based on source and available data
+        # Choose content based on source and available data with markdown support
         if source_platform == 'rss' and post_data.get('content_html'):
             # Use rich HTML content for RSS/Atom feeds if available
             content_html = post_data['content_html']
@@ -241,8 +359,16 @@ class HTMLOutput:
             else:
                 post_text_html = content_html
         else:
-            # Use cleaned text from NEW field name 'content'
-            post_text_html = f"<p>{html.escape(post_data.get('content', 'No content'))}</p>"
+            # Use content and convert markdown to HTML if detected
+            raw_content = post_data.get('content', 'No content')
+            
+            if self._is_likely_markdown(raw_content):
+                # Convert markdown to HTML
+                converted_content = self._convert_markdown_to_html(raw_content)
+                post_text_html = f"<p>{converted_content}</p>"
+            else:
+                # Fallback to escaped HTML for plain text
+                post_text_html = f"<p>{html.escape(raw_content)}</p>"
         
         # Create the media gallery
         media_gallery_html = ""
@@ -344,4 +470,4 @@ class HTMLOutput:
                 f.write(final_html)
             logging.info(f"Successfully generated HTML dossier: {filename}")
         except Exception as e:
-            logging.error(f"Failed to save HTML file: {e}") 
+            logging.error(f"Failed to save HTML file: {e}")
