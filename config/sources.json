@@ -12,26 +12,27 @@
                 "durov",
                 "seeallochnaya",
                 "denissexy",
-                "ai_newz"
+                "ai_newz",
+                "llm_under_hood"
             ]
         },
         "rss":
         {
-            "enabled": true,
+            "enabled": false,
             "feeds": [
                 "https://simonwillison.net/atom/everything/"
             ]
         },
         "youtube":
         {
-            "enabled": true,
+            "enabled": false,
             "channels": [
                 "UCoryWpk4QVYKFCJul9KBdyw" 
             ]
         },
         "reddit":
         {
-            "enabled": true,
+            "enabled": false,
             "subreddits": [
                 "r/LocalLLaMA"
             ]
