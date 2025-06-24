@@ -248,24 +248,95 @@ class HTMLOutput:
             background-color: #ff9500;
         }}
         .media-gallery {{
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
             margin-top: 15px;
         }}
-        .media-gallery a {{
+        .media-item {{
+            position: relative;
+            background-color: #333;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 2px solid #555;
+            transition: border-color 0.3s;
+        }}
+        .media-item:hover {{
+            border-color: #00aaff;
+        }}
+        .media-item img {{
+            width: 100%;
+            height: auto;
+            max-height: 400px;
+            object-fit: cover;
             display: block;
         }}
-        .media-gallery img {{
-            max-width: 150px;
-            max-height: 150px;
-            border-radius: 4px;
-            border: 2px solid #555;
-            transition: transform 0.2s;
+        .media-item video {{
+            width: 100%;
+            height: auto;
+            max-height: 400px;
+            display: block;
         }}
-        .media-gallery img:hover {{
-            transform: scale(1.05);
-            border-color: #00aaff;
+        .media-item audio {{
+            width: 100%;
+            height: 60px;
+            background-color: #2a2a2a;
+        }}
+        .media-overlay {{
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(transparent, rgba(0,0,0,0.8));
+            padding: 10px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }}
+        .media-item:hover .media-overlay {{
+            opacity: 1;
+        }}
+        .media-link {{
+            color: #00aaff;
+            text-decoration: none;
+            font-size: 0.9em;
+            display: inline-block;
+        }}
+        .media-link:hover {{
+            text-decoration: underline;
+        }}
+        .document-item {{
+            padding: 20px;
+            text-align: center;
+            background-color: #2a2a2a;
+        }}
+        .document-preview {{
+            margin-bottom: 15px;
+        }}
+        .document-icon {{
+            font-size: 3em;
+            margin-bottom: 10px;
+        }}
+        .document-name {{
+            color: #e0e0e0;
+            font-size: 0.9em;
+            word-break: break-all;
+            margin-bottom: 10px;
+        }}
+        .document-link {{
+            background-color: #00aaff;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 4px;
+            text-decoration: none;
+            display: inline-block;
+            transition: background-color 0.3s;
+        }}
+        .document-link:hover {{
+            background-color: #0088cc;
+        }}
+        .audio-item {{
+            padding: 15px;
+            background-color: #2a2a2a;
         }}
         .post-footer {{
             margin-top: 15px;
@@ -319,6 +390,71 @@ class HTMLOutput:
         if not feed_type or feed_type == "unknown":
             return ""
         return f'<span class="feed-type-badge {feed_type.lower()}">{feed_type.upper()}</span>'
+
+    def _is_image_url(self, url: str) -> bool:
+        """Check if URL points to an image file."""
+        image_extensions = ('.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg', '.ico')
+        return any(url.lower().endswith(ext) for ext in image_extensions)
+
+    def _is_video_url(self, url: str) -> bool:
+        """Check if URL points to a video file."""
+        video_extensions = ('.mp4', '.webm', '.ogg', '.mov', '.avi', '.mkv', '.m4v')
+        return any(url.lower().endswith(ext) for ext in video_extensions)
+
+    def _is_audio_url(self, url: str) -> bool:
+        """Check if URL points to an audio file."""
+        audio_extensions = ('.mp3', '.wav', '.ogg', '.aac', '.flac', '.m4a')
+        return any(url.lower().endswith(ext) for ext in audio_extensions)
+
+    def _create_media_html(self, url: str) -> str:
+        """Create appropriate HTML for different media types."""
+        url = html.escape(url)
+        
+        if self._is_image_url(url):
+            return f'''
+            <div class="media-item image-item">
+                <img src="{url}" alt="Image Content" loading="lazy">
+                <div class="media-overlay">
+                    <a href="{url}" target="_blank" class="media-link">🔗 Open Full Size</a>
+                </div>
+            </div>
+            '''
+        elif self._is_video_url(url):
+            return f'''
+            <div class="media-item video-item">
+                <video controls preload="metadata">
+                    <source src="{url}" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+                <div class="media-overlay">
+                    <a href="{url}" target="_blank" class="media-link">🔗 Open Video</a>
+                </div>
+            </div>
+            '''
+        elif self._is_audio_url(url):
+            return f'''
+            <div class="media-item audio-item">
+                <audio controls preload="metadata">
+                    <source src="{url}" type="audio/mpeg">
+                    Your browser does not support the audio element.
+                </audio>
+                <div class="media-overlay">
+                    <a href="{url}" target="_blank" class="media-link">🔗 Open Audio</a>
+                </div>
+            </div>
+            '''
+        else:
+            # Fallback for unknown media types or documents
+            filename = url.split('/')[-1] if '/' in url else url
+            return f'''
+            <div class="media-item document-item">
+                <div class="document-preview">
+                    <div class="document-icon">📄</div>
+                    <div class="document-name">{html.escape(filename)}</div>
+                </div>
+                <a href="{url}" target="_blank" class="media-link document-link">📥 Download / View</a>
+            </div>
+            '''
 
     def _format_post(self, post_data: dict, show_channel=False):
         """Converts a single post dictionary into an HTML block with enhanced RSS/Atom support."""
@@ -386,12 +522,12 @@ class HTMLOutput:
                 # Fallback to escaped HTML for plain text
                 post_text_html = f"<p>{html.escape(raw_content)}</p>"
         
-        # Create the media gallery
+        # Create the enhanced media gallery with inline display
         media_gallery_html = ""
         if post_data.get('media_urls'):
             media_gallery_html += '<div class="media-gallery">'
             for url in post_data['media_urls']:
-                media_gallery_html += f'<a href="{url}" target="_blank"><img src="{url}" alt="Media Content"></a>'
+                media_gallery_html += self._create_media_html(url)
             media_gallery_html += '</div>'
 
         return f"""
