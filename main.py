@@ -143,32 +143,6 @@ class InsightOperator:
             self.logger.error(f"ERROR: Critical failure fetching from @{channel_username}: {str(e)}")
             return []
     
-    # --- MISSION PROFILE 2 & 3: BRIEFINGS (Telegram) ---
-    async def get_briefing_posts(self, channels: list, days: int):
-        """
-        Fetches all posts from a list of Telegram sources for the last N days.
-        HARDENED: Protected by global timeout and comprehensive error handling.
-        """
-        if 'telegram' not in self.connectors:
-            self.logger.error("Telegram connector not available")
-            return []
-        
-        connector = self.connectors['telegram']
-        
-        try:
-            # Wrap connector call with global timeout protection
-            posts = await asyncio.wait_for(
-                connector.fetch_posts_by_timeframe(channels, days),
-                timeout=self.GLOBAL_TIMEOUT_SECONDS * len(channels)  # Scale timeout with number of channels
-            )
-            return posts
-            
-        except asyncio.TimeoutError:
-            self.logger.warning(f"WARNING: Briefing fetch from {len(channels)} channels timed out after {self.GLOBAL_TIMEOUT_SECONDS * len(channels)}s")
-            return []
-        except Exception as e:
-            self.logger.error(f"ERROR: Critical failure fetching briefing from channels: {str(e)}")
-            return []
     
     # --- RSS MISSIONS (Enhanced in v2.3 with Citadel protection) ---
     async def analyze_rss_feed(self, feed_url: str):

@@ -77,45 +77,6 @@ class BaseConnector(ABC):
         """
         pass
     
-    @abstractmethod
-    async def fetch_posts(self, source_identifier: str, limit: int) -> List[Dict[str, Any]]:
-        """
-        Fetch the latest N posts from the specified source.
-        
-        This is the core method that every connector must implement.
-        It should fetch raw data from the source, process it, and return
-        it in the Unified Data Model format.
-        
-        Args:
-            source_identifier: Platform-specific identifier (channel name, feed URL, etc.)
-            limit: Maximum number of posts to fetch
-            
-        Returns:
-            List of post dictionaries in Unified Data Model format
-            
-        Raises:
-            ConnectionError: If unable to connect to the source
-            ValueError: If source_identifier is invalid
-            Exception: For other platform-specific errors
-        """
-        pass
-    
-    @abstractmethod
-    async def fetch_posts_by_timeframe(self, sources: List[str], days: int) -> List[Dict[str, Any]]:
-        """
-        Fetch all posts from multiple sources within a specific timeframe.
-        
-        This method supports the briefing functionality where we want to gather
-        intelligence from multiple sources over a specific time period.
-        
-        Args:
-            sources: List of source identifiers to monitor
-            days: Number of days to look back (0 for "today only")
-            
-        Returns:
-            List of post dictionaries in Unified Data Model format, sorted chronologically
-        """
-        pass
     
     def _validate_unified_post(self, post: Dict[str, Any]) -> bool:
         """

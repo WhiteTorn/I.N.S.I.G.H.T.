@@ -1,7 +1,7 @@
 import asyncio
 import os
 from datetime import datetime, timedelta, timezone
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Union
 from telethon.sync import TelegramClient
 from telethon.errors import FloodWaitError, ChannelInvalidError, ChannelPrivateError, UsernameInvalidError, UsernameNotOccupiedError, RPCError
 from .base_connector import BaseConnector
@@ -143,8 +143,6 @@ class TelegramConnector(BaseConnector):
             self.logger.info("Disconnecting from Telegram...")
             await self.client.disconnect()
     
-    
-
     async def _synthesize_messages(self, raw_messages: List, channel_alias: str, source_identifier: str) -> List[Dict[str, Any]]:
         """
         A private helper method to handle the advanced album synthesis logic.
@@ -207,29 +205,96 @@ class TelegramConnector(BaseConnector):
         
         return logical_posts
     
-    async def fetch_posts(self, source_identifier: str, limit: int) -> List[Dict[str, Any]]:
+    async def fetch_posts(self, source_identifier: str, limit: Union[int, str]) -> List[Dict[str, Any]]:
         """
-        Fetches the last N logical posts from a single Telegram channel.
-        This implements the "Deep Scan" mission profile from Mark I.
-        HARDENED: Bulletproof error handling for all failure scenarios.
+        UNIFIED API: Single method for all Telegram fetching needs.
+        
+        This method handles all fetching scenarios with intelligent limit parsing:
+        - Normal integer (e.g., 10): Fetch N recent posts
+        - Negative integer (e.g., -123): Fetch starting from message ID 123
+        - String "-all": Fetch ALL posts from channel (for database population)
+        
+        Future database integration will allow date-based filtering without API calls.
         
         Args:
             source_identifier: Telegram channel username (with or without @)
-            limit: Maximum number of logical posts to fetch
+            limit: Flexible limit parameter:
+                   - int > 0: Number of recent posts
+                   - int < 0: Starting message ID (abs value)
+                   - "-all": Fetch entire channel history
             
         Returns:
-            List of posts in unified format, empty list on failure
+            List of posts in unified format, empty list on any failure
         """
-        # Clean the channel identifier
-        channel_username = source_identifier.lstrip('@')
-        
-        self.logger.info(f"Starting Deep Scan for {limit} posts from @{channel_username}...")
-        
-        # Validate client connection
-        if not self.client or not self.client.is_connected():
-            self.logger.error(f"ERROR: Failed to fetch from @{channel_username} - Reason: Telegram client not connected")
+        # Input validation
+        if not source_identifier or not isinstance(source_identifier, str):
+            self.logger.error("Invalid source_identifier provided")
             return []
         
+        # Parse limit parameter
+        try:
+            fetch_mode, fetch_value = self._parse_limit_parameter(limit)
+        except ValueError as e:
+            self.logger.error(f"Invalid limit parameter: {e}")
+            return []
+        
+        # Connection validation
+        if not self.client or not self.client.is_connected():
+            self.logger.error("Telegram client not connected")
+            return []
+        
+        channel_username = source_identifier.lstrip('@')
+        
+        # Log the operation
+        if fetch_mode == "recent":
+            self.logger.info(f"🔍 Fetching {fetch_value} recent posts from @{channel_username}")
+        elif fetch_mode == "from_id":
+            self.logger.info(f"🔍 Fetching posts from message ID {fetch_value} from @{channel_username}")
+        elif fetch_mode == "all":
+            self.logger.info(f"🔍 Fetching ALL posts from @{channel_username} (database population mode)")
+        
+        try:
+            # Protected call to internal implementation
+            posts = await asyncio.wait_for(
+                self._fetch_posts_internal(channel_username, fetch_mode, fetch_value),
+                timeout=self._calculate_timeout(fetch_mode)
+            )
+            
+            self.logger.info(f"✅ Successfully fetched {len(posts)} posts from @{channel_username}")
+            return posts
+            
+        except asyncio.TimeoutError:
+            timeout = self._calculate_timeout(fetch_mode)
+            self.logger.warning(f"⏰ Fetch from @{channel_username} timed out after {timeout}s")
+            return []
+        except Exception as e:
+            self.logger.error(f"❌ Protected fetch failed from @{channel_username}: {str(e)}")
+            return []
+    
+    # =============================================================================
+    # INTERNAL IMPLEMENTATION - Pure Defended Logic
+    # =============================================================================
+    
+    async def _fetch_posts_internal(self, channel_username: str, mode: str, limit: int) -> List[Dict[str, Any]]:
+        """
+        INTERNAL: Pure Telegram post fetching logic without external protections.
+        
+        This method contains only the core business logic for fetching Telegram posts.
+        It assumes valid inputs and connected client. Used by:
+        - Public fetch_posts() method (with protection)
+        - Future internal methods that need raw access
+        - Testing scenarios where you want to test core logic
+        
+        Args:
+            channel_username: Clean channel username (no @ prefix)
+            limit: Valid positive integer
+            
+        Returns:
+            List of posts in unified format
+            
+        Raises:
+            Various Telegram API exceptions (handled by caller)
+        """
         all_synthesized_posts = []
         processed_ids = set()
         last_message_id = 0
@@ -243,52 +308,49 @@ class TelegramConnector(BaseConnector):
             try:
                 entity = await self.client.get_entity(channel_username)
             except ChannelInvalidError:
-                self.logger.error(f"ERROR: Failed to fetch from @{channel_username} - Reason: Channel does not exist or is invalid")
-                return []
+                self.logger.error(f"ERROR: Failed to process @{channel_username} - Reason: Channel does not exist or is invalid")
+                raise ValueError(f"Channel @{channel_username} does not exist or is invalid")
             except ChannelPrivateError:
-                self.logger.error(f"ERROR: Failed to fetch from @{channel_username} - Reason: Channel is private or requires subscription")
-                return []
+                self.logger.error(f"ERROR: Failed to process @{channel_username} - Reason: Channel is private or requires subscription")
+                raise ValueError(f"Channel @{channel_username} is private or requires subscription")
             except UsernameInvalidError:
-                self.logger.error(f"ERROR: Failed to fetch from @{channel_username} - Reason: Invalid username format")
-                return []
+                self.logger.error(f"ERROR: Failed to process @{channel_username} - Reason: Invalid username format")
+                raise ValueError(f"Invalid username format: @{channel_username}")
             except UsernameNotOccupiedError:
-                self.logger.error(f"ERROR: Failed to fetch from @{channel_username} - Reason: Username not found")
-                return []
-            except ConnectionError as e:
-                self.logger.error(f"ERROR: Failed to fetch from @{channel_username} - Reason: Network connection error: {str(e)}")
-                return []
-            except TimeoutError:
-                self.logger.error(f"ERROR: Failed to fetch from @{channel_username} - Reason: Request timed out")
-                return []
+                self.logger.error(f"ERROR: Failed to process @{channel_username} - Reason: Username not found")
+                raise ValueError(f"Username not found: @{channel_username}")
+            except (ConnectionError, TimeoutError) as e:
+                self.logger.error(f"ERROR: Failed to process @{channel_username} - Reason: Network error: {str(e)}")
+                raise ConnectionError(f"Network error accessing @{channel_username}: {str(e)}")
             except FloodWaitError as e:
-                self.logger.error(f"ERROR: Failed to fetch from @{channel_username} - Reason: Rate limit exceeded, need to wait {e.seconds} seconds")
-                return []
+                self.logger.error(f"ERROR: Failed to process @{channel_username} - Reason: Rate limit exceeded, need to wait {e.seconds} seconds")
+                raise ConnectionError(f"Rate limit exceeded for @{channel_username}, need to wait {e.seconds} seconds")
             except RPCError as e:
-                self.logger.error(f"ERROR: Failed to fetch from @{channel_username} - Reason: Telegram API error: {str(e)}")
-                return []
+                self.logger.error(f"ERROR: Failed to process @{channel_username} - Reason: Telegram API error: {str(e)}")
+                raise ConnectionError(f"Telegram API error for @{channel_username}: {str(e)}")
             except Exception as e:
-                self.logger.error(f"ERROR: Failed to fetch from @{channel_username} - Reason: Unexpected error resolving channel: {str(e)}")
-                return []
+                self.logger.error(f"ERROR: Failed to process @{channel_username} - Reason: Unexpected error: {str(e)}")
+                raise ConnectionError(f"Unexpected error accessing @{channel_username}: {str(e)}")
             
-            # Fetch messages in chunks with individual error handling
+            # Fetch messages in chunks
             for fetch_attempt in range(max_fetches):
                 if len(all_synthesized_posts) >= limit:
                     break
-                
-                self.logger.info(f"Fetch attempt #{fetch_attempt+1} for @{channel_username}...")
-                
+
+                self.logger.info(f"fetching attempt #{fetch_attempt + 1} for @{channel_username}...")
+                    
                 try:
                     await self.throttle_if_needed()
                     
                     try:
                         messages = await self.client.get_messages(
                             entity, 
-                            limit=fetch_chunk_size, 
+                            limit=min(fetch_chunk_size, limit * 3),  # Fetch extra to account for filtering
                             offset_id=last_message_id
                         )
                     except ChannelPrivateError:
-                        self.logger.error(f"ERROR: Failed to fetch from @{channel_username} - Reason: Channel became private during operation")
-                        break
+                            self.logger.error(f"ERROR: Failed to fetch from @{channel_username} - Reason: Channel became private during operation")
+                            break
                     except FloodWaitError as e:
                         self.logger.warning(f"Rate limit hit for @{channel_username}, waiting {e.seconds} seconds...")
                         await asyncio.sleep(e.seconds)
@@ -306,13 +368,13 @@ class TelegramConnector(BaseConnector):
                         self.logger.error(f"ERROR: Failed to fetch from @{channel_username} - Reason: Unexpected error during message fetch: {str(e)}")
                         break
                     
-                    if not messages: 
-                        self.logger.info(f"No more messages available from @{channel_username}")
+                    if not messages:
+                        self.logger.info(f"No messages found in attempt #{fetch_attempt + 1} for @{channel_username}")
                         break
                     
                     # Synthesize messages with error handling
                     try:
-                        synthesized = await self._synthesize_messages(messages, channel_username, source_identifier)
+                        synthesized = await self._synthesize_messages(messages, channel_username, f"@{channel_username}")
                         
                         for post in synthesized:
                             try:
@@ -330,194 +392,76 @@ class TelegramConnector(BaseConnector):
                     except Exception as e:
                         self.logger.error(f"Error synthesizing messages from @{channel_username}: {e}")
                         break
-                        
+                    
                 except Exception as e:
-                    self.logger.error(f"Error during fetch attempt #{fetch_attempt+1} for @{channel_username}: {e}")
-                    # Continue with next attempt unless it's a critical error
-                    if fetch_attempt >= max_fetches - 1:
-                        break
-                    continue
+                        self.logger.error(f"Error during fetch attempt #{fetch_attempt+1} for @{channel_username}: {e}")
+                        # Continue with next attempt unless it's a critical error
+                        if fetch_attempt >= max_fetches - 1:
+                            break
+                        continue
             
             # Sort and return posts with error handling
-            try:
-                # Sort by date (newest first), then take the limit, then sort chronologically
-                final_posts = sorted(all_synthesized_posts, key=lambda p: p.get('date', datetime.min.replace(tzinfo=timezone.utc)), reverse=True)[:limit]
-                result = sorted(final_posts, key=lambda p: p.get('date', datetime.min.replace(tzinfo=timezone.utc)))
-                
-                self.logger.info(f"Successfully fetched {len(result)} posts from @{channel_username}")
-                return result
-                
-            except Exception as e:
-                self.logger.error(f"Error sorting posts from @{channel_username}: {e}")
-                return all_synthesized_posts[:limit]  # Return unsorted if sorting fails
-                
+                try:
+                    # Sort by date (newest first), then take the limit, then sort chronologically
+                    final_posts = sorted(all_synthesized_posts, key=lambda p: p.get('date', datetime.min.replace(tzinfo=timezone.utc)), reverse=True)[:limit]
+                    result = sorted(final_posts, key=lambda p: p.get('date', datetime.min.replace(tzinfo=timezone.utc)))
+                    
+                    self.logger.info(f"Successfully fetched {len(result)} posts from @{channel_username}")
+                    return result
+                    
+                except Exception as e:
+                    self.logger.error(f"Error sorting posts from @{channel_username}: {e}")
+                    return all_synthesized_posts[:limit]  # Return unsorted if sorting fails
+             
         except Exception as e:
             self.logger.error(f"ERROR: Failed to fetch from @{channel_username} - Reason: Critical error: {str(e)}")
             return []
+        
+
+    # =============================================================================
+    # HELPER METHODS
+    # =============================================================================
     
-    async def fetch_posts_by_timeframe(self, sources: List[str], days: int) -> List[Dict[str, Any]]:
+    def _parse_limit_parameter(self, limit: Union[int, str]) -> tuple[str, int]:
         """
-        Fetches all posts from multiple Telegram channels within a specific timeframe.
-        This implements the "Historical Briefing" and "End of Day" mission profiles.
-        HARDENED: Individual channel failures do not affect other channels.
+        Parse the flexible limit parameter into fetch mode and value.
         
-        Args:
-            sources: List of Telegram channel usernames
-            days: Number of days to look back (0 for "today only")
-            
         Returns:
-            List of posts in unified format, sorted chronologically
+            Tuple of (fetch_mode, fetch_value) where:
+            - ("recent", N): Fetch N recent posts
+            - ("from_id", ID): Fetch from message ID
+            - ("all", 0): Fetch all posts
         """
-        # Validate client connection
-        if not self.client or not self.client.is_connected():
-            self.logger.error("ERROR: Failed to fetch briefing posts - Reason: Telegram client not connected")
-            return []
-        
-        if days == 0:
-            self.logger.info("Starting 'End of Day' briefing generation for today...")
-            now_utc = datetime.now(timezone.utc)
-            cutoff_date = now_utc.replace(hour=0, minute=0, second=0, microsecond=0)
+        if isinstance(limit, str):
+            if limit == "-all":
+                self.logger.info(f"Fetching all posts from channel")
+                return ("all", 0)
+            else:
+                self.logger.error(f"Invalid string limit: {limit}. Only '-all' is supported.")
+                raise ValueError(f"Invalid string limit: {limit}. Only '-all' is supported.")
+        elif isinstance(limit, int):
+            if limit > 0:
+                self.logger.info(f"Fetching {limit} recent posts from channel")
+                return ("recent", limit)
+            elif limit < 0:
+                self.logger.info(f"Fetching posts from message ID {abs(limit)} from channel")
+                return ("from_id", abs(limit))
+            else:
+                self.logger.error(f"Limit cannot be zero")
+                raise ValueError("Limit cannot be zero")
         else:
-            self.logger.info(f"Starting Historical Briefing generation for the last {days} days...")
-            cutoff_date = datetime.now(timezone.utc) - timedelta(days=days)
-        
-        all_posts = []
-        successful_channels = 0
-        failed_channels = 0
-        
-        for channel in sources:
-            # Clean the channel identifier
-            channel_username = channel.lstrip('@')
-            self.logger.info(f"Gathering intel from @{channel_username}...")
-            
-            try:
-                # Get channel entity with comprehensive error handling
-                await self.throttle_if_needed()
-                
-                try:
-                    entity = await self.client.get_entity(channel_username)
-                except ChannelInvalidError:
-                    self.logger.error(f"ERROR: Failed to process @{channel_username} - Reason: Channel does not exist or is invalid")
-                    failed_channels += 1
-                    continue
-                except ChannelPrivateError:
-                    self.logger.error(f"ERROR: Failed to process @{channel_username} - Reason: Channel is private or requires subscription")
-                    failed_channels += 1
-                    continue
-                except UsernameInvalidError:
-                    self.logger.error(f"ERROR: Failed to process @{channel_username} - Reason: Invalid username format")
-                    failed_channels += 1
-                    continue
-                except UsernameNotOccupiedError:
-                    self.logger.error(f"ERROR: Failed to process @{channel_username} - Reason: Username not found")
-                    failed_channels += 1
-                    continue
-                except FloodWaitError as e:
-                    self.logger.error(f"ERROR: Failed to process @{channel_username} - Reason: Rate limit exceeded, need to wait {e.seconds} seconds")
-                    failed_channels += 1
-                    continue
-                except Exception as e:
-                    self.logger.error(f"ERROR: Failed to process @{channel_username} - Reason: Error resolving channel: {str(e)}")
-                    failed_channels += 1
-                    continue
-                
-                # Fetch all relevant messages with error handling
-                channel_messages = []
-                message_count = 0
-                
-                try:
-                    async for message in self.client.iter_messages(entity, limit=None):
-                        try:
-                            if message.date < cutoff_date:
-                                break
-                            channel_messages.append(message)
-                            message_count += 1
-                            
-                            # Add periodic throttling for large channels
-                            if message_count % 100 == 0:
-                                await self.throttle_if_needed()
-                                
-                        except Exception as e:
-                            self.logger.warning(f"Error processing individual message from @{channel_username}: {e}")
-                            continue
-                            
-                except ChannelPrivateError:
-                    self.logger.error(f"ERROR: Failed to process @{channel_username} - Reason: Channel became private during iteration")
-                    failed_channels += 1
-                    continue
-                except FloodWaitError as e:
-                    self.logger.error(f"ERROR: Failed to process @{channel_username} - Reason: Rate limit during message iteration, need to wait {e.seconds} seconds")
-                    failed_channels += 1
-                    continue
-                except Exception as e:
-                    self.logger.error(f"ERROR: Failed to process @{channel_username} - Reason: Error during message iteration: {str(e)}")
-                    failed_channels += 1
-                    continue
-                
-                if not channel_messages:
-                    self.logger.warning(f"No messages found in timeframe for @{channel_username}")
-                    continue
-                
-                # Process the buffered messages with error handling
-                try:
-                    processed_ids = set()
-                    channel_posts = []
-                    
-                    for message in channel_messages:
-                        try:
-                            if message.id in processed_ids:
-                                continue
-                            
-                            synthesized = []
-                            if message.grouped_id:
-                                # This is part of an album. Find all its siblings in our buffer.
-                                try:
-                                    group = [
-                                        m for m in channel_messages 
-                                        if m and m.grouped_id == message.grouped_id
-                                    ]
-                                    synthesized = await self._synthesize_messages(group, channel_username, channel)
-                                    # Mark all parts of this group as processed
-                                    for m in group:
-                                        processed_ids.add(m.id)
-                                except Exception as e:
-                                    self.logger.warning(f"Error processing album group from @{channel_username}: {e}")
-                                    continue
-                            else:
-                                # This is a single message
-                                try:
-                                    synthesized = await self._synthesize_messages([message], channel_username, channel)
-                                    processed_ids.add(message.id)
-                                except Exception as e:
-                                    self.logger.warning(f"Error processing single message from @{channel_username}: {e}")
-                                    continue
-                            
-                            if synthesized:
-                                channel_posts.extend(synthesized)
-                                
-                        except Exception as e:
-                            self.logger.warning(f"Error processing message {getattr(message, 'id', 'unknown')} from @{channel_username}: {e}")
-                            continue
-                    
-                    all_posts.extend(channel_posts)
-                    successful_channels += 1
-                    self.logger.info(f"Successfully collected {len(channel_posts)} posts from @{channel_username}")
-                    
-                except Exception as e:
-                    self.logger.error(f"ERROR: Failed to process @{channel_username} - Reason: Error during message synthesis: {str(e)}")
-                    failed_channels += 1
-                    continue
-                        
-            except Exception as e:
-                self.logger.error(f"ERROR: Failed to process @{channel_username} - Reason: Critical error: {str(e)}")
-                failed_channels += 1
-                continue
-        
-        self.logger.info(f"Multi-channel processing complete: {successful_channels} successful, {failed_channels} failed channels")
-        
-        # Sort chronologically with error handling
-        try:
-            return sorted(all_posts, key=lambda p: p.get('date', datetime.min.replace(tzinfo=timezone.utc)))
-        except Exception as e:
-            self.logger.error(f"Error sorting posts chronologically: {e}")
-            return all_posts 
+            self.logger.error(f"Invalid limit type: {type(limit)}. Limit must be int or str.")
+            raise ValueError(f"Limit must be int or str, got {type(limit)}")
+    
+    def _calculate_timeout(self, fetch_mode: str) -> int:
+        """Calculate appropriate timeout based on fetch mode."""
+        if fetch_mode == "all":
+            self.logger.info(f"Calculating timeout for all posts")
+            return self.COOLDOWN_SECONDS * 10  # Much longer timeout for full channel fetch
+        elif fetch_mode == "from_id":
+            self.logger.info(f"Calculating timeout for ID-based fetch")
+            return self.COOLDOWN_SECONDS * 3   # Longer timeout for ID-based fetch
+        else:
+            self.logger.info(f"Calculating timeout for recent posts")
+            return self.COOLDOWN_SECONDS       # Normal timeout for recent posts
+    

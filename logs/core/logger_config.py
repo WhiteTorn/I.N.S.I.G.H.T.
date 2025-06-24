@@ -45,10 +45,16 @@ class LoggerConfig:
         logging.info("Logging system initialized successfully")
 
     def _setup_console_handler(self):
-        """Set up console output handler."""
-        console_handler = logging.StreamHandler() # to write in console
+        """Set up console output handler with Unicode support."""
+        console_handler = logging.StreamHandler()
         console_handler.setLevel(logging.WARNING if not self.debug_mode else logging.DEBUG)
-        console_handler.setFormatter(LogFormatters.get_console_formatter())
+        
+        # Create a formatter that avoids emoji characters
+        console_formatter = logging.Formatter(
+            fmt='%(levelname)s - %(name)s - %(message)s',
+            datefmt='%Y-%m-%d %H:%M:%S'
+        )
+        console_handler.setFormatter(console_formatter)
         
         # Add to root logger
         logging.getLogger().addHandler(console_handler)
