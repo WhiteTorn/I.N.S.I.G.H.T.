@@ -21,16 +21,28 @@ class HTMLOutput:
     def _convert_markdown_to_html(self, text: str) -> str:
         """
         Convert basic markdown to HTML.
-        Supports: links, bold, italic, code, strikethrough, and line breaks.
+        Supports: links, bold, italic, code, strikethrough, auto-linking, and line breaks.
         """
         if not text:
             return ""
         
-        # Convert markdown patterns to HTML (order matters!)
+        # Step 1: Protect and convert plain URLs to links FIRST (before other markdown processing)
+        # This prevents URLs with underscores from being treated as italic markdown
+        url_pattern = r'https?://[^\s<>"\']+(?:[^\s<>"\'.,;!?])'
         
-        # Convert markdown links [text](url) to HTML
+        # Find all URLs and replace them with placeholder tokens
+        urls = re.findall(url_pattern, text)
+        url_placeholders = {}
+        
+        for i, url in enumerate(urls):
+            placeholder = f"__URL_PLACEHOLDER_{i}__"
+            url_placeholders[placeholder] = f'<a href="{url}" target="_blank">{url}</a>'
+            text = text.replace(url, placeholder, 1)  # Replace only first occurrence
+        
+        # Step 2: Convert markdown links [text](url) to HTML
         text = re.sub(r'\[([^\]]+)\]\(([^)]+)\)', r'<a href="\2" target="_blank">\1</a>', text)
         
+        # Step 3: Convert other markdown patterns (now URLs are protected)
         # Convert strikethrough ~~text~~ to <del>
         text = re.sub(r'~~([^~]+)~~', r'<del>\1</del>', text)
         
@@ -50,11 +62,14 @@ class HTMLOutput:
         text = re.sub(r'^## (.+)$', r'<h2>\1</h2>', text, flags=re.MULTILINE)
         text = re.sub(r'^# (.+)$', r'<h1>\1</h1>', text, flags=re.MULTILINE)
         
-        # Convert line breaks to <br> tags
+        # Step 4: Restore URL placeholders with actual HTML links
+        for placeholder, html_link in url_placeholders.items():
+            text = text.replace(placeholder, html_link)
+        
+        # Step 5: Convert line breaks to <br> tags
         text = text.replace('\n', '<br>')
         
-        # Now escape any remaining HTML that wasn't part of our markdown conversion
-        # Split by our generated tags and escape the content between them
+        # Step 6: Escape remaining HTML while preserving our converted markdown
         html_tag_pattern = r'(<a[^>]*>.*?</a>|<strong>.*?</strong>|<em>.*?</em>|<code>.*?</code>|<del>.*?</del>|<h[1-6]>.*?</h[1-6]>|<br>)'
         parts = re.split(html_tag_pattern, text)
         
@@ -69,7 +84,7 @@ class HTMLOutput:
 
     def _is_likely_markdown(self, text: str) -> bool:
         """
-        Detect if text contains markdown patterns.
+        Detect if text contains markdown patterns or plain URLs.
         """
         if not text:
             return False
@@ -83,6 +98,7 @@ class HTMLOutput:
             r'`.+`',                  # Code `text`
             r'~~.+~~',                # Strikethrough ~~text~~
             r'^#{1,6} .+$',           # Headers # text
+            r'https?://[^\s<>"\']+',  # Plain URLs (auto-link these)
         ]
         
         return any(re.search(pattern, text, re.MULTILINE) for pattern in markdown_patterns)
