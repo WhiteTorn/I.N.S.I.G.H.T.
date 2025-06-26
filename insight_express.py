@@ -1,16 +1,25 @@
 #!/usr/bin/env python3
 """
-INSIGHT Express - MVP Core Intelligence Engine
+INSIGHT Express - MVP Core Intelligence Engine (Windows Fixed)
 Simple, fast personal news assistant powered by Gemini 2.5 Flash
 """
 
 import os
+import sys
 import json
 import asyncio
 from datetime import datetime, timedelta
 from typing import List, Dict, Any
 from google import genai
 from google.genai import types
+
+# Fix Windows console encoding issues
+if sys.platform == "win32":
+    import codecs
+    sys.stdout = codecs.getwriter("utf-8")(sys.stdout.detach())
+    sys.stderr = codecs.getwriter("utf-8")(sys.stderr.detach())
+    # Set console to UTF-8
+    os.system("chcp 65001 >nul")
 
 # Import your existing Mark II infrastructure  
 from main import InsightOperator
@@ -56,13 +65,14 @@ class InsightExpress:
             'collection_time': datetime.now().isoformat()
         }
         
-        # Get enabled sources from config
+        # Get full config instead of just enabled sources
         config = self.config_manager.load_config()
-        enabled_sources = self.config_manager.get_enabled_sources(config)
+        sources_config = config.get('sources', {})
         
         # Collect Telegram posts (last 24 hours)
-        if 'telegram' in enabled_sources:
-            telegram_channels = enabled_sources['telegram'].get('channels', [])
+        telegram_config = sources_config.get('telegram', {})
+        if telegram_config.get('enabled', False) and 'telegram' in self.insight_operator.connectors:
+            telegram_channels = telegram_config.get('channels', [])
             print(f"📱 Collecting from {len(telegram_channels)} Telegram channels...")
             
             for channel in telegram_channels:
@@ -78,8 +88,9 @@ class InsightExpress:
                     print(f"  ❌ {channel}: Failed - {e}")
         
         # Collect RSS posts (last 24 hours)  
-        if 'rss' in enabled_sources:
-            rss_feeds = enabled_sources['rss'].get('feeds', [])
+        rss_config = sources_config.get('rss', {})
+        if rss_config.get('enabled', False) and 'rss' in self.insight_operator.connectors:
+            rss_feeds = rss_config.get('feeds', [])
             print(f"📰 Collecting from {len(rss_feeds)} RSS feeds...")
             
             for feed_url in rss_feeds:
@@ -113,14 +124,24 @@ class InsightExpress:
                 # Handle different timestamp formats
                 if isinstance(post_time, str):
                     try:
-                        post_datetime = datetime.fromisoformat(post_time.replace('Z', '+00:00'))
-                        if post_datetime.replace(tzinfo=None) > cutoff_time:
+                        # Handle ISO format with Z
+                        if post_time.endswith('Z'):
+                            post_time = post_time[:-1] + '+00:00'
+                        post_datetime = datetime.fromisoformat(post_time)
+                        # Remove timezone info for comparison
+                        if post_datetime.tzinfo:
+                            post_datetime = post_datetime.replace(tzinfo=None)
+                        if post_datetime > cutoff_time:
                             recent_posts.append(post)
-                    except:
+                    except Exception as e:
                         # If parsing fails, include the post to be safe
+                        print(f"    ⚠️ Timestamp parsing failed for post, including anyway: {e}")
                         recent_posts.append(post)
                 else:
                     recent_posts.append(post)
+            else:
+                # No timestamp, include to be safe
+                recent_posts.append(post)
         
         return recent_posts
     
@@ -150,6 +171,7 @@ class InsightExpress:
         total_count = telegram_count + rss_count
         
         if total_count == 0:
+            print("📭 No recent content found")
             return self._generate_empty_briefing()
         
         # Format data for Gemini
@@ -217,10 +239,9 @@ Generate the HTML briefing now:
                     ],
                 ),
             ]
-            
             generate_content_config = types.GenerateContentConfig(
-                thinking_config=types.ThinkingConfig(
-                    thinking_budget=-1,
+                thinking_config = types.ThinkingConfig(
+                    thinking_budget=0,
                 ),
                 response_mime_type="text/plain",
             )
@@ -249,7 +270,10 @@ Generate the HTML briefing now:
         # Format Telegram posts
         for post in intelligence_data['telegram']:
             source = post.get('source_id', 'Unknown')
-            content = post.get('content', '')[:500]  # Limit content length
+            content = post.get('content', '')
+            # Limit content length and clean it
+            if len(content) > 500:
+                content = content[:500] + "..."
             timestamp = post.get('timestamp', '')
             
             formatted.append(f"[TELEGRAM] {source} | {timestamp}\n{content}\n")
@@ -258,7 +282,10 @@ Generate the HTML briefing now:
         for post in intelligence_data['rss']:
             source = post.get('source_id', 'Unknown')
             title = post.get('title', 'No Title')
-            content = post.get('content', '')[:500]  # Limit content length
+            content = post.get('content', '')
+            # Limit content length and clean it
+            if len(content) > 500:
+                content = content[:500] + "..."
             timestamp = post.get('timestamp', '')
             
             formatted.append(f"[RSS] {source} | {timestamp}\n{title}\n{content}\n")
@@ -323,6 +350,8 @@ Generate the HTML briefing now:
             
         except Exception as e:
             print(f"❌ Briefing generation failed: {e}")
+            import traceback
+            traceback.print_exc()
             return self._generate_error_briefing(str(e))
     
     def _wrap_html(self, content: str) -> str:
@@ -362,6 +391,7 @@ async def main():
     if not os.environ.get("GEMINI_API_KEY"):
         print("❌ Error: GEMINI_API_KEY environment variable not set")
         print("   Set it with: export GEMINI_API_KEY=your_api_key")
+        print("   Or in PowerShell: $env:GEMINI_API_KEY='your_api_key'")
         return
     
     # Initialize and run
@@ -375,6 +405,8 @@ async def main():
         
     except Exception as e:
         print(f"💥 Critical error: {e}")
+        import traceback
+        traceback.print_exc()
 
 if __name__ == "__main__":
     asyncio.run(main())
