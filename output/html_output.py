@@ -1,105 +1,69 @@
-# html_output.py
 import html
 from datetime import datetime
 import logging
 import re
+
+# Conditional import for the markdown library
+try:
+    import markdown
+    # The presence of pymdown-extensions is implicitly required by the code now.
+    # A requirements.txt file should list: markdown, pymdown-extensions
+    MARKDOWN_AVAILABLE = True
+except ImportError:
+    MARKDOWN_AVAILABLE = False
+    logging.warning("Libraries 'markdown' or 'pymdown-extensions' not available. Install with: pip install markdown pymdown-extensions")
+
 
 class HTMLOutput:
     """
     A dedicated module for rendering I.N.S.I.G.H.T. reports and briefings
     into a clean, self-contained HTML file.
     
-    Enhanced in v2.3 with RSS/Atom feed support, category display,
-    and adaptive rendering for different content types.
-    Enhanced in v2.4 with markdown-to-HTML conversion support.
+    v2.5 (Corrected): Relies exclusively on the standard `markdown` library and its extensions
+    for all content conversion, removing legacy regex-based parsers to ensure
+    robust and valid HTML generation.
     """
 
     def __init__(self, report_title="I.N.S.I.G.H.T. Report"):
         self.title = html.escape(report_title)
         self.body_content = ""
+        
+        if MARKDOWN_AVAILABLE:
+            self.markdown_processor = markdown.Markdown(
+                extensions=[
+                    'pymdownx.magiclink',            # Auto-converts URLs to links correctly.
+                    'markdown.extensions.fenced_code', # Support for ```code``` blocks.
+                    'markdown.extensions.codehilite',  # Syntax highlighting for code.
+                    'markdown.extensions.tables',      # Support for Markdown tables.
+                    'markdown.extensions.sane_lists',  # Improved list parsing.
+                ],
+                extension_configs={
+                    'codehilite': {'use_pygments': False}
+                }
+            )
 
     def _convert_markdown_to_html(self, text: str) -> str:
         """
-        Convert basic markdown to HTML.
-        Supports: links, bold, italic, code, strikethrough, auto-linking, and line breaks.
-        FIXED: Improved regex patterns to handle edge cases like consecutive underscores.
+        Convert markdown to HTML using the standard markdown library.
+        If the library is not available, it safely escapes the text.
         """
         if not text:
             return ""
         
-        # Step 1: Convert markdown links [text](url) to HTML first
-        text = re.sub(r'\[([^\]]+)\]\(([^)]+)\)', r'<a href="\2" target="_blank">\1</a>', text)
-        
-        # Step 2: Convert plain URLs to links (but avoid double-converting already processed links)
-        # Use negative lookbehind to avoid URLs that are already in <a> tags
-        url_pattern = r'(?<!href=")(?<!href=\')https?://[^\s<>"\']+(?:[^\s<>"\'.,;!?\)])'
-        text = re.sub(url_pattern, r'<a href="\g<0>" target="_blank">\g<0></a>', text)
-        
-        # Step 3: Convert other markdown patterns
-        # Convert strikethrough ~~text~~ to <del>
-        text = re.sub(r'~~([^~]+)~~', r'<del>\1</del>', text)
-        
-        # FIXED: Improved bold patterns to handle edge cases
-        # Convert bold **text** to <strong> (non-greedy, must have content)
-        text = re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', text)
-        
-        # Convert bold __text__ to <strong> (improved pattern)
-        # This pattern handles edge cases better by being non-greedy and ensuring balanced underscores
-        text = re.sub(r'(?<!_)__(.+?)__(?!_)', r'<strong>\1</strong>', text)
-        
-        # Convert italic *text* to <em> (but not if surrounded by **)
-        text = re.sub(r'(?<!\*)\*([^*\n]+?)\*(?!\*)', r'<em>\1</em>', text)
-        
-        # Convert italic _text_ to <em> (improved pattern to avoid conflicts)
-        text = re.sub(r'(?<!_)_([^_\n]+?)_(?!_)', r'<em>\1</em>', text)
-        
-        # Convert inline code `text` to <code>
-        text = re.sub(r'`([^`\n]+)`', r'<code>\1</code>', text)
-        
-        # Convert headers ### text to <h3>
-        text = re.sub(r'^### (.+)$', r'<h3>\1</h3>', text, flags=re.MULTILINE)
-        text = re.sub(r'^## (.+)$', r'<h2>\1</h2>', text, flags=re.MULTILINE)
-        text = re.sub(r'^# (.+)$', r'<h1>\1</h1>', text, flags=re.MULTILINE)
-        
-        # Step 4: Convert line breaks to <br> tags
-        text = text.replace('\n', '<br>')
-        
-        # Step 5: Escape remaining HTML while preserving our converted markdown
-        html_tag_pattern = r'(<a[^>]*>.*?</a>|<strong>.*?</strong>|<em>.*?</em>|<code>.*?</code>|<del>.*?</del>|<h[1-6]>.*?</h[1-6]>|<br>)'
-        parts = re.split(html_tag_pattern, text)
-        
-        escaped_parts = []
-        for i, part in enumerate(parts):
-            if i % 2 == 0:  # Even indices are plain text that should be escaped
-                escaped_parts.append(html.escape(part))
-            else:  # Odd indices are our HTML tags that should be preserved
-                escaped_parts.append(part)
-        
-        return ''.join(escaped_parts)
-
-    def _is_likely_markdown(self, text: str) -> bool:
-        """
-        Detect if text contains markdown patterns or plain URLs.
-        """
-        if not text:
-            return False
-            
-        markdown_patterns = [
-            r'\[.+\]\(.+\)',          # Links [text](url)
-            r'\*\*.+\*\*',            # Bold **text**
-            r'__.+__',                # Bold __text__
-            r'(?<!\*)\*.+\*(?!\*)',   # Italic *text*
-            r'(?<!_)_.+_(?!_)',       # Italic _text_
-            r'`.+`',                  # Code `text`
-            r'~~.+~~',                # Strikethrough ~~text~~
-            r'^#{1,6} .+$',           # Headers # text
-            r'https?://[^\s<>"\']+',  # Plain URLs (auto-link these)
-        ]
-        
-        return any(re.search(pattern, text, re.MULTILINE) for pattern in markdown_patterns)
+        if MARKDOWN_AVAILABLE:
+            # Reset is good practice to avoid state carry-over between calls
+            self.markdown_processor.reset()
+            return self.markdown_processor.convert(text)
+        else:
+            # Fallback if markdown library isn't installed:
+            # Safely escape the content and wrap in a paragraph tag.
+            # The CSS 'white-space: pre-wrap' will handle line breaks.
+            return f"<p>{html.escape(text)}</p>"
 
     def _get_html_template(self):
         """Returns the basic structure of the HTML document with embedded CSS."""
+        # CSS now includes 'white-space: pre-wrap' to handle newlines correctly,
+        # removing the need for the problematic 'nl2br' extension.
         return f"""
 <!DOCTYPE html>
 <html lang="en">
@@ -163,7 +127,7 @@ class HTMLOutput:
         }}
         .post-content p {{
             margin: 0 0 1em 0;
-            white-space: pre-wrap; /* Preserve line breaks */
+            white-space: pre-wrap; /* THIS IS CRITICAL: It preserves newlines without needing <br> tags. */
         }}
         .post-content a {{
             color: #00aaff;
@@ -390,7 +354,6 @@ class HTMLOutput:
         """Check if URL points to an image file."""
         if not url:
             return False
-        # Remove query parameters and check extension
         clean_url = url.split('?')[0].lower()
         image_extensions = ('.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg', '.ico')
         return any(clean_url.endswith(ext) for ext in image_extensions)
@@ -399,7 +362,6 @@ class HTMLOutput:
         """Check if URL points to a video file."""
         if not url:
             return False
-        # Remove query parameters and check extension
         clean_url = url.split('?')[0].lower()
         video_extensions = ('.mp4', '.webm', '.ogg', '.mov', '.avi', '.mkv', '.m4v')
         return any(clean_url.endswith(ext) for ext in video_extensions)
@@ -408,7 +370,6 @@ class HTMLOutput:
         """Check if URL points to an audio file."""
         if not url:
             return False
-        # Remove query parameters and check extension
         clean_url = url.split('?')[0].lower()
         audio_extensions = ('.mp3', '.wav', '.ogg', '.aac', '.flac', '.m4a')
         return any(clean_url.endswith(ext) for ext in audio_extensions)
@@ -417,7 +378,7 @@ class HTMLOutput:
         """Check if URL is a Telegram media URL that should be treated as an image."""
         if not url:
             return False
-        return 't.me/' in url and any(x in url for x in ['/photo/', '/video/', '/sticker/', '/file/'])
+        return 't.me/' in url and ('?single' in url or any(x in url for x in ['/photo/', '/video/']))
 
     def _create_media_html(self, url: str) -> str:
         """Create appropriate HTML for different media types."""
@@ -426,30 +387,21 @@ class HTMLOutput:
             
         url_escaped = html.escape(url)
         
-        # Special handling for Telegram URLs
         if self._is_telegram_media_url(url):
+            filename = url.split('/')[-1].split('?')[0]
             return f'''
-            <div class="media-item image-item">
-                <img src="{url_escaped}" alt="Telegram Media Content" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-                <div class="media-fallback" style="display:none; padding: 20px; text-align: center; background-color: #2a2a2a;">
-                    <div class="document-icon">📱</div>
-                    <div class="document-name">Telegram Media</div>
-                    <a href="{url_escaped}" target="_blank" class="document-link">📱 View in Telegram</a>
+            <div class="media-item document-item">
+                <div class="document-preview">
+                    <div class="document-icon">📄</div>
+                    <div class="document-name">{html.escape(filename)}</div>
                 </div>
-                <div class="media-overlay">
-                    <a href="{url_escaped}" target="_blank" class="media-link">🔗 Open in Telegram</a>
-                </div>
+                <a href="{url_escaped}" target="_blank" class="document-link">📥 Download / View</a>
             </div>
             '''
         elif self._is_image_url(url):
             return f'''
             <div class="media-item image-item">
-                <img src="{url_escaped}" alt="Image Content" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-                <div class="media-fallback" style="display:none; padding: 20px; text-align: center; background-color: #2a2a2a;">
-                    <div class="document-icon">🖼️</div>
-                    <div class="document-name">Image failed to load</div>
-                    <a href="{url_escaped}" target="_blank" class="document-link">🔗 Open Image</a>
-                </div>
+                <img src="{url_escaped}" alt="Image Content" loading="lazy">
                 <div class="media-overlay">
                     <a href="{url_escaped}" target="_blank" class="media-link">🔗 Open Full Size</a>
                 </div>
@@ -459,28 +411,21 @@ class HTMLOutput:
             return f'''
             <div class="media-item video-item">
                 <video controls preload="metadata">
-                    <source src="{url_escaped}" type="video/mp4">
+                    <source src="{url_escaped}">
                     Your browser does not support the video tag.
                 </video>
-                <div class="media-overlay">
-                    <a href="{url_escaped}" target="_blank" class="media-link">🔗 Open Video</a>
-                </div>
             </div>
             '''
         elif self._is_audio_url(url):
             return f'''
             <div class="media-item audio-item">
                 <audio controls preload="metadata">
-                    <source src="{url_escaped}" type="audio/mpeg">
+                    <source src="{url_escaped}">
                     Your browser does not support the audio element.
                 </audio>
-                <div class="media-overlay">
-                    <a href="{url_escaped}" target="_blank" class="media-link">🔗 Open Audio</a>
-                </div>
             </div>
             '''
         else:
-            # Fallback for unknown media types or documents
             filename = url.split('/')[-1].split('?')[0] if '/' in url else url
             return f'''
             <div class="media-item document-item">
@@ -493,22 +438,18 @@ class HTMLOutput:
             '''
 
     def _format_post(self, post_data: dict, show_channel=False):
-        """Converts a single post dictionary into an HTML block with enhanced RSS/Atom support."""
+        """Converts a single post dictionary into an HTML block."""
         media_count = len(post_data.get('media_urls', []))
         media_indicator = f"| {media_count} Media Item(s)" if media_count > 0 else ""
         
-        # Determine post type and styling using NEW field names
         source_platform = post_data.get('platform', 'unknown')
         feed_type = post_data.get('feed_type', 'unknown')
         post_class = f"post-block {feed_type}" if feed_type != 'unknown' else "post-block"
         
-        # Build header based on source type
         if source_platform == 'rss':
-            # RSS/Atom post
             feed_title = post_data.get('feed_title', 'RSS Feed')
             post_title = post_data.get('title', 'No title')
             feed_badge = self._get_feed_type_badge(feed_type)
-            
             header_html = f"""
             <div class="source-info">From: {html.escape(feed_title)} {feed_badge}</div>
             <div class="post-title">{html.escape(post_title)}</div>
@@ -518,11 +459,7 @@ class HTMLOutput:
             </div>
             """
         else:
-            # Telegram post - use URL instead of legacy id field
-            source_info = ""
-            if show_channel and post_data.get('source'):
-                source_info = f"<strong>From:</strong> {post_data['source']} | "
-            
+            source_info = f"<strong>From:</strong> {post_data['source']} | " if show_channel and post_data.get('source') else ""
             header_html = f"""
             <div class="post-header">
                 {source_info}
@@ -532,38 +469,21 @@ class HTMLOutput:
             </div>
             """
 
-        # Format categories if available
-        categories_html = ""
-        if post_data.get('categories'):
-            categories_html = self._format_categories(post_data['categories'])
+        categories_html = self._format_categories(post_data.get('categories', []))
 
-        # Choose content based on source and available data with markdown support
+        # Simplified content processing
         if source_platform == 'rss' and post_data.get('content_html'):
-            # Use rich HTML content for RSS/Atom feeds if available
-            content_html = post_data['content_html']
-            # Ensure content is properly wrapped and safe
-            if not content_html.strip().startswith('<'):
-                post_text_html = f"<p>{content_html}</p>"
-            else:
-                post_text_html = content_html
+            post_text_html = post_data['content_html']
         else:
-            # Use content and convert markdown to HTML if detected
             raw_content = post_data.get('content', 'No content')
-            
-            if self._is_likely_markdown(raw_content):
-                # Convert markdown to HTML
-                converted_content = self._convert_markdown_to_html(raw_content)
-                post_text_html = f"<p>{converted_content}</p>"
-            else:
-                # Fallback to escaped HTML for plain text
-                post_text_html = f"<p>{html.escape(raw_content)}</p>"
+            # Always use the reliable markdown converter
+            post_text_html = self._convert_markdown_to_html(raw_content)
         
-        # Create the enhanced media gallery with inline display
         media_gallery_html = ""
         if post_data.get('media_urls'):
             media_gallery_html += '<div class="media-gallery">'
             for url in post_data['media_urls']:
-                if url and url.strip():  # Only process non-empty URLs
+                if url and url.strip():
                     media_gallery_html += self._create_media_html(url)
             media_gallery_html += '</div>'
 
@@ -582,7 +502,7 @@ class HTMLOutput:
         """
 
     def render_report(self, posts: list):
-        """Renders a simple list of posts with enhanced support for RSS/Atom feeds."""
+        """Renders a simple list of posts."""
         for post in posts:
             self.body_content += self._format_post(post)
 
@@ -592,8 +512,7 @@ class HTMLOutput:
         for source, posts in briefing_data.items():
             if not posts: continue
             
-            # Determine source type for header styling
-            first_post = posts[0] if posts else {}
+            first_post = posts[0]
             source_platform = first_post.get('platform', 'telegram')
             
             if source_platform == 'rss':
@@ -611,7 +530,7 @@ class HTMLOutput:
                     posts_by_day[day_str] = []
                 posts_by_day[day_str].append(post)
             
-            for day, day_posts in sorted(posts_by_day.items()):
+            for day, day_posts in sorted(posts_by_day.items(), key=lambda item: datetime.strptime(item[0].split(',')[0], '%Y-%m-%d'), reverse=True):
                 self.body_content += f'<h3 class="date-header">{day}</h3>'
                 for post_data in day_posts:
                     self.body_content += self._format_post(post_data)
@@ -619,21 +538,16 @@ class HTMLOutput:
     def render_rss_briefing(self, posts: list, title: str):
         """Render RSS-specific briefing with category analytics."""
         self.title = title
-        
         if not posts:
             self.body_content += "<p>No RSS posts found for this briefing.</p>"
             return
-        
-        # Category analytics
+            
         all_categories = set()
         feed_types = set()
         for post in posts:
-            if post.get('categories'):
-                all_categories.update(post['categories'])
-            if post.get('feed_type'):
-                feed_types.add(post['feed_type'])
+            all_categories.update(post.get('categories', []))
+            feed_types.add(post.get('feed_type', 'unknown'))
         
-        # Analytics header
         analytics_html = f"""
         <div class="post-block">
             <div class="post-header">📊 Briefing Analytics</div>
@@ -647,7 +561,6 @@ class HTMLOutput:
         """
         self.body_content += analytics_html
         
-        # Render posts
         for post in posts:
             self.body_content += self._format_post(post)
 
