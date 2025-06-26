@@ -18,7 +18,7 @@
         },
         "rss":
         {
-            "enabled": false,
+            "enabled": true,
             "feeds": [
                 "https://simonwillison.net/atom/everything/"
             ]

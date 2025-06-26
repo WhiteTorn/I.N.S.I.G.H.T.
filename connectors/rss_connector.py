@@ -9,6 +9,7 @@ from typing import List, Dict, Any
 from email.utils import parsedate_to_datetime
 import feedparser
 from .base_connector import BaseConnector
+from .tool_registry import expose_tool
 
 class RssConnector(BaseConnector):
     """
@@ -290,7 +291,48 @@ class RssConnector(BaseConnector):
         
         return media_urls
     
+    @expose_tool(
+        name="analyze_rss_feed",
+        description="Analyze an RSS/Atom feed and return detailed metadata",
+        parameters={
+            "feed_url": {
+                "type": "str",
+                "description": "URL of the RSS/Atom feed to analyze",
+                "required": True
+            }
+        },
+        category="rss",
+        examples=[...],
+        returns="Dictionary with feed metadata",
+        notes="Useful for discovering feed capabilities before fetching posts."
+    )
     async def get_feed_info(self, feed_url: str) -> Dict[str, Any]:
+        """PUBLIC API: Analyze RSS feed with complete protection."""
+        # Input validation
+        if not feed_url or not isinstance(feed_url, str):
+            self.logger.error("Invalid feed_url provided")
+            return self._create_error_response(feed_url, "Invalid feed URL")
+        
+        if not feed_url.startswith(('http://', 'https://')):
+            self.logger.error("Feed URL must start with http:// or https://")
+            return self._create_error_response(feed_url, "Invalid URL format")
+        
+        try:
+            # Call internal implementation with timeout protection
+            result = await asyncio.wait_for(
+                self._get_feed_info_internal(feed_url),
+                timeout=self.timeout
+            )
+            return result
+        except asyncio.TimeoutError:
+            self.logger.warning(f"Feed analysis timed out: {feed_url}")
+            return self._create_error_response(feed_url, f"Analysis timed out after {self.timeout}s")
+        except Exception as e:
+            self.logger.error(f"Feed analysis failed: {feed_url} - {e}")
+        
+        return self._create_error_response(feed_url, str(e))
+
+    async def _get_feed_info_internal(self, feed_url: str) -> Dict[str, Any]:
         """
         Analyze an RSS/Atom feed and return metadata including entry count.
         Enhanced with feed type detection and category analysis.
@@ -420,7 +462,60 @@ class RssConnector(BaseConnector):
             "error": error_message
         }
     
+    @expose_tool(
+        name="fetch_rss_posts", 
+        description="Fetch the most recent posts from a single RSS/Atom feed with automatic category extraction",
+        parameters={
+            "source_identifier": {
+                "type": "str",
+                "description": "RSS/Atom feed URL to fetch posts from",
+                "required": True
+            },
+            "limit": {
+                "type": "int",
+                "description": "Maximum number of posts to fetch (1-1000)",
+                "required": True
+            }
+        },
+        category="rss",
+        examples=[
+            "fetch_rss_posts('https://simonwillison.net/atom/everything/', 10)",
+            "fetch_rss_posts('https://feeds.feedburner.com/oreilly/radar', 25)",
+            "fetch_rss_posts('https://rss.cnn.com/rss/edition.rss', 50)",
+            "fetch_rss_posts('https://feeds.feedburner.com/techcrunch', 20)"
+        ],
+        returns="List of posts in unified format with platform, source, url, content, date, categories, and media_urls",
+        notes="Automatically detects RSS vs Atom format. Extracts categories from feed entries. Includes both cleaned text and original HTML content."
+    )
     async def fetch_posts(self, source_identifier: str, limit: int) -> List[Dict[str, Any]]:
+        """PUBLIC API: Fetch RSS posts with complete protection."""
+        # Input validation
+        if not source_identifier or not isinstance(source_identifier, str):
+            self.logger.error("Invalid source_identifier provided")
+            return []
+        
+        if not isinstance(limit, int) or limit <= 0 or limit > 1000:
+            self.logger.error("Limit must be integer between 1 and 1000")
+            return []
+        
+        try:
+            # Call internal implementation with timeout protection
+            posts = await asyncio.wait_for(
+                self._fetch_posts_internal(source_identifier, limit),
+                timeout=self.timeout
+            )
+            self.logger.info(f"✅ Successfully fetched {len(posts)} posts from RSS feed")
+            return posts
+        except asyncio.TimeoutError:
+            self.logger.warning(f"RSS fetch timed out: {source_identifier}")
+            return []
+        except Exception as e:
+            self.logger.error(f"RSS fetch failed: {source_identifier} - {e}")
+
+        return []
+
+
+    async def _fetch_posts_internal(self, source_identifier: str, limit: int) -> List[Dict[str, Any]]:
         """
         Fetch the latest N posts from a single RSS/Atom feed.
         Enhanced with category extraction and adaptive feed handling.
@@ -574,7 +669,53 @@ class RssConnector(BaseConnector):
             self.logger.error(f"ERROR: Failed to fetch RSS feed from {feed_url} - Reason: Unexpected error: {str(e)}")
             return []
     
-    async def fetch_posts_by_timeframe(self, sources: List[str], days: int) -> List[Dict[str, Any]]:
+    @expose_tool(
+        name="get_rss_briefing",
+        description="Fetch posts from multiple RSS/Atom feeds within a specified timeframe for comprehensive briefing generation",
+        parameters={
+            "sources": {
+                "type": "list[str]",
+                "description": "List of RSS/Atom feed URLs to aggregate posts from",
+                "required": True
+            },
+            "days": {
+                "type": "int",
+                "description": "Number of days to look back for posts (0 = all available posts, 1 = last 24 hours, 3 = last 3 days)",
+                "required": True
+            }
+        },
+        category="rss",
+        examples=[
+            "get_rss_briefing(['https://simonwillison.net/atom/everything/', 'https://feeds.feedburner.com/oreilly/radar'], 3)",
+            "get_rss_briefing(['https://rss.cnn.com/rss/edition.rss'], 1)",
+            "get_rss_briefing(['https://feeds.feedburner.com/techcrunch', 'https://rss.slashdot.org/Slashdot/slashdotMain'], 7)",
+            "get_rss_briefing(['https://feeds.feedburner.com/oreilly/radar', 'https://simonwillison.net/atom/everything/'], 0)"
+        ],
+        returns="Aggregated list of posts from all feeds within the specified timeframe, sorted chronologically with categories",
+        notes="Individual feed failures don't affect other feeds. Perfect for daily briefings. Client-side date filtering since RSS feeds don't support server-side date queries. Use days=0 to get all available posts regardless of date."
+    )
+    async def get_briefing_posts(self, sources: List[str], days: int) -> List[Dict[str, Any]]:
+        """PUBLIC API: Get RSS briefing with complete protection."""
+        # Input validation
+        if not sources or not isinstance(sources, list):
+            self.logger.error("Sources must be a non-empty list")
+            return []
+        
+        if not isinstance(days, int) or days < 0:
+            self.logger.error("Days must be non-negative integer")
+            return []
+        
+        try:
+            # Call internal implementation
+            posts = await self._fetch_posts_by_timeframe_internal(sources, days)
+            self.logger.info(f"✅ Successfully got briefing: {len(posts)} posts from {len(sources)} feeds")
+            return posts
+        except Exception as e:
+            self.logger.error(f"RSS briefing failed: {e}")
+        
+        return [] 
+
+    async def _fetch_posts_by_timeframe_internal(self, sources: List[str], days: int) -> List[Dict[str, Any]]:
         """
         Fetch posts from multiple RSS/Atom feeds within a timeframe.
         Enhanced with category aggregation across sources.
