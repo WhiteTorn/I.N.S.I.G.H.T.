@@ -13,14 +13,17 @@
                 "denissexy",
                 "ai_newz",
                 "llm_under_hood",
-                "seeallochnaya"
+                "seeallochnaya",
+                "gonzo_ML"
             ]
         },
         "rss":
         {
             "enabled": true,
             "feeds": [
-                "https://simonwillison.net/atom/everything/"
+                "https://simonwillison.net/atom/everything/",
+                "https://localllama.substack.com/feed",
+                "https://www.reddit.com/r/LocalLLaMA/.rss"
             ]
         },
         "youtube":
