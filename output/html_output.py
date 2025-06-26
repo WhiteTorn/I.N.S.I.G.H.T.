@@ -12,7 +12,6 @@ class HTMLOutput:
     Enhanced in v2.3 with RSS/Atom feed support, category display,
     and adaptive rendering for different content types.
     Enhanced in v2.4 with markdown-to-HTML conversion support.
-    Enhanced in v2.5 with fixed URL placeholder and media display bugs.
     """
 
     def __init__(self, report_title="I.N.S.I.G.H.T. Report"):
@@ -23,20 +22,27 @@ class HTMLOutput:
         """
         Convert basic markdown to HTML.
         Supports: links, bold, italic, code, strikethrough, auto-linking, and line breaks.
-        FIXED: URL placeholder replacement and proper HTML escaping order.
         """
         if not text:
             return ""
         
-        # Step 1: Convert markdown links [text](url) to HTML first
+        # Step 1: Protect and convert plain URLs to links FIRST (before other markdown processing)
+        # This prevents URLs with underscores from being treated as italic markdown
+        url_pattern = r'https?://[^\s<>"\']+(?:[^\s<>"\'.,;!?])'
+        
+        # Find all URLs and replace them with placeholder tokens
+        urls = re.findall(url_pattern, text)
+        url_placeholders = {}
+        
+        for i, url in enumerate(urls):
+            placeholder = f"__URL_PLACEHOLDER_{i}__"
+            url_placeholders[placeholder] = f'<a href="{url}" target="_blank">{url}</a>'
+            text = text.replace(url, placeholder, 1)  # Replace only first occurrence
+        
+        # Step 2: Convert markdown links [text](url) to HTML
         text = re.sub(r'\[([^\]]+)\]\(([^)]+)\)', r'<a href="\2" target="_blank">\1</a>', text)
         
-        # Step 2: Convert plain URLs to links (but avoid double-converting already processed links)
-        # Use negative lookbehind to avoid URLs that are already in <a> tags
-        url_pattern = r'(?<!href=")(?<!href=\')https?://[^\s<>"\']+(?:[^\s<>"\'.,;!?\)])'
-        text = re.sub(url_pattern, r'<a href="\g<0>" target="_blank">\g<0></a>', text)
-        
-        # Step 3: Convert other markdown patterns
+        # Step 3: Convert other markdown patterns (now URLs are protected)
         # Convert strikethrough ~~text~~ to <del>
         text = re.sub(r'~~([^~]+)~~', r'<del>\1</del>', text)
         
@@ -56,10 +62,14 @@ class HTMLOutput:
         text = re.sub(r'^## (.+)$', r'<h2>\1</h2>', text, flags=re.MULTILINE)
         text = re.sub(r'^# (.+)$', r'<h1>\1</h1>', text, flags=re.MULTILINE)
         
-        # Step 4: Convert line breaks to <br> tags
+        # Step 4: Restore URL placeholders with actual HTML links
+        for placeholder, html_link in url_placeholders.items():
+            text = text.replace(placeholder, html_link)
+        
+        # Step 5: Convert line breaks to <br> tags
         text = text.replace('\n', '<br>')
         
-        # Step 5: Escape remaining HTML while preserving our converted markdown
+        # Step 6: Escape remaining HTML while preserving our converted markdown
         html_tag_pattern = r'(<a[^>]*>.*?</a>|<strong>.*?</strong>|<em>.*?</em>|<code>.*?</code>|<del>.*?</del>|<h[1-6]>.*?</h[1-6]>|<br>)'
         parts = re.split(html_tag_pattern, text)
         
@@ -383,70 +393,29 @@ class HTMLOutput:
 
     def _is_image_url(self, url: str) -> bool:
         """Check if URL points to an image file."""
-        if not url:
-            return False
-        # Remove query parameters and check extension
-        clean_url = url.split('?')[0].lower()
         image_extensions = ('.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg', '.ico')
-        return any(clean_url.endswith(ext) for ext in image_extensions)
+        return any(url.lower().endswith(ext) for ext in image_extensions)
 
     def _is_video_url(self, url: str) -> bool:
         """Check if URL points to a video file."""
-        if not url:
-            return False
-        # Remove query parameters and check extension
-        clean_url = url.split('?')[0].lower()
         video_extensions = ('.mp4', '.webm', '.ogg', '.mov', '.avi', '.mkv', '.m4v')
-        return any(clean_url.endswith(ext) for ext in video_extensions)
+        return any(url.lower().endswith(ext) for ext in video_extensions)
 
     def _is_audio_url(self, url: str) -> bool:
         """Check if URL points to an audio file."""
-        if not url:
-            return False
-        # Remove query parameters and check extension
-        clean_url = url.split('?')[0].lower()
         audio_extensions = ('.mp3', '.wav', '.ogg', '.aac', '.flac', '.m4a')
-        return any(clean_url.endswith(ext) for ext in audio_extensions)
-
-    def _is_telegram_media_url(self, url: str) -> bool:
-        """Check if URL is a Telegram media URL that should be treated as an image."""
-        if not url:
-            return False
-        return 't.me/' in url and any(x in url for x in ['/photo/', '/video/', '/sticker/', '/file/'])
+        return any(url.lower().endswith(ext) for ext in audio_extensions)
 
     def _create_media_html(self, url: str) -> str:
         """Create appropriate HTML for different media types."""
-        if not url:
-            return ""
-            
-        url_escaped = html.escape(url)
+        url = html.escape(url)
         
-        # Special handling for Telegram URLs
-        if self._is_telegram_media_url(url):
+        if self._is_image_url(url):
             return f'''
             <div class="media-item image-item">
-                <img src="{url_escaped}" alt="Telegram Media Content" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-                <div class="media-fallback" style="display:none; padding: 20px; text-align: center; background-color: #2a2a2a;">
-                    <div class="document-icon">📱</div>
-                    <div class="document-name">Telegram Media</div>
-                    <a href="{url_escaped}" target="_blank" class="document-link">📱 View in Telegram</a>
-                </div>
+                <img src="{url}" alt="Image Content" loading="lazy">
                 <div class="media-overlay">
-                    <a href="{url_escaped}" target="_blank" class="media-link">🔗 Open in Telegram</a>
-                </div>
-            </div>
-            '''
-        elif self._is_image_url(url):
-            return f'''
-            <div class="media-item image-item">
-                <img src="{url_escaped}" alt="Image Content" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-                <div class="media-fallback" style="display:none; padding: 20px; text-align: center; background-color: #2a2a2a;">
-                    <div class="document-icon">🖼️</div>
-                    <div class="document-name">Image failed to load</div>
-                    <a href="{url_escaped}" target="_blank" class="document-link">🔗 Open Image</a>
-                </div>
-                <div class="media-overlay">
-                    <a href="{url_escaped}" target="_blank" class="media-link">🔗 Open Full Size</a>
+                    <a href="{url}" target="_blank" class="media-link">🔗 Open Full Size</a>
                 </div>
             </div>
             '''
@@ -454,11 +423,11 @@ class HTMLOutput:
             return f'''
             <div class="media-item video-item">
                 <video controls preload="metadata">
-                    <source src="{url_escaped}" type="video/mp4">
+                    <source src="{url}" type="video/mp4">
                     Your browser does not support the video tag.
                 </video>
                 <div class="media-overlay">
-                    <a href="{url_escaped}" target="_blank" class="media-link">🔗 Open Video</a>
+                    <a href="{url}" target="_blank" class="media-link">🔗 Open Video</a>
                 </div>
             </div>
             '''
@@ -466,24 +435,24 @@ class HTMLOutput:
             return f'''
             <div class="media-item audio-item">
                 <audio controls preload="metadata">
-                    <source src="{url_escaped}" type="audio/mpeg">
+                    <source src="{url}" type="audio/mpeg">
                     Your browser does not support the audio element.
                 </audio>
                 <div class="media-overlay">
-                    <a href="{url_escaped}" target="_blank" class="media-link">🔗 Open Audio</a>
+                    <a href="{url}" target="_blank" class="media-link">🔗 Open Audio</a>
                 </div>
             </div>
             '''
         else:
             # Fallback for unknown media types or documents
-            filename = url.split('/')[-1].split('?')[0] if '/' in url else url
+            filename = url.split('/')[-1] if '/' in url else url
             return f'''
             <div class="media-item document-item">
                 <div class="document-preview">
                     <div class="document-icon">📄</div>
                     <div class="document-name">{html.escape(filename)}</div>
                 </div>
-                <a href="{url_escaped}" target="_blank" class="document-link">📥 Download / View</a>
+                <a href="{url}" target="_blank" class="media-link document-link">📥 Download / View</a>
             </div>
             '''
 
@@ -558,8 +527,7 @@ class HTMLOutput:
         if post_data.get('media_urls'):
             media_gallery_html += '<div class="media-gallery">'
             for url in post_data['media_urls']:
-                if url:  # Only process non-empty URLs
-                    media_gallery_html += self._create_media_html(url)
+                media_gallery_html += self._create_media_html(url)
             media_gallery_html += '</div>'
 
         return f"""
