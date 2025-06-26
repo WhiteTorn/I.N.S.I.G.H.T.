@@ -22,7 +22,7 @@ class HTMLOutput:
         """
         Convert basic markdown to HTML.
         Supports: links, bold, italic, code, strikethrough, auto-linking, and line breaks.
-        FIXED: Removed placeholder system that was causing URLPLACEHOLDER bugs.
+        FIXED: Improved regex patterns to handle edge cases like consecutive underscores.
         """
         if not text:
             return ""
@@ -39,13 +39,19 @@ class HTMLOutput:
         # Convert strikethrough ~~text~~ to <del>
         text = re.sub(r'~~([^~]+)~~', r'<del>\1</del>', text)
         
-        # Convert bold **text** or __text__ to <strong>
-        text = re.sub(r'\*\*([^*]+)\*\*', r'<strong>\1</strong>', text)
-        text = re.sub(r'__([^_]+)__', r'<strong>\1</strong>', text)
+        # FIXED: Improved bold patterns to handle edge cases
+        # Convert bold **text** to <strong> (non-greedy, must have content)
+        text = re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', text)
         
-        # Convert italic *text* or _text_ to <em> (but not if surrounded by **)
-        text = re.sub(r'(?<!\*)\*([^*\n]+)\*(?!\*)', r'<em>\1</em>', text)
-        text = re.sub(r'(?<!_)_([^_\n]+)_(?!_)', r'<em>\1</em>', text)
+        # Convert bold __text__ to <strong> (improved pattern)
+        # This pattern handles edge cases better by being non-greedy and ensuring balanced underscores
+        text = re.sub(r'(?<!_)__(.+?)__(?!_)', r'<strong>\1</strong>', text)
+        
+        # Convert italic *text* to <em> (but not if surrounded by **)
+        text = re.sub(r'(?<!\*)\*([^*\n]+?)\*(?!\*)', r'<em>\1</em>', text)
+        
+        # Convert italic _text_ to <em> (improved pattern to avoid conflicts)
+        text = re.sub(r'(?<!_)_([^_\n]+?)_(?!_)', r'<em>\1</em>', text)
         
         # Convert inline code `text` to <code>
         text = re.sub(r'`([^`\n]+)`', r'<code>\1</code>', text)

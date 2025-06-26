@@ -10,10 +10,10 @@
             "enabled": true,
             "channels": [
                 "durov",
-                "seeallochnaya",
                 "denissexy",
                 "ai_newz",
-                "llm_under_hood"
+                "llm_under_hood",
+                "seeallochnaya"
             ]
         },
         "rss":
