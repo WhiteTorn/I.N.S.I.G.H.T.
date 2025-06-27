@@ -9,18 +9,16 @@
         {
             "enabled": true,
             "channels": [
-                "denissexy",
-                "ai_newz",
-                "llm_under_hood",
-                "seeallochnaya",
-                "gonzo_ML"
+                "denissexy"
             ]
         },
         "rss":
         {
             "enabled": true,
             "feeds": [
-                "https://simonwillison.net/atom/everything/"
+                
+                "https://sive.rs/feed",
+                "https://www.oneusefulthing.org/feed"
             ]
         },
         "youtube":
@@ -34,7 +32,12 @@
         {
             "enabled": false,
             "subreddits": [
-                "r/LocalLLaMA"
+                "r/LocalLLaMA",
+                "ai_newz",
+                "llm_under_hood",
+                "seeallochnaya",
+                "gonzo_ML",
+                "https://simonwillison.net/atom/everything/"
             ]
         }
     }

@@ -66,6 +66,10 @@ class InsightV5RSS:
 
         ConsoleOutput.render_report_to_console(all_posts, "All Posts")
 
+        html_output = HTMLOutput()
+        html_output.render_report(all_posts)
+        html_output.save_to_file("All_Posts.html")
+
 if __name__ == "__main__":
     test_v5 = InsightV5RSS()
     asyncio.run(test_v5.run())
