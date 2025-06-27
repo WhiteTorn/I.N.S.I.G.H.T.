@@ -47,7 +47,6 @@ class InsightV1TelegramBasic:
         self.telegram_connector.setup_connector()
         await self.telegram_connector.connect()
 
-        
         try:
             posts = await self.telegram_connector.fetch_posts(self.test_channel, self.limit)
         except Exception as e:
