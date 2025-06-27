@@ -20,7 +20,7 @@ from connectors.telegram_connector import TelegramConnector
 from config.config_manager import ConfigManager
 from output.console_output import ConsoleOutput
 
-class InsightV3Sorted:
+class InsightV4DaySorting:
 
     def __init__(self):
         self.config_manager = ConfigManager()
@@ -34,6 +34,28 @@ class InsightV3Sorted:
             reverse=True
         )
     
+    def sort_posts_by_day(self, posts: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Sort posts by day (newest first)"""
+        posts_by_day = defaultdict(list)
+
+        # Adding posts by the day
+        for post in posts:
+            post_date = post.get('date', datetime.min)
+            if isinstance(post_date, datetime):
+                day_key = post_date.date()
+                posts_by_day[day_key].append(post)
+        
+        # Sorting days
+        sorted_by_days = {}
+        for day in sorted(posts_by_day.keys(), reverse=True):
+            sorted_by_days[day] = sorted(
+                posts_by_day[day],
+                key = lambda p: p.get('date', datetime.min),
+                reverse=True
+            )
+        
+        return sorted_by_days
+
     async def display_posts(self, posts: List[Dict[str, Any]], title: str):
         """Display posts in the console"""
         ConsoleOutput.render_report_to_console(posts, title)
@@ -70,14 +92,21 @@ class InsightV3Sorted:
                 print(f"Error fetching from @{channel}: {e}")
         
         # Sort posts by date (newest first)
-        sorted_posts = self.sort_posts_by_date(all_posts)
+        # sorted_posts = self.sort_posts_by_date(all_posts)
+
+        # Sorted by Day
+        posts_by_days = self.sort_posts_by_day(all_posts)
+
+        for day, day_posts in posts_by_days.items():
+            title = f"Posts for {day.strftime('%B %d, %Y')} ({len(day_posts)} posts)"
+            await self.display_posts(day_posts, title)
         
         # Display sorted results
-        title = f"Telegram Posts from {len(channels)} channels ({len(sorted_posts)} total, sorted by date)"
-        await self.display_posts(sorted_posts, title)
+        # title = f"Telegram Posts from {len(channels)} channels ({len(sorted_posts)} total, sorted by date)"
+        # await self.display_posts(sorted_posts, title)
         
         await self.telegram_connector.disconnect()
 
 if __name__ == "__main__":
-    test_v3 = InsightV3Sorted()
-    asyncio.run(test_v3.run())
+    test_v4 = InsightV4DaySorting()
+    asyncio.run(test_v4.run())
