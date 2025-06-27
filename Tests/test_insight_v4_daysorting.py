@@ -19,12 +19,13 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from connectors.telegram_connector import TelegramConnector
 from config.config_manager import ConfigManager
 from output.console_output import ConsoleOutput
+from output.html_output import HTMLOutput
 
 class InsightV4DaySorting:
 
     def __init__(self):
         self.config_manager = ConfigManager()
-        self.limit = 10
+        self.limit = 20
     
     def sort_posts_by_date(self, posts: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Sort posts by date (newest first)"""
@@ -60,6 +61,11 @@ class InsightV4DaySorting:
         """Display posts in the console"""
         ConsoleOutput.render_report_to_console(posts, title)
         
+    # async def render_html_report(self, posts: List[Dict[str, Any]]):
+    #     """Render HTML report"""
+    #     html_output = HTMLOutput()
+    #     html_output.render_report(posts)
+
     async def run(self):
         """Main execution loop with date sorting"""
         # Load config
@@ -79,6 +85,8 @@ class InsightV4DaySorting:
         self.telegram_connector = TelegramConnector()
         self.telegram_connector.setup_connector()
         await self.telegram_connector.connect()
+
+        
         
         # Collect posts from all channels
         all_posts = []
@@ -100,6 +108,11 @@ class InsightV4DaySorting:
         for day, day_posts in posts_by_days.items():
             title = f"Posts for {day.strftime('%B %d, %Y')} ({len(day_posts)} posts)"
             await self.display_posts(day_posts, title)
+            filename = f"insight_test_v4_{day.strftime('%B %d, %Y')}.html"
+            html_output = HTMLOutput("I.N.S.I.G.H.T. Report")
+            html_output.render_report(day_posts)
+            html_output.save_to_file(filename)
+            
         
         # Display sorted results
         # title = f"Telegram Posts from {len(channels)} channels ({len(sorted_posts)} total, sorted by date)"
