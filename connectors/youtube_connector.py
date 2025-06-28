@@ -8,7 +8,7 @@ from youtube_transcript_api import YouTubeTranscriptApi, NoTranscriptFound, Tran
 from youtube_transcript_api.formatters import TextFormatter
 
 from .base_connector import BaseConnector
-
+from .tool_registry import expose_tool
 
 class YouTubeConnector(BaseConnector):
     """
@@ -409,6 +409,61 @@ class YouTubeConnector(BaseConnector):
             # Channel mode
             return await self._fetch_channel_transcripts(source_identifier, limit)
     
+    @expose_tool(
+        name="fetch_single_video_transcript",
+        description="Extract transcript from a single YouTube video with detailed metadata",
+        parameters={
+            "video_url": {
+                "type": "str",
+                "description": "YouTube video URL (https://youtube.com/watch?v=..., https://youtu.be/..., or https://youtube.com/embed/...)",
+                "required": True
+            }
+        },
+        category="youtube",
+        examples=[
+            "fetch_single_video_transcript('https://www.youtube.com/watch?v=dQw4w9WgXcQ')",
+            "fetch_single_video_transcript('https://youtu.be/dQw4w9WgXcQ')",
+            "fetch_single_video_transcript('https://www.youtube.com/embed/dQw4w9WgXcQ')"
+        ],
+        returns="List containing single post with video transcript, title, description, and metadata",
+        notes="Only accepts single video URLs. Use fetch_video_transcripts for channels. Returns empty list if no transcript available."
+    )
+    async def fetch_single_video_transcript(self, video_url: str) -> List[Dict[str, Any]]:
+        """
+        Extract transcript from a single YouTube video.
+        
+        This tool is specifically designed for single video transcript extraction
+        with strict URL validation to ensure only video URLs are accepted.
+        
+        Args:
+            video_url: YouTube video URL in any supported format
+            
+        Returns:
+            List containing single post with transcript or empty list if failed
+        """
+        # Validate that this is actually a video URL
+        video_id = self._extract_video_id(video_url)
+        if not video_id:
+            self.logger.error(f"Invalid YouTube video URL: {video_url}")
+            return []
+        
+        self.logger.info(f"🎥 Extracting transcript from single video: {video_id}")
+        
+        try:
+            # Use the existing internal method
+            result = await self._fetch_single_video_transcript(video_id, video_url)
+            
+            if result:
+                self.logger.info(f"✅ Successfully extracted transcript from video {video_id}")
+            else:
+                self.logger.warning(f"⚠️ No transcript available for video {video_id}")
+            
+            return result
+            
+        except Exception as e:
+            self.logger.error(f"❌ Failed to extract transcript from video {video_id}: {str(e)}")
+            return []
+
     async def _fetch_single_video_transcript(self, video_id: str, source_identifier: str) -> List[Dict[str, Any]]:
         """
         Fetches transcript from a single YouTube video.
