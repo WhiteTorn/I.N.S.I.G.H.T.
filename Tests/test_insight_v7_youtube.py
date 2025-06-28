@@ -28,6 +28,7 @@ from typing import List, Dict, Any
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from connectors.youtube_connector import YouTubeConnector
+from processors.ai.gemini_processor import GeminiProcessor
 from output.console_output import ConsoleOutput
 
 class InsightV1YouTubeBasic:
@@ -46,16 +47,25 @@ class InsightV1YouTubeBasic:
     async def run(self):
         """Main execution loop"""
         self.youtube_connector = YouTubeConnector()
+        self.gemini_processor = GeminiProcessor()
 
         self.youtube_connector.setup_connector()
+        self.gemini_processor.setup_processor()
         
         await self.youtube_connector.connect()
+        await self.gemini_processor.connect()
 
         transcript = await self.youtube_connector.fetch_single_video_transcript(self.test_video_url)
+
+        print(transcript)
+        result = await self.gemini_processor.analyze_single_post(transcript[0]) # input dict?
             
-        ConsoleOutput.render_report_to_console(transcript, "YouTube Video Transcript")
+        # ConsoleOutput.render_report_to_console(transcript, "YouTube Video Transcript")
+        print(result)
+        # ConsoleOutput.render_report_to_console(result, "YouTube Video Analysis")
         
         await self.youtube_connector.disconnect()
+        await self.gemini_processor.disconnect()
 
 if __name__ == "__main__":
     test_youtube_basic = InsightV1YouTubeBasic()

@@ -518,11 +518,11 @@ class YouTubeConnector(BaseConnector):
                 metadata={}  # Empty for Mark II
             )
             
-            # Add YouTube-specific metadata
-            unified_post['video_title'] = snippet['title']
-            unified_post['video_description'] = snippet.get('description', '')
-            unified_post['channel_id'] = snippet['channelId']
-            unified_post['view_count'] = metadata.get('statistics', {}).get('viewCount', 0)
+            # # Add YouTube-specific metadata
+            # unified_post['video_title'] = snippet['title']
+            # unified_post['video_description'] = snippet.get('description', '')
+            # unified_post['channel_id'] = snippet['channelId']
+            # unified_post['view_count'] = metadata.get('statistics', {}).get('viewCount', 0)
             
             self.logger.info(f"Successfully extracted transcript from video {video_id}")
             return [unified_post]
