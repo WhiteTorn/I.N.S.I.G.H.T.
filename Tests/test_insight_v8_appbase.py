@@ -62,6 +62,49 @@ class InsightV8YouTubeInteractive:
             await self.gemini_processor.disconnect()
             
         print("✅ Cleanup complete!")
+
+    async def handle_questions(self, transcript_post: Dict[str, Any]):
+        """Handle question-asking loop for the current video"""
+        print("\n" + "="*50)
+        print("💬 ASK QUESTIONS ABOUT THIS VIDEO")
+        print("="*50)
+        print("❓ Ask any question about the content")
+        print("⏭️  Type 'next' to go to next video")
+        print("❌ Type 'q' to quit application")
+        print("="*50)
+        
+        while True:
+            try:
+                print("\n💭 Your question (or 'next'/'q'):")
+                user_question = input("> ").strip()
+                
+                # Check for commands
+                if user_question.lower() == 'q':
+                    return 'quit'
+                
+                if user_question.lower() == 'next':
+                    return 'next'
+                
+                # Validate question
+                if not user_question:
+                    print("⚠️  Please enter a question or 'next'/'q'")
+                    continue
+                
+                # Ask Gemini the question
+                print("🤖 Thinking...")
+                result = await self.gemini_processor.ask_single_post(transcript_post, user_question)
+                
+                if "error" in result:
+                    print(f"❌ Error: {result['error']}")
+                    continue
+                
+                print("\n🧠 AI ANSWER:")
+                print("-" * 40)
+                print(result.get('answer', 'No answer provided'))
+                print("-" * 40)
+                
+            except Exception as e:
+                print(f"❌ Error processing question: {str(e)}")
     
     async def process_video_url(self, url: str):
         """Process a single video URL and display results"""
@@ -89,6 +132,10 @@ class InsightV8YouTubeInteractive:
             print("=" * 50)
             print(result)
             print("=" * 50)
+
+            # Handle questions
+            question_result = await self.handle_questions(transcript[0])
+            return question_result
             
         except Exception as e:
             print(f"❌ Error processing video: {str(e)}")

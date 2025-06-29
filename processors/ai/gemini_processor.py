@@ -182,6 +182,105 @@ Analyze the post now:
             logging.error(f"Failed to analyze post: {e}")
             return {"error": f"Analysis failed: {str(e)}"}
     
+    async def ask_single_post(self, post: Dict[str, Any], question: str) -> Dict[str, str]:
+        """
+        Ask Gemini to analyze a single post and return the response
+        
+        Args:
+            post: Unified post structure from any connector
+
+        output:
+            Json of the answer from Gemini.
+        """
+
+        if not self.is_connected:
+            return {"error": "Processor not connected. Call connect() first"}
+        
+        if not isinstance(post, dict):
+            return {"error": "Invalid post format. Expected dictionary"}
+        
+        if not isinstance(question, str):
+            return {"error": "Invalid question format. Expected string"}
+        
+        try:
+            # Extract post information safely
+            title = post.get('title', 'No title')
+            content = post.get('content', 'No content')
+            source = post.get('collection_source', 'Unknown source')
+            
+            # Handle different source types
+            if source == 'telegram':
+                channel = post.get('collection_channel', 'Unknown channel')
+                source_info = f"Telegram @{channel}"
+            elif source == 'rss':
+                feed = post.get('collection_feed', 'Unknown feed')
+                source_info = f"RSS {feed}"
+            else:
+                source_info = f"{source}"
+            
+            # Create analysis prompt
+            prompt = f"""
+You are an expert content analyst. Analyze this content and answer the question that user will provide to you.
+
+POST INFORMATION:
+- Source: {source_info}
+- Title: {title}
+- Content: {content}
+
+ANALYSIS REQUIREMENTS:
+1. Provide a clear, briefing answer | user should spend as less time as possible understading the main idea of the content.
+2. Maximum 5 sentences | maximum does not mean that you should use all 5 sentences.
+3. Focus on key information and insights
+4. Use markdown formatting for emphasis (bold, italic, links, etc.)
+5. Be objective and professional
+
+OUTPUT FORMAT:
+Return ONLY the markdown-formatted answer text. Do not include any JSON formatting or code blocks.
+
+Answer the question now:
+- Question: {question}
+"""
+
+            contents = [
+                types.Content(
+                    role="user",
+                    parts=[types.Part.from_text(text=prompt)],
+                ),
+            ]
+            
+            generate_content_config = types.GenerateContentConfig(
+                thinking_config=types.ThinkingConfig(
+                    thinking_budget=-1,
+                ),
+                response_mime_type="text/plain",
+            )
+
+            # Get response from Gemini
+            response_text = ""
+            for chunk in self.client.models.generate_content_stream(
+                model=self.model,
+                contents=contents,
+                config=generate_content_config,
+            ):
+                response_text += chunk.text
+            
+            # Clean and wrap response manually
+            answer = response_text.strip()
+            
+            # Remove any code block formatting if present
+            if answer.startswith('```'):
+                answer = answer.split('\n', 1)[1] if '\n' in answer else answer[3:]
+            if answer.endswith('```'):
+                answer = answer.rsplit('\n', 1)[0] if '\n' in answer else answer[:-3]
+            
+            # Manually create JSON structure
+            return {"answer": answer.strip()}
+            
+        except Exception as e:
+            logging.error(f"Failed to analyze post: {e}")
+            return {"error": f"Analysis failed: {str(e)}"}
+    
+
     async def disconnect(self) -> bool:
         """
         Disconnect from Gemini service
