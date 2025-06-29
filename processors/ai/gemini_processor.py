@@ -131,15 +131,14 @@ POST INFORMATION:
 - Content: {content}
 
 ANALYSIS REQUIREMENTS:
-1. Provide a clear, informative summary
-2. Maximum 5 sentences
+1. Provide a clear, briefing summary | user should spend as less time as possible understading the main idea of the post.
+2. Maximum 5 sentences | maximum does not mean that you should use all 5 sentences.
 3. Focus on key information and insights
-4. Use markdown formatting for emphasis
+4. Use markdown formatting for emphasis (bold, italic, links, etc.)
 5. Be objective and professional
 
 OUTPUT FORMAT:
-Return ONLY a JSON object with this exact structure:
-{{"summary": "Your markdown-formatted summary here (max 5 sentences)"}}
+Return ONLY the markdown-formatted summary text. Do not include any JSON formatting or code blocks.
 
 Analyze the post now:
 """
@@ -167,26 +166,17 @@ Analyze the post now:
             ):
                 response_text += chunk.text
             
-            # Parse JSON response
-            try:
-                # Clean response (remove any extra text)
-                response_text = response_text.strip()
-                if response_text.startswith('```json'):
-                    response_text = response_text[7:-3].strip()
-                elif response_text.startswith('```'):
-                    response_text = response_text[3:-3].strip()
-                
-                result = json.loads(response_text)
-                
-                # Validate response structure
-                if 'summary' not in result:
-                    return {"error": "Invalid response format from AI"}
-                
-                return result
-                
-            except json.JSONDecodeError as e:
-                logging.error(f"Failed to parse JSON response: {e}")
-                return {"error": f"Invalid JSON response: {str(e)}"}
+            # Clean and wrap response manually
+            summary = response_text.strip()
+            
+            # Remove any code block formatting if present
+            if summary.startswith('```'):
+                summary = summary.split('\n', 1)[1] if '\n' in summary else summary[3:]
+            if summary.endswith('```'):
+                summary = summary.rsplit('\n', 1)[0] if '\n' in summary else summary[:-3]
+            
+            # Manually create JSON structure
+            return {"summary": summary.strip()}
             
         except Exception as e:
             logging.error(f"Failed to analyze post: {e}")
