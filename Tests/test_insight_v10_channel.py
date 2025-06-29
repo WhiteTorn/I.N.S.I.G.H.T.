@@ -30,6 +30,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from connectors.youtube_connector import YouTubeConnector
 from processors.ai.gemini_processor import GeminiProcessor
 from output.console_output import ConsoleOutput
+from output.html_output import HTMLOutput
 
 class InsightV1YouTubeBasic:
 
@@ -48,25 +49,34 @@ class InsightV1YouTubeBasic:
     async def run(self):
         """Main execution loop"""
         self.youtube_connector = YouTubeConnector()
-        # self.gemini_processor = GeminiProcessor()
+        self.gemini_processor = GeminiProcessor()
 
         self.youtube_connector.setup_connector()
-        # self.gemini_processor.setup_processor()
+        self.gemini_processor.setup_processor()
         
         await self.youtube_connector.connect()
-        # await self.gemini_processor.connect()
+        await self.gemini_processor.connect()
 
         transcripts = await self.youtube_connector.fetch_channel_transcripts(self.test_channel_identifier, 3)
 
+        for transcript in transcripts:
+            print("----------------------------------------------------------")
+            print(transcript)
+
+
         # print(transcript)
         # result = await self.gemini_processor.analyze_single_post(transcript[0]) # input dict?
-            
-        ConsoleOutput.render_report_to_console(transcripts, "YouTube Video Transcript")
+        
+        
+        # ConsoleOutput.render_report_to_console(transcripts, "YouTube Video Transcript")
+        # html_output = HTMLOutput()
+        # html_output.render_report(transcripts)
+        # html_output.save_to_file("transcripts.html")
         # print(result)
         # ConsoleOutput.render_report_to_console(result, "YouTube Video Analysis")
         
         await self.youtube_connector.disconnect()
-        # await self.gemini_processor.disconnect()
+        await self.gemini_processor.disconnect()
 
 if __name__ == "__main__":
     test_youtube_basic = InsightV1YouTubeBasic()
