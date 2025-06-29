@@ -266,41 +266,48 @@ class YouTubeConnector(BaseConnector):
     def _get_channel_videos_ytdlp(self, channel_identifier: str, limit: int) -> List[str]:
         """
         Fetches latest video IDs from a YouTube channel using yt-dlp.
-        
-        Args:
-            channel_identifier: Channel ID or username
-            limit: Maximum number of video IDs to fetch
-            
-        Returns:
-            List of video IDs
+        This version correctly parses the nested structure returned for channel pages.
         """
         try:
             channel_url = self._extract_channel_id(channel_identifier)
             
-            # Configure yt-dlp for playlist extraction
             opts = {
-                **self.ydl_opts,
-                'extract_flat': True,  # Just get IDs, not full metadata
-                'playlistend': limit,
+                'quiet': True,
+                'no_warnings': True,
+                'extract_flat': 'in_playlist',
+                'playlistend': limit, # This limit applies to each tab, so we'll enforce the total limit in our code.
+                'cachedir': False,
             }
             
             with yt_dlp.YoutubeDL(opts) as ydl:
+                self.logger.info(f"Extracting video list from channel URL: {channel_url}")
                 info = ydl.extract_info(channel_url, download=False)
-                
+
                 if not info or 'entries' not in info:
                     self.logger.error(f"Channel {channel_identifier} not found or has no videos")
                     return []
+
+                # --- THE CORRECT PARSING LOGIC ---
+                all_video_ids = []
+                # Loop through the main entries, which are the channel's TABS (Videos, Live, Shorts)
+                for tab_playlist in info['entries']:
+                    # Check if this tab has its own list of video entries
+                    if tab_playlist and 'entries' in tab_playlist and tab_playlist['entries']:
+                        # Loop through the actual videos inside the tab
+                        for video_entry in tab_playlist['entries']:
+                            if video_entry and 'id' in video_entry:
+                                all_video_ids.append(video_entry['id'])
+                                # Stop once we have collected enough videos to meet the limit
+                                if len(all_video_ids) >= limit:
+                                    break
+                    
+                    # Break the outer loop as well if the limit is reached
+                    if len(all_video_ids) >= limit:
+                        break
                 
-                # Extract video IDs from entries
-                video_ids = []
-                for entry in info['entries']:
-                    if entry and 'id' in entry:
-                        video_ids.append(entry['id'])
-                        if len(video_ids) >= limit:
-                            break
-                
-                return video_ids
-            
+                # Return the final list, ensuring it's not longer than the requested limit
+                return all_video_ids[:limit]
+
         except Exception as e:
             self.logger.error(f"yt-dlp error fetching videos from channel {channel_identifier}: {e}")
             return []
@@ -531,6 +538,72 @@ class YouTubeConnector(BaseConnector):
             self.logger.error(f"ERROR: Failed to process video {video_id} - Reason: {str(e)}")
             return []
     
+    @expose_tool(
+        name="fetch_video_transcripts",
+        description="Extract transcripts from the latest N videos in a YouTube channel",
+        parameters={
+            "channel_identifier": {
+                "type": "str",
+                "description": "YouTube channel ID (UC...), username (@username), or channel URL (https://youtube.com/...)",
+                "required": True
+            },
+            "limit": {
+                "type": "int",
+                "description": "Number of latest videos to fetch transcripts from (1-50)",
+                "required": True
+            }
+        },
+        category="youtube",
+        examples=[
+            "fetch_video_transcripts('UCHnyfMqiRRG1u-2MsSQLbXA', 10)",
+            "fetch_video_transcripts('@veritasium', 5)",
+            "fetch_video_transcripts('https://youtube.com/@mkbhd', 15)"
+        ],
+        returns="List of posts with video transcripts, titles, descriptions, and metadata",
+        notes="Large channels may take several minutes. Individual video failures won't stop the process. Use reasonable limits to avoid timeouts."
+    )
+    async def fetch_channel_transcripts(self, channel_identifier: str, limit: int) -> List[Dict[str, Any]]:
+        """
+        Extract transcripts from the latest N videos in a YouTube channel.
+        
+        This tool fetches the most recent videos from a channel and extracts their
+        transcripts using yt-dlp for metadata and youtube_transcript_api for transcripts.
+        Individual video failures are handled gracefully.
+        
+        Args:
+            channel_identifier: Channel ID, username, or full channel URL
+            limit: Number of videos to process (1-50 recommended)
+            
+        Returns:
+            List of posts with transcripts in unified format, sorted by publish date
+        """
+        # Validate inputs
+        if limit <= 0 or limit > 50:
+            self.logger.error("Limit must be between 1 and 50 for performance reasons")
+            return []
+        
+        if not channel_identifier.strip():
+            self.logger.error("Channel identifier cannot be empty")
+            return []
+        
+        self.logger.info(f"🎬 Extracting transcripts from {limit} videos in channel: {channel_identifier}")
+        
+        try:
+            # Use the existing internal method
+            result = await self._fetch_channel_transcripts(channel_identifier, limit)
+            
+            if result:
+                self.logger.info(f"✅ Successfully extracted {len(result)} transcripts from channel {channel_identifier}")
+            else:
+                self.logger.warning(f"⚠️ No transcripts available for channel {channel_identifier}")
+            
+            return result
+            
+        except Exception as e:
+            self.logger.error(f"❌ Failed to extract transcripts from channel {channel_identifier}: {str(e)}")
+            return []
+    
+
     async def _fetch_channel_transcripts(self, channel_identifier: str, limit: int) -> List[Dict[str, Any]]:
         """
         Fetches transcripts from latest videos in a YouTube channel.
@@ -564,58 +637,15 @@ class YouTubeConnector(BaseConnector):
                 self.logger.info(f"Processing video {i+1}/{len(video_ids)}: {video_id}")
                 
                 try:
-                    # Get video metadata using yt-dlp
-                    metadata = self._get_video_metadata_ytdlp(video_id)
-                    if not metadata:
-                        self.logger.warning(f"WARNING: Could not retrieve metadata for video {video_id}. Skipping.")
-                        failed_extractions += 1
-                        continue
+                    video_posts = await self._fetch_single_video_transcript(video_id, channel_identifier)
                     
-                    # Get transcript
-                    transcript = self._get_best_transcript(video_id)
-                    if not transcript:
-                        self.logger.warning(f"WARNING: Could not retrieve transcript for video {video_id}. Skipping.")
-                        failed_extractions += 1
-                        continue
-                    
-                    # Create unified post
-                    snippet = metadata['snippet']
-                    
-                    # Parse publish date from yt-dlp format
-                    upload_date_str = snippet.get('publishedAt', '')
-                    try:
-                        if upload_date_str and len(upload_date_str) == 8:
-                            year = int(upload_date_str[:4])
-                            month = int(upload_date_str[4:6])
-                            day = int(upload_date_str[6:8])
-                            publish_date = datetime(year, month, day, tzinfo=timezone.utc)
-                        else:
-                            publish_date = datetime.now(timezone.utc)
-                    except:
-                        publish_date = datetime.now(timezone.utc)
-                    
-                    unified_post = self._create_unified_post(
-                        platform="youtube",
-                        source=channel_identifier,
-                        url=f"https://www.youtube.com/watch?v={video_id}",
-                        content=transcript,
-                        date=publish_date,
-                        media_urls=[f"https://www.youtube.com/watch?v={video_id}"],
-                        categories=[],
-                        metadata={}
-                    )
-                    
-                    # Add YouTube-specific metadata
-                    unified_post['video_title'] = snippet['title']
-                    unified_post['video_description'] = snippet.get('description', '')
-                    unified_post['channel_id'] = snippet['channelId']
-                    unified_post['view_count'] = metadata.get('statistics', {}).get('viewCount', 0)
-                    
-                    all_posts.append(unified_post)
-                    successful_extractions += 1
+                    if video_posts:
+                        all_posts.extend(video_posts)
+                        successful_extractions += 1
                     
                 except Exception as e:
-                    self.logger.error(f"ERROR: Failed to process video {video_id} - Reason: {str(e)}")
+                    # If the specialist fails on one video, we log it and continue to the next one.
+                    self.logger.error(f"Failed to process video {video_id} from channel {channel_identifier}: {e}")
                     failed_extractions += 1
                     continue
             
