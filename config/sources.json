@@ -16,7 +16,7 @@
         {
             "enabled": true,
             "feeds": [
-                "https://www.oneusefulthing.org/feed"
+                "https://simonwillison.net/atom/everything/"
             ]
         },
         "youtube":
@@ -36,7 +36,8 @@
                 "seeallochnaya",
                 "gonzo_ML",
                 "https://simonwillison.net/atom/everything/",
-                "https://sive.rs/feed"
+                "https://sive.rs/feed",
+                "https://www.oneusefulthing.org/feed"
             ]
         }
     }

@@ -437,6 +437,35 @@ class HTMLOutput:
             </div>
             '''
 
+    def _clean_rss_html(self, raw_html: str) -> str:
+        """Remove problematic HTML elements that can break the page structure."""
+        if not raw_html:
+            return ""
+        
+        import re
+        
+        # Remove problematic elements that can break embedding
+        problematic_elements = [
+            'iframe',      # Embeds that can break layout
+            'script',      # JavaScript that can interfere
+            'object',      # Flash/plugin content
+            'embed',       # Embedded content
+            'form',        # Forms that don't work in this context
+            'frameset',    # Frame-based layouts
+            'frame',       # Individual frames
+            'applet',      # Java applets
+            'meta',        # Meta tags that can conflict
+            'link',        # CSS links that can conflict
+            'style',       # Inline styles that can break layout
+        ]
+        
+        for element in problematic_elements:
+            # Remove both self-closing and paired tags
+            raw_html = re.sub(f'<{element}[^>]*>.*?</{element}>', '', raw_html, flags=re.IGNORECASE | re.DOTALL)
+            raw_html = re.sub(f'<{element}[^>]*/?>', '', raw_html, flags=re.IGNORECASE)
+        
+        return raw_html
+
     def _format_post(self, post_data: dict, show_channel=False):
         """Converts a single post dictionary into an HTML block."""
         media_count = len(post_data.get('media_urls', []))
@@ -473,7 +502,9 @@ class HTMLOutput:
 
         # Simplified content processing
         if source_platform == 'rss' and post_data.get('content_html'):
-            post_text_html = post_data['content_html']
+            # Clean the HTML content
+            cleaned_html = self._clean_rss_html(post_data['content_html'])
+            post_text_html = f'<div class="rss-content-safe">{cleaned_html}</div>'
         else:
             raw_content = post_data.get('content', 'No content')
             # Always use the reliable markdown converter
@@ -503,8 +534,28 @@ class HTMLOutput:
 
     def render_report(self, posts: list):
         """Renders a simple list of posts."""
-        for post in posts:
-            self.body_content += self._format_post(post)
+        successful_posts = 0
+        failed_posts = 0
+        
+        for i, post in enumerate(posts):
+            try:
+                self.body_content += self._format_post(post)
+                successful_posts += 1
+            except Exception as e:
+                failed_posts += 1
+                logging.warning(f"Failed to render post {i+1}: {e}")
+                # Add a placeholder for the failed post
+                self.body_content += f"""
+                <div class="post-block">
+                    <div class="post-header">⚠️ Error rendering post {i+1}</div>
+                    <div class="post-content">
+                        <p>An error occurred while rendering this post: {html.escape(str(e))}</p>
+                    </div>
+                </div>
+                """
+        
+        if failed_posts > 0:
+            logging.warning(f"Render complete: {successful_posts} successful, {failed_posts} failed posts")
 
     def render_briefing(self, briefing_data: dict, days: int):
         """Renders a full daily briefing, organized by channel/feed and date."""
