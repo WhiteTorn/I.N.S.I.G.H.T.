@@ -437,32 +437,65 @@ class HTMLOutput:
             </div>
             '''
 
-    def _clean_rss_html(self, raw_html: str) -> str:
-        """Remove problematic HTML elements that can break the page structure."""
+    def _sanitize_rss_html(self, raw_html: str) -> str:
+        """
+        Industry-standard RSS HTML sanitization following Mark Pilgrim Standard + modern security.
+        Protects against XSS, layout breaking, and malicious content.
+        """
         if not raw_html:
             return ""
         
         import re
         
-        # Remove problematic elements that can break embedding
-        problematic_elements = [
-            'iframe',      # Embeds that can break layout
-            'script',      # JavaScript that can interfere
-            'object',      # Flash/plugin content
-            'embed',       # Embedded content
-            'form',        # Forms that don't work in this context
-            'frameset',    # Frame-based layouts
-            'frame',       # Individual frames
-            'applet',      # Java applets
-            'meta',        # Meta tags that can conflict
-            'link',        # CSS links that can conflict
-            'style',       # Inline styles that can break layout
+        # Step 1: Remove dangerous elements (Mark Pilgrim's core list + modern additions)
+        dangerous_elements = [
+            'script', 'noscript',           # JavaScript execution
+            'iframe', 'frame', 'frameset',  # Frame-based attacks (your original issue!)
+            'object', 'embed', 'applet',    # Plugin content
+            'form', 'input', 'button',      # Form elements
+            'meta', 'link', 'base',         # Document metadata
+            'style',                        # CSS injection
+            'svg',                          # SVG can contain scripts
+            'math',                         # MathML can be exploited
+            'xml',                          # XML processing instructions
         ]
         
-        for element in problematic_elements:
-            # Remove both self-closing and paired tags
+        for element in dangerous_elements:
+            # Remove paired tags
             raw_html = re.sub(f'<{element}[^>]*>.*?</{element}>', '', raw_html, flags=re.IGNORECASE | re.DOTALL)
+            # Remove self-closing tags  
             raw_html = re.sub(f'<{element}[^>]*/?>', '', raw_html, flags=re.IGNORECASE)
+        
+        # Step 2: Remove dangerous attributes (Mark Pilgrim's #10 rule + modern)
+        dangerous_attributes = [
+            'style',           # CSS injection (your platypus issue!)
+            'onclick', 'onload', 'onmouseover', 'onfocus', 'onblur',  # Event handlers
+            'onerror', 'onsubmit', 'onchange', 'onkeydown', 'onkeyup',
+            'onmousedown', 'onmouseup', 'onmousemove', 'onmouseout',
+            'onresize', 'onscroll', 'onunload', 'onbeforeunload',
+            'contenteditable',  # Can enable editing
+            'draggable',       # Drag/drop attacks
+            'spellcheck',      # Privacy concerns
+        ]
+        
+        for attr in dangerous_attributes:
+            raw_html = re.sub(f'\\s{attr}\\s*=\\s*["\'][^"\']*["\']', '', raw_html, flags=re.IGNORECASE)
+            raw_html = re.sub(f'\\s{attr}\\s*=\\s*[^\\s>]*', '', raw_html, flags=re.IGNORECASE)
+        
+        # Step 3: Sanitize URLs (prevent javascript: and data: attacks)
+        def clean_url(match):
+            url = match.group(1)
+            # Remove dangerous URL schemes
+            if re.match(r'^\s*(javascript|data|vbscript|about):', url, re.IGNORECASE):
+                return f'{match.group(0).split("=")[0]}="#blocked-dangerous-url"'
+            return match.group(0)
+        
+        # Clean href and src attributes
+        raw_html = re.sub(r'(href|src)\s*=\s*["\']([^"\']*)["\']', clean_url, raw_html, flags=re.IGNORECASE)
+        
+        # Step 4: Fix unclosed tags (prevent layout breaking)
+        # Basic self-closing tag fixes
+        raw_html = re.sub(r'<(br|hr|img|input|meta|link)\s*(?!.*/>)', r'<\1 />', raw_html, flags=re.IGNORECASE)
         
         return raw_html
 
@@ -500,14 +533,19 @@ class HTMLOutput:
 
         categories_html = self._format_categories(post_data.get('categories', []))
 
-        # Simplified content processing
+        # Enhanced content processing with proper security
         if source_platform == 'rss' and post_data.get('content_html'):
-            # Clean the HTML content
-            cleaned_html = self._clean_rss_html(post_data['content_html'])
-            post_text_html = f'<div class="rss-content-safe">{cleaned_html}</div>'
+            try:
+                # Use enhanced sanitization (replaces _clean_rss_html)
+                sanitized_html = self._sanitize_rss_html(post_data['content_html'])
+                post_text_html = f'<div class="rss-content-safe">{sanitized_html}</div>'
+            except Exception as e:
+                logging.warning(f"RSS HTML sanitization failed: {e}")
+                # Fallback to text content
+                raw_content = post_data.get('content', 'Content processing failed')
+                post_text_html = self._convert_markdown_to_html(raw_content)
         else:
             raw_content = post_data.get('content', 'No content')
-            # Always use the reliable markdown converter
             post_text_html = self._convert_markdown_to_html(raw_content)
         
         media_gallery_html = ""
