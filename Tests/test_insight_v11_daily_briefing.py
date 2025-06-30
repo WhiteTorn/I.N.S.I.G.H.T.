@@ -17,6 +17,8 @@ from collections import defaultdict
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from connectors.telegram_connector import TelegramConnector
+from connectors.rss_connector import RssConnector
+
 from config.config_manager import ConfigManager
 from output.console_output import ConsoleOutput
 from output.html_output import HTMLOutput
@@ -26,7 +28,7 @@ class InsightV4DaySorting:
 
     def __init__(self):
         self.config_manager = ConfigManager()
-        self.limit = 10
+        self.limit = 15
     
     def sort_posts_by_date(self, posts: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Sort posts by date (newest first)"""
@@ -68,14 +70,23 @@ class InsightV4DaySorting:
         # Load config
         config = self.config_manager.load_config()
         telegram_config = self.config_manager.get_platform_config(config, 'telegram')
+        rss_config = self.config_manager.get_platform_config(config, 'rss')
         
         channels = telegram_config.get('channels', [])
+        feeds = rss_config.get('feeds', [])
         
         # Setup connector
         self.telegram_connector = TelegramConnector()
+        self.rss_connector = RssConnector()
+        
         self.gemini_processor = GeminiProcessor()
+
         self.telegram_connector.setup_connector()
+        self.rss_connector.setup_connector()
+
         self.gemini_processor.setup_processor()
+
+        await self.rss_connector.connect()
         await self.telegram_connector.connect()
         await self.gemini_processor.connect()
 
@@ -90,10 +101,19 @@ class InsightV4DaySorting:
             except Exception as e:
                 print(f"Error fetching from @{channel}: {e}")
         
+        for feed in feeds:
+            try:
+                posts = await self.rss_connector.fetch_posts(feed, self.limit)
+                all_posts.extend(posts)
+                print(f"Fetched {len(posts)} posts from {feed}")
+            except Exception as e:
+                print(f"Error fetching from {feed}: {e}")
+
+
         # Sorted by Day
         posts_by_days = self.sort_posts_by_day(all_posts)
 
-        target_days = ['2025-06-29', '2025-06-28']
+        target_days = ['2025-06-29', '2025-06-28', '2025-06-27']
 
         for day, day_posts in posts_by_days.items():
             # Only show posts for target days (optional filter)
