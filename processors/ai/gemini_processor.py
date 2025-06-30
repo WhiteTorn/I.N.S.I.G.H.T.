@@ -319,6 +319,21 @@ Answer the question now:
 
             Here is the content:
             {posts}
+
+            do not mention that you are talking to the president, just provide the briefing.
+
+            example of the briefing:
+
+            Today we have 3 main topics to discuss:
+            1. Topic 1
+            - Key point 1
+            - Key point 2
+            2. Topic 2
+            3. Topic 3
+
+            Output Format is Strictly Followed Markdown Format:
+
+            Actual Briefing:
             """
 
             contents = [
