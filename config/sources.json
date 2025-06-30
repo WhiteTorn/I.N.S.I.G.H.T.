@@ -9,7 +9,13 @@
         {
             "enabled": true,
             "channels": [
-                "denissexy"
+                "denissexy",
+                "ai_newz",
+                "llm_under_hood",
+                "seeallochnaya",
+                "epsiloncorrect",
+                "adel_and_ml",
+                "bminaiev_blog"
             ]
         },
         "rss":
@@ -31,9 +37,6 @@
             "enabled": false,
             "subreddits": [
                 "r/LocalLLaMA",
-                "ai_newz",
-                "llm_under_hood",
-                "seeallochnaya",
                 "gonzo_ML",
                 "https://simonwillison.net/atom/everything/",
                 "https://sive.rs/feed",

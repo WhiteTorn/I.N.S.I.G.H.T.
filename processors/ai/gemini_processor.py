@@ -9,7 +9,7 @@ Processes unified post structure and returns markdown summary
 import os
 import json
 import logging
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from google import genai
 from google.genai import types
 
@@ -280,6 +280,85 @@ Answer the question now:
             logging.error(f"Failed to analyze post: {e}")
             return {"error": f"Analysis failed: {str(e)}"}
     
+
+    async def daily_briefing(self, posts: List[Dict[str, Any]]) -> Dict[str, str]:
+        """
+        Generate a daily briefing for a list of posts
+
+        Args:
+            posts: List of unified post structures
+            
+        """
+
+        if not self.is_connected:
+            return {"error": "Processor not connected. Call connect() first"}
+        
+        if not isinstance(posts, list):
+            return {"error": "Invalid posts format. Expected list"}
+        
+        try:
+            prompt = f"""
+            You are an export content analyzer, working on the president's desk. 30 year in providing daily briefings to the president.
+            You will receice series of different content from the different sources. your task would be to provide
+            - concise summary of the content that president will understand and act upon.
+            - your briefing should generate insights, should be clear, engaging and interesting to the president.
+            - remember that president is busy person, so your briefing should be very concise and to the point.
+            - but concise does not mean that you should not provide any insights, you should provide as much insights as possible without losing actual point.
+            because if you lose the point, the whole country will be in danger.
+
+            - Briefing should be 15 minutes long maximum. most important topics at the beginning.
+
+            QUALITY CONTROLS:
+            - Flag any unverified information clearly
+            - Note conflicting sources or uncertain intelligence
+            - Escalate items requiring immediate attention
+            - Cross-reference with established US policy positions
+
+            The President needs clarity to make informed decisions that affect millions of lives. 
+            Balance brevity with completeness - every word should serve a purpose.
+
+            Here is the content:
+            {posts}
+            """
+
+            contents = [
+                    types.Content(
+                        role="user",
+                        parts=[types.Part.from_text(text=prompt)],
+                    ),
+                ]
+                
+            generate_content_config = types.GenerateContentConfig(
+                thinking_config=types.ThinkingConfig(
+                    thinking_budget=-1,
+                ),
+                response_mime_type="text/plain",
+            )
+
+            # Get response from Gemini
+            response_text = ""
+            for chunk in self.client.models.generate_content_stream(
+                model=self.model,
+                contents=contents,
+                config=generate_content_config,
+            ):
+                response_text += chunk.text
+
+            # Clean and wrap response manually
+            briefing = response_text.strip()
+            
+            # Remove any code block formatting if present
+            if briefing.startswith('```'):
+                briefing = briefing.split('\n', 1)[1] if '\n' in briefing else briefing[3:]
+            if briefing.endswith('```'):
+                briefing = briefing.rsplit('\n', 1)[0] if '\n' in briefing else briefing[:-3]
+            
+            # Manually create JSON structure
+            return {"briefing": briefing.strip()}
+            
+        except Exception as e:
+            logging.error(f"Failed to analyze post: {e}")
+            return {"error": f"Analysis failed: {str(e)}"}
 
     async def disconnect(self) -> bool:
         """
