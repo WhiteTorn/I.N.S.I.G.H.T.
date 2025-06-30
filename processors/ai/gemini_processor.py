@@ -369,7 +369,8 @@ Answer the question now:
                 briefing = briefing.rsplit('\n', 1)[0] if '\n' in briefing else briefing[:-3]
             
             # Manually create JSON structure
-            return {"briefing": briefing.strip()}
+            # return {"briefing": briefing.strip()}
+            return briefing.strip()
             
         except Exception as e:
             logging.error(f"Failed to analyze post: {e}")

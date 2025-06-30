@@ -109,6 +109,14 @@ class InsightV4DaySorting:
             print(briefing)
             print("-" * 60)
 
+            html_output = HTMLOutput(f"Daily Briefing for {day.strftime('%B %d, %Y')}")
+            html_output.render_daily_briefing(day, briefing, day_posts)
+
+            filename = f"daily_briefing_{day.strftime('%Y_%m_%d')}.html"
+            html_output.save_to_file(filename)
+            print(f"Generated HTML briefing: {filename}")
+            print("-" * 60)
+
         # print(posts_by_days)
 
         # print(posts_by_days.keys())

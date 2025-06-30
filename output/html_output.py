@@ -16,26 +16,24 @@ except ImportError:
 
 class HTMLOutput:
     """
-    A dedicated module for rendering I.N.S.I.G.H.T. reports and briefings
-    into a clean, self-contained HTML file.
+    I.N.S.I.G.H.T. Daily Briefing HTML Renderer
     
-    v2.5 (Corrected): Relies exclusively on the standard `markdown` library and its extensions
-    for all content conversion, removing legacy regex-based parsers to ensure
-    robust and valid HTML generation.
+    v3.0: Redesigned for daily briefing format with light mode theme
+    Renders daily briefings with AI-generated summaries and chronologically sorted posts
     """
 
-    def __init__(self, report_title="I.N.S.I.G.H.T. Report"):
+    def __init__(self, report_title="I.N.S.I.G.H.T. Daily Briefing"):
         self.title = html.escape(report_title)
         self.body_content = ""
         
         if MARKDOWN_AVAILABLE:
             self.markdown_processor = markdown.Markdown(
                 extensions=[
-                    'pymdownx.magiclink',            # Auto-converts URLs to links correctly.
-                    'markdown.extensions.fenced_code', # Support for ```code``` blocks.
-                    'markdown.extensions.codehilite',  # Syntax highlighting for code.
-                    'markdown.extensions.tables',      # Support for Markdown tables.
-                    'markdown.extensions.sane_lists',  # Improved list parsing.
+                    'pymdownx.magiclink',
+                    'markdown.extensions.fenced_code',
+                    'markdown.extensions.codehilite',
+                    'markdown.extensions.tables',
+                    'markdown.extensions.sane_lists',
                 ],
                 extension_configs={
                     'codehilite': {'use_pygments': False}
@@ -43,27 +41,18 @@ class HTMLOutput:
             )
 
     def _convert_markdown_to_html(self, text: str) -> str:
-        """
-        Convert markdown to HTML using the standard markdown library.
-        If the library is not available, it safely escapes the text.
-        """
+        """Convert markdown to HTML using the standard markdown library."""
         if not text:
             return ""
         
         if MARKDOWN_AVAILABLE:
-            # Reset is good practice to avoid state carry-over between calls
             self.markdown_processor.reset()
             return self.markdown_processor.convert(text)
         else:
-            # Fallback if markdown library isn't installed:
-            # Safely escape the content and wrap in a paragraph tag.
-            # The CSS 'white-space: pre-wrap' will handle line breaks.
             return f"<p>{html.escape(text)}</p>"
 
     def _get_html_template(self):
-        """Returns the basic structure of the HTML document with embedded CSS."""
-        # CSS now includes 'white-space: pre-wrap' to handle newlines correctly,
-        # removing the need for the problematic 'nl2br' extension.
+        """Returns the light mode HTML template optimized for daily briefings."""
         return f"""
 <!DOCTYPE html>
 <html lang="en">
@@ -72,260 +61,367 @@ class HTMLOutput:
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{self.title}</title>
     <style>
-        body {{
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            line-height: 1.6;
-            background-color: #121212;
-            color: #e0e0e0;
+        * {{
             margin: 0;
             padding: 0;
+            box-sizing: border-box;
         }}
-        .container {{
-            max-width: 900px;
-            margin: 20px auto;
+        
+        body {{
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.6;
+            background-color: #f8f9fa;
+            color: #2c3e50;
+            margin: 0;
             padding: 20px;
-            background-color: #1e1e1e;
-            border: 1px solid #333;
-            border-radius: 8px;
         }}
-        header {{
+        
+        .container {{
+            max-width: 1000px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }}
+        
+        .header {{
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
             text-align: center;
-            border-bottom: 2px solid #00aaff;
-            padding-bottom: 10px;
+        }}
+        
+        .header h1 {{
+            font-size: 2.5em;
+            font-weight: 700;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }}
+        
+        .header .subtitle {{
+            font-size: 1.1em;
+            opacity: 0.9;
+            font-weight: 300;
+        }}
+        
+        .main-content {{
+            padding: 0;
+        }}
+        
+        .day-section {{
+            margin-bottom: 40px;
+            border-bottom: 1px solid #e9ecef;
+        }}
+        
+        .day-header {{
+            background-color: #f8f9fa;
+            padding: 20px 30px;
+            border-left: 5px solid #667eea;
+            margin-bottom: 0;
+        }}
+        
+        .day-title {{
+            font-size: 1.8em;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }}
+        
+        .day-meta {{
+            color: #6c757d;
+            font-size: 0.95em;
+        }}
+        
+        .briefing-card {{
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            margin: 0 30px 30px 30px;
+            border-radius: 12px;
+            border: 1px solid #dee2e6;
+            overflow: hidden;
+        }}
+        
+        .briefing-header {{
+            background-color: #ffffff;
+            padding: 20px;
+            border-bottom: 1px solid #dee2e6;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }}
+        
+        .briefing-title {{
+            font-size: 1.3em;
+            font-weight: 600;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }}
+        
+        .briefing-icon {{
+            font-size: 1.2em;
+        }}
+        
+        .expand-btn {{
+            background: none;
+            border: none;
+            color: #667eea;
+            font-size: 0.9em;
+            cursor: pointer;
+            padding: 5px 10px;
+            border-radius: 5px;
+            transition: background-color 0.2s;
+        }}
+        
+        .expand-btn:hover {{
+            background-color: #f8f9fa;
+        }}
+        
+        .briefing-content {{
+            padding: 25px;
+            background-color: #ffffff;
+        }}
+        
+        .briefing-summary {{
+            font-size: 1.05em;
+            line-height: 1.7;
+            color: #495057;
             margin-bottom: 20px;
         }}
-        header h1 {{
-            color: #00aaff;
-            margin: 0;
+        
+        .insight-categories {{
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
         }}
-        .post-block {{
-            background-color: #2a2a2a;
-            border: 1px solid #444;
-            border-left: 5px solid #00aaff;
+        
+        .category-card {{
+            background-color: #f8f9fa;
+            border-radius: 8px;
             padding: 15px;
-            margin-bottom: 25px;
-            border-radius: 5px;
+            border-left: 4px solid;
         }}
-        .post-block.rss {{
-            border-left: 5px solid #ff6b35;
+        
+        .category-card.technology {{
+            border-left-color: #ffc107;
         }}
-        .post-block.atom {{
-            border-left: 5px solid #ff9500;
+        
+        .category-card.geopolitics {{
+            border-left-color: #28a745;
         }}
+        
+        .category-card.economics {{
+            border-left-color: #fd7e14;
+        }}
+        
+        .category-card.general {{
+            border-left-color: #6f42c1;
+        }}
+        
+        .category-header {{
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }}
+        
+        .category-desc {{
+            font-size: 0.95em;
+            color: #6c757d;
+            line-height: 1.5;
+        }}
+        
+        .posts-section {{
+            padding: 0 30px 30px 30px;
+        }}
+        
+        .posts-header {{
+            font-size: 1.4em;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #dee2e6;
+        }}
+        
+        .post-card {{
+            background-color: #ffffff;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            overflow: hidden;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }}
+        
+        .post-card:hover {{
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }}
+        
         .post-header {{
-            font-size: 0.9em;
-            color: #aaa;
-            margin-bottom: 10px;
-            border-bottom: 1px solid #444;
-            padding-bottom: 5px;
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-bottom: 1px solid #dee2e6;
         }}
-        .post-title {{
-            font-size: 1.3em;
-            font-weight: bold;
-            color: #ffffff;
+        
+        .post-meta {{
+            font-size: 0.9em;
+            color: #6c757d;
             margin-bottom: 8px;
         }}
-        .post-content p {{
-            margin: 0 0 1em 0;
-            white-space: pre-wrap; /* THIS IS CRITICAL: It preserves newlines without needing <br> tags. */
+        
+        .post-title {{
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 5px;
         }}
-        .post-content a {{
-            color: #00aaff;
+        
+        .post-content {{
+            padding: 20px;
+        }}
+        
+        .post-text {{
+            color: #495057;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }}
+        
+        .post-text p {{
+            margin-bottom: 1em;
+        }}
+        
+        .post-text a {{
+            color: #667eea;
             text-decoration: none;
             border-bottom: 1px solid transparent;
             transition: border-color 0.2s;
         }}
-        .post-content a:hover {{
-            border-bottom-color: #00aaff;
+        
+        .post-text a:hover {{
+            border-bottom-color: #667eea;
         }}
-        .post-content strong {{
-            color: #ffffff;
-            font-weight: 600;
+        
+        .post-footer {{
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-top: 1px solid #dee2e6;
         }}
-        .post-content em {{
-            color: #ffcc00;
-            font-style: italic;
-        }}
-        .post-content code {{
-            background-color: #333;
-            color: #ff6b6b;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-            font-size: 0.9em;
-        }}
-        .post-content del {{
-            color: #888;
-            text-decoration: line-through;
-        }}
-        .post-content h1, .post-content h2, .post-content h3 {{
-            color: #00aaff;
-            margin-top: 1em;
-            margin-bottom: 0.5em;
-        }}
-        .post-content h1 {{
-            font-size: 1.4em;
-            border-bottom: 2px solid #00aaff;
-            padding-bottom: 5px;
-        }}
-        .post-content h2 {{
-            font-size: 1.2em;
-            border-bottom: 1px solid #555;
-            padding-bottom: 3px;
-        }}
-        .post-content h3 {{
-            font-size: 1.1em;
-        }}
-        .categories {{
-            margin: 10px 0;
+        
+        .post-actions {{
             display: flex;
-            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+        }}
+        
+        .action-btn {{
+            background: none;
+            border: none;
+            color: #667eea;
+            font-size: 0.9em;
+            cursor: pointer;
+            padding: 5px 10px;
+            border-radius: 5px;
+            transition: background-color 0.2s;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
             gap: 5px;
         }}
-        .category-tag {{
-            background-color: #444;
-            color: #00aaff;
-            padding: 2px 8px;
-            border-radius: 12px;
-            font-size: 0.8em;
-            border: 1px solid #555;
+        
+        .action-btn:hover {{
+            background-color: #e9ecef;
         }}
-        .feed-type-badge {{
-            display: inline-block;
-            background-color: #333;
-            color: #fff;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 0.7em;
-            text-transform: uppercase;
-            margin-left: 5px;
-        }}
-        .feed-type-badge.rss {{
-            background-color: #ff6b35;
-        }}
-        .feed-type-badge.atom {{
-            background-color: #ff9500;
-        }}
+        
         .media-gallery {{
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 15px;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
             margin-top: 15px;
         }}
+        
         .media-item {{
-            position: relative;
-            background-color: #333;
-            border-radius: 8px;
+            border-radius: 6px;
             overflow: hidden;
-            border: 2px solid #555;
-            transition: border-color 0.3s;
+            border: 1px solid #dee2e6;
         }}
-        .media-item:hover {{
-            border-color: #00aaff;
-        }}
+        
         .media-item img {{
             width: 100%;
             height: auto;
-            max-height: 400px;
+            max-height: 200px;
             object-fit: cover;
-            display: block;
         }}
-        .media-item video {{
-            width: 100%;
-            height: auto;
-            max-height: 400px;
-            display: block;
-        }}
-        .media-item audio {{
-            width: 100%;
-            height: 60px;
-            background-color: #2a2a2a;
-        }}
-        .media-overlay {{
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: linear-gradient(transparent, rgba(0,0,0,0.8));
-            padding: 10px;
-            opacity: 0;
-            transition: opacity 0.3s;
-        }}
-        .media-item:hover .media-overlay {{
-            opacity: 1;
-        }}
-        .media-link {{
-            color: #00aaff;
-            text-decoration: none;
-            font-size: 0.9em;
+        
+        .confidence-badge {{
             display: inline-block;
-        }}
-        .media-link:hover {{
-            text-decoration: underline;
-        }}
-        .document-item {{
-            padding: 20px;
-            text-align: center;
-            background-color: #2a2a2a;
-        }}
-        .document-preview {{
-            margin-bottom: 15px;
-        }}
-        .document-icon {{
-            font-size: 3em;
-            margin-bottom: 10px;
-        }}
-        .document-name {{
-            color: #e0e0e0;
-            font-size: 0.9em;
-            word-break: break-all;
-            margin-bottom: 10px;
-        }}
-        .document-link {{
-            background-color: #00aaff;
+            background: linear-gradient(135deg, #667eea, #764ba2);
             color: white;
-            padding: 8px 16px;
-            border-radius: 4px;
-            text-decoration: none;
-            display: inline-block;
-            transition: background-color 0.3s;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.8em;
+            font-weight: 600;
+            margin-left: 10px;
         }}
-        .document-link:hover {{
-            background-color: #0088cc;
-        }}
-        .audio-item {{
+        
+        .pattern-card {{
+            background: linear-gradient(135deg, #e8f0ff 0%, #f0e8ff 100%);
+            border: 1px solid #c7d2fe;
+            border-radius: 8px;
             padding: 15px;
-            background-color: #2a2a2a;
+            margin: 20px 30px;
         }}
-        .post-footer {{
-            margin-top: 15px;
-            padding-top: 10px;
-            border-top: 1px solid #444;
+        
+        .pattern-header {{
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
         }}
-        .post-footer a {{
-            color: #00aaff;
-            text-decoration: none;
+        
+        .pattern-title {{
+            font-weight: 600;
+            color: #4c1d95;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }}
-        .post-footer a:hover {{
-            text-decoration: underline;
-        }}
-        .channel-header, .date-header {{
-            margin-top: 40px;
-            color: #00aaff;
-            border-bottom: 1px solid #555;
-            padding-bottom: 5px;
-        }}
-        .source-info {{
-            font-size: 0.9em;
-            color: #999;
-            margin-bottom: 5px;
+        
+        @media (max-width: 768px) {{
+            .container {{
+                margin: 10px;
+                border-radius: 8px;
+            }}
+            
+            .header {{
+                padding: 20px;
+            }}
+            
+            .header h1 {{
+                font-size: 2em;
+            }}
+            
+            .day-header, .briefing-content, .posts-section {{
+                padding: 15px 20px;
+            }}
+            
+            .insight-categories {{
+                grid-template-columns: 1fr;
+            }}
         }}
     </style>
 </head>
 <body>
     <div class="container">
-        <header><h1>{self.title}</h1></header>
-        <main>
+        <header class="header">
+            <h1>📊 {self.title}</h1>
+            <div class="subtitle">Intelligence Analysis & Strategic Insights</div>
+        </header>
+        <main class="main-content">
             {self.body_content}
         </main>
     </div>
@@ -333,332 +429,192 @@ class HTMLOutput:
 </html>
         """
 
-    def _format_categories(self, categories: list) -> str:
-        """Format categories as styled tags."""
-        if not categories:
+    def _format_briefing_content(self, briefing_text: str) -> str:
+        """Format the AI-generated briefing content into structured HTML."""
+        if not briefing_text:
+            return "<p>No briefing available for this day.</p>"
+        
+        # Convert markdown to HTML
+        briefing_html = self._convert_markdown_to_html(briefing_text)
+        
+        # Try to extract summary and categories if they exist
+        summary_match = re.search(r'Today\'s intelligence indicates(.*?)(?=\n\n|\n###|\n##|$)', briefing_text, re.DOTALL | re.IGNORECASE)
+        summary = summary_match.group(1).strip() if summary_match else briefing_text[:200] + "..."
+        
+        # Look for category sections
+        categories = []
+        tech_match = re.search(r'(Technology|Tech|Technological)(.*?)(?=\n\n|\n###|\n##|Economics|Geopolitics|$)', briefing_text, re.DOTALL | re.IGNORECASE)
+        geo_match = re.search(r'(Geopolitics|Political|International)(.*?)(?=\n\n|\n###|\n##|Economics|Technology|$)', briefing_text, re.DOTALL | re.IGNORECASE)
+        econ_match = re.search(r'(Economics|Economic|Financial|Market)(.*?)(?=\n\n|\n###|\n##|Technology|Geopolitics|$)', briefing_text, re.DOTALL | re.IGNORECASE)
+        
+        if tech_match:
+            categories.append(("🔧", "Technology Sector", tech_match.group(2).strip()[:100] + "..."))
+        if geo_match:
+            categories.append(("🌍", "Geopolitics", geo_match.group(2).strip()[:100] + "..."))
+        if econ_match:
+            categories.append(("💼", "Economics", econ_match.group(2).strip()[:100] + "..."))
+        
+        category_html = ""
+        if categories:
+            category_html = '<div class="insight-categories">'
+            for icon, title, desc in categories:
+                cat_class = title.lower().replace(" ", "")
+                category_html += f'''
+                <div class="category-card {cat_class}">
+                    <div class="category-header">
+                        <span>{icon}</span> {html.escape(title)}
+                    </div>
+                    <div class="category-desc">{html.escape(desc)}</div>
+                </div>
+                '''
+            category_html += '</div>'
+        
+        return f'''
+        <div class="briefing-summary">{html.escape(summary)}</div>
+        {category_html}
+        '''
+
+    def _format_post(self, post_data: dict) -> str:
+        """Format a single post for the daily briefing layout."""
+        # Handle post title
+        if post_data.get('platform') == 'rss':
+            post_title = post_data.get('title', 'RSS Post')
+        else:
+            # For Telegram posts, create a title from content
+            content = post_data.get('content', '')
+            post_title = content[:50] + "..." if len(content) > 50 else content
+            if not post_title.strip():
+                post_title = "Telegram Post"
+        
+        # Format date
+        post_date = post_data.get('date', datetime.now())
+        formatted_date = post_date.strftime('%H:%M')
+        
+        # Source information
+        source = post_data.get('source', 'Unknown')
+        if post_data.get('platform') == 'rss':
+            source_info = f"📡 {post_data.get('feed_title', source)}"
+        else:
+            source_info = f"📱 @{source}"
+        
+        # Content
+        content = post_data.get('content', '')
+        if post_data.get('platform') == 'rss' and post_data.get('content_html'):
+            content_html = self._sanitize_rss_html(post_data['content_html'])
+        else:
+            content_html = self._convert_markdown_to_html(content)
+        
+        # Media handling
+        media_html = ""
+        media_urls = post_data.get('media_urls', [])
+        if media_urls:
+            media_html = '<div class="media-gallery">'
+            for url in media_urls[:3]:  # Limit to 3 media items
+                if self._is_image_url(url):
+                    media_html += f'<div class="media-item"><img src="{html.escape(url)}" alt="Media content" loading="lazy"></div>'
+            media_html += '</div>'
+        
+        return f'''
+        <div class="post-card">
+            <div class="post-header">
+                <div class="post-meta">{formatted_date} • {source_info}</div>
+                <div class="post-title">{html.escape(post_title)}</div>
+            </div>
+            <div class="post-content">
+                <div class="post-text">{content_html}</div>
+                {media_html}
+            </div>
+            <div class="post-footer">
+                <div class="post-actions">
+                    <a href="{post_data.get('url', '#')}" target="_blank" class="action-btn">
+                        🔗 View Original
+                    </a>
+                    <button class="action-btn">💾 Process</button>
+                    <button class="action-btn">💬 Discuss</button>
+                </div>
+            </div>
+        </div>
+        '''
+
+    def _sanitize_rss_html(self, raw_html: str) -> str:
+        """Basic HTML sanitization for RSS content."""
+        if not raw_html:
             return ""
         
-        category_html = '<div class="categories">'
-        for category in categories:
-            category_html += f'<span class="category-tag">{html.escape(category)}</span>'
-        category_html += '</div>'
-        return category_html
-
-    def _get_feed_type_badge(self, feed_type: str) -> str:
-        """Generate a badge for the feed type."""
-        if not feed_type or feed_type == "unknown":
-            return ""
-        return f'<span class="feed-type-badge {feed_type.lower()}">{feed_type.upper()}</span>'
+        # Remove dangerous elements
+        dangerous_elements = ['script', 'iframe', 'object', 'embed', 'style']
+        for element in dangerous_elements:
+            raw_html = re.sub(f'<{element}[^>]*>.*?</{element}>', '', raw_html, flags=re.IGNORECASE | re.DOTALL)
+            raw_html = re.sub(f'<{element}[^>]*/?>', '', raw_html, flags=re.IGNORECASE)
+        
+        return raw_html
 
     def _is_image_url(self, url: str) -> bool:
         """Check if URL points to an image file."""
         if not url:
             return False
         clean_url = url.split('?')[0].lower()
-        image_extensions = ('.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg', '.ico')
+        image_extensions = ('.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg')
         return any(clean_url.endswith(ext) for ext in image_extensions)
 
-    def _is_video_url(self, url: str) -> bool:
-        """Check if URL points to a video file."""
-        if not url:
-            return False
-        clean_url = url.split('?')[0].lower()
-        video_extensions = ('.mp4', '.webm', '.ogg', '.mov', '.avi', '.mkv', '.m4v')
-        return any(clean_url.endswith(ext) for ext in video_extensions)
-
-    def _is_audio_url(self, url: str) -> bool:
-        """Check if URL points to an audio file."""
-        if not url:
-            return False
-        clean_url = url.split('?')[0].lower()
-        audio_extensions = ('.mp3', '.wav', '.ogg', '.aac', '.flac', '.m4a')
-        return any(clean_url.endswith(ext) for ext in audio_extensions)
-
-    def _is_telegram_media_url(self, url: str) -> bool:
-        """Check if URL is a Telegram media URL that should be treated as an image."""
-        if not url:
-            return False
-        return 't.me/' in url and ('?single' in url or any(x in url for x in ['/photo/', '/video/']))
-
-    def _create_media_html(self, url: str) -> str:
-        """Create appropriate HTML for different media types."""
-        if not url:
-            return ""
+    def render_daily_briefing(self, day: datetime, briefing_text: str, posts: list):
+        """Render a complete daily briefing with AI summary and sorted posts."""
+        # Sort posts by date (newest first)
+        sorted_posts = sorted(
+            posts,
+            key=lambda post: post.get('date', datetime.min),
+            reverse=True
+        )
+        
+        # Format day header
+        day_formatted = day.strftime('%B %d, %Y')
+        day_weekday = day.strftime('%A')
+        
+        # Build the HTML
+        self.body_content += f'''
+        <div class="day-section">
+            <div class="day-header">
+                <div class="day-title">📅 {day_formatted}</div>
+                <div class="day-meta">{day_weekday} • {len(sorted_posts)} intelligence items</div>
+            </div>
             
-        url_escaped = html.escape(url)
-        
-        if self._is_telegram_media_url(url):
-            filename = url.split('/')[-1].split('?')[0]
-            return f'''
-            <div class="media-item document-item">
-                <div class="document-preview">
-                    <div class="document-icon">📄</div>
-                    <div class="document-name">{html.escape(filename)}</div>
-                </div>
-                <a href="{url_escaped}" target="_blank" class="document-link">📥 Download / View</a>
-            </div>
-            '''
-        elif self._is_image_url(url):
-            return f'''
-            <div class="media-item image-item">
-                <img src="{url_escaped}" alt="Image Content" loading="lazy">
-                <div class="media-overlay">
-                    <a href="{url_escaped}" target="_blank" class="media-link">🔗 Open Full Size</a>
-                </div>
-            </div>
-            '''
-        elif self._is_video_url(url):
-            return f'''
-            <div class="media-item video-item">
-                <video controls preload="metadata">
-                    <source src="{url_escaped}">
-                    Your browser does not support the video tag.
-                </video>
-            </div>
-            '''
-        elif self._is_audio_url(url):
-            return f'''
-            <div class="media-item audio-item">
-                <audio controls preload="metadata">
-                    <source src="{url_escaped}">
-                    Your browser does not support the audio element.
-                </audio>
-            </div>
-            '''
-        else:
-            filename = url.split('/')[-1].split('?')[0] if '/' in url else url
-            return f'''
-            <div class="media-item document-item">
-                <div class="document-preview">
-                    <div class="document-icon">📄</div>
-                    <div class="document-name">{html.escape(filename)}</div>
-                </div>
-                <a href="{url_escaped}" target="_blank" class="document-link">📥 Download / View</a>
-            </div>
-            '''
-
-    def _sanitize_rss_html(self, raw_html: str) -> str:
-        """
-        Industry-standard RSS HTML sanitization following Mark Pilgrim Standard + modern security.
-        Protects against XSS, layout breaking, and malicious content.
-        """
-        if not raw_html:
-            return ""
-        
-        import re
-        
-        # Step 1: Remove dangerous elements (Mark Pilgrim's core list + modern additions)
-        dangerous_elements = [
-            'script', 'noscript',           # JavaScript execution
-            'iframe', 'frame', 'frameset',  # Frame-based attacks (your original issue!)
-            'object', 'embed', 'applet',    # Plugin content
-            'form', 'input', 'button',      # Form elements
-            'meta', 'link', 'base',         # Document metadata
-            'style',                        # CSS injection
-            'svg',                          # SVG can contain scripts
-            'math',                         # MathML can be exploited
-            'xml',                          # XML processing instructions
-        ]
-        
-        for element in dangerous_elements:
-            # Remove paired tags
-            raw_html = re.sub(f'<{element}[^>]*>.*?</{element}>', '', raw_html, flags=re.IGNORECASE | re.DOTALL)
-            # Remove self-closing tags  
-            raw_html = re.sub(f'<{element}[^>]*/?>', '', raw_html, flags=re.IGNORECASE)
-        
-        # Step 2: Remove dangerous attributes (Mark Pilgrim's #10 rule + modern)
-        dangerous_attributes = [
-            'style',           # CSS injection (your platypus issue!)
-            'onclick', 'onload', 'onmouseover', 'onfocus', 'onblur',  # Event handlers
-            'onerror', 'onsubmit', 'onchange', 'onkeydown', 'onkeyup',
-            'onmousedown', 'onmouseup', 'onmousemove', 'onmouseout',
-            'onresize', 'onscroll', 'onunload', 'onbeforeunload',
-            'contenteditable',  # Can enable editing
-            'draggable',       # Drag/drop attacks
-            'spellcheck',      # Privacy concerns
-        ]
-        
-        for attr in dangerous_attributes:
-            raw_html = re.sub(f'\\s{attr}\\s*=\\s*["\'][^"\']*["\']', '', raw_html, flags=re.IGNORECASE)
-            raw_html = re.sub(f'\\s{attr}\\s*=\\s*[^\\s>]*', '', raw_html, flags=re.IGNORECASE)
-        
-        # Step 3: Sanitize URLs (prevent javascript: and data: attacks)
-        def clean_url(match):
-            url = match.group(1)
-            # Remove dangerous URL schemes
-            if re.match(r'^\s*(javascript|data|vbscript|about):', url, re.IGNORECASE):
-                return f'{match.group(0).split("=")[0]}="#blocked-dangerous-url"'
-            return match.group(0)
-        
-        # Clean href and src attributes
-        raw_html = re.sub(r'(href|src)\s*=\s*["\']([^"\']*)["\']', clean_url, raw_html, flags=re.IGNORECASE)
-        
-        # Step 4: Fix unclosed tags (prevent layout breaking)
-        # Basic self-closing tag fixes
-        raw_html = re.sub(r'<(br|hr|img|input|meta|link)\s*(?!.*/>)', r'<\1 />', raw_html, flags=re.IGNORECASE)
-        
-        return raw_html
-
-    def _format_post(self, post_data: dict, show_channel=False):
-        """Converts a single post dictionary into an HTML block."""
-        media_count = len(post_data.get('media_urls', []))
-        media_indicator = f"| {media_count} Media Item(s)" if media_count > 0 else ""
-        
-        source_platform = post_data.get('platform', 'unknown')
-        feed_type = post_data.get('feed_type', 'unknown')
-        post_class = f"post-block {feed_type}" if feed_type != 'unknown' else "post-block"
-        
-        if source_platform == 'rss':
-            feed_title = post_data.get('feed_title', 'RSS Feed')
-            post_title = post_data.get('title', 'No title')
-            feed_badge = self._get_feed_type_badge(feed_type)
-            header_html = f"""
-            <div class="source-info">From: {html.escape(feed_title)} {feed_badge}</div>
-            <div class="post-title">{html.escape(post_title)}</div>
-            <div class="post-header">
-                <strong>Published:</strong> {post_data['date'].strftime('%Y-%m-%d %H:%M:%S')}
-                {media_indicator}
-            </div>
-            """
-        else:
-            source_info = f"<strong>From:</strong> {post_data['source']} | " if show_channel and post_data.get('source') else ""
-            header_html = f"""
-            <div class="post-header">
-                {source_info}
-                <strong>URL:</strong> {post_data.get('url', 'No URL')} | 
-                <strong>Date:</strong> {post_data['date'].strftime('%Y-%m-%d %H:%M:%S')}
-                {media_indicator}
-            </div>
-            """
-
-        categories_html = self._format_categories(post_data.get('categories', []))
-
-        # Enhanced content processing with proper security
-        if source_platform == 'rss' and post_data.get('content_html'):
-            try:
-                # Use enhanced sanitization (replaces _clean_rss_html)
-                sanitized_html = self._sanitize_rss_html(post_data['content_html'])
-                post_text_html = f'<div class="rss-content-safe">{sanitized_html}</div>'
-            except Exception as e:
-                logging.warning(f"RSS HTML sanitization failed: {e}")
-                # Fallback to text content
-                raw_content = post_data.get('content', 'Content processing failed')
-                post_text_html = self._convert_markdown_to_html(raw_content)
-        else:
-            raw_content = post_data.get('content', 'No content')
-            post_text_html = self._convert_markdown_to_html(raw_content)
-        
-        media_gallery_html = ""
-        if post_data.get('media_urls'):
-            media_gallery_html += '<div class="media-gallery">'
-            for url in post_data['media_urls']:
-                if url and url.strip():
-                    media_gallery_html += self._create_media_html(url)
-            media_gallery_html += '</div>'
-
-        return f"""
-        <div class="{post_class}">
-            {header_html}
-            {categories_html}
-            <div class="post-content">
-                {post_text_html}
-                {media_gallery_html}
-            </div>
-            <div class="post-footer">
-                <a href="{post_data.get('url', '#')}" target="_blank">View Original</a>
-            </div>
-        </div>
-        """
-
-    def render_report(self, posts: list):
-        """Renders a simple list of posts."""
-        successful_posts = 0
-        failed_posts = 0
-        
-        for i, post in enumerate(posts):
-            try:
-                self.body_content += self._format_post(post)
-                successful_posts += 1
-            except Exception as e:
-                failed_posts += 1
-                logging.warning(f"Failed to render post {i+1}: {e}")
-                # Add a placeholder for the failed post
-                self.body_content += f"""
-                <div class="post-block">
-                    <div class="post-header">⚠️ Error rendering post {i+1}</div>
-                    <div class="post-content">
-                        <p>An error occurred while rendering this post: {html.escape(str(e))}</p>
+            <div class="briefing-card">
+                <div class="briefing-header">
+                    <div class="briefing-title">
+                        <span class="briefing-icon">📊</span>
+                        Full Daily Briefing
                     </div>
+                    <button class="expand-btn">Expand ▶</button>
                 </div>
-                """
-        
-        if failed_posts > 0:
-            logging.warning(f"Render complete: {successful_posts} successful, {failed_posts} failed posts")
-
-    def render_briefing(self, briefing_data: dict, days: int):
-        """Renders a full daily briefing, organized by channel/feed and date."""
-        self.title = f"I.N.S.I.G.H.T. Briefing - Last {days} Days"
-        for source, posts in briefing_data.items():
-            if not posts: continue
+                <div class="briefing-content">
+                    {self._format_briefing_content(briefing_text)}
+                </div>
+            </div>
             
-            first_post = posts[0]
-            source_platform = first_post.get('platform', 'telegram')
+            <div class="pattern-card">
+                <div class="pattern-header">
+                    <div class="pattern-title">
+                        🧠 View Emerging Intelligence Pattern
+                    </div>
+                    <span class="confidence-badge">87% confidence</span>
+                </div>
+            </div>
             
-            if source_platform == 'rss':
-                feed_title = first_post.get('feed_title', source)
-                feed_type = first_post.get('feed_type', 'rss')
-                feed_badge = self._get_feed_type_badge(feed_type)
-                self.body_content += f'<h2 class="channel-header">Intel From: {html.escape(feed_title)} {feed_badge}</h2>'
-            else:
-                self.body_content += f'<h2 class="channel-header">Intel From: @{source.upper()}</h2>'
-            
-            posts_by_day = {}
-            for post in posts:
-                day_str = post['date'].strftime('%Y-%m-%d, %A')
-                if day_str not in posts_by_day:
-                    posts_by_day[day_str] = []
-                posts_by_day[day_str].append(post)
-            
-            for day, day_posts in sorted(posts_by_day.items(), key=lambda item: datetime.strptime(item[0].split(',')[0], '%Y-%m-%d'), reverse=True):
-                self.body_content += f'<h3 class="date-header">{day}</h3>'
-                for post_data in day_posts:
-                    self.body_content += self._format_post(post_data)
-
-    def render_rss_briefing(self, posts: list, title: str):
-        """Render RSS-specific briefing with category analytics."""
-        self.title = title
-        if not posts:
-            self.body_content += "<p>No RSS posts found for this briefing.</p>"
-            return
-            
-        all_categories = set()
-        feed_types = set()
-        for post in posts:
-            all_categories.update(post.get('categories', []))
-            feed_types.add(post.get('feed_type', 'unknown'))
-        
-        analytics_html = f"""
-        <div class="post-block">
-            <div class="post-header">📊 Briefing Analytics</div>
-            <div class="post-content">
-                <p><strong>Total Posts:</strong> {len(posts)}</p>
-                <p><strong>Feed Types:</strong> {', '.join(sorted(feed_types)) if feed_types else 'Unknown'}</p>
-                <p><strong>Unique Categories:</strong> {len(all_categories)}</p>
-                {self._format_categories(sorted(list(all_categories)))}
+            <div class="posts-section">
+                <div class="posts-header">Intelligence Items</div>
+                {''.join(self._format_post(post) for post in sorted_posts)}
             </div>
         </div>
-        """
-        self.body_content += analytics_html
-        
-        for post in posts:
-            self.body_content += self._format_post(post)
+        '''
 
-    def save_to_file(self, filename="insight_report.html"):
-        """Generates the final HTML and saves it to a file."""
+    def save_to_file(self, filename="insight_daily_briefing.html"):
+        """Generate and save the final HTML file."""
         final_html = self._get_html_template()
         try:
             with open(filename, "w", encoding="utf-8") as f:
                 f.write(final_html)
-            logging.info(f"Successfully generated HTML dossier: {filename}")
+            logging.info(f"Successfully generated daily briefing: {filename}")
+            return filename
         except Exception as e:
             logging.error(f"Failed to save HTML file: {e}")
+            return None
