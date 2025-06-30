@@ -18,7 +18,7 @@ class HTMLOutput:
     """
     I.N.S.I.G.H.T. Daily Briefing HTML Renderer
     
-    v3.0: Redesigned for daily briefing format with light mode theme
+    v3.1: Simplified daily briefing format with light mode theme
     Renders daily briefings with AI-generated summaries and chronologically sorted posts
     """
 
@@ -147,7 +147,6 @@ class HTMLOutput:
             border-bottom: 1px solid #dee2e6;
             display: flex;
             align-items: center;
-            justify-content: space-between;
         }}
         
         .briefing-title {{
@@ -163,21 +162,6 @@ class HTMLOutput:
             font-size: 1.2em;
         }}
         
-        .expand-btn {{
-            background: none;
-            border: none;
-            color: #667eea;
-            font-size: 0.9em;
-            cursor: pointer;
-            padding: 5px 10px;
-            border-radius: 5px;
-            transition: background-color 0.2s;
-        }}
-        
-        .expand-btn:hover {{
-            background-color: #f8f9fa;
-        }}
-        
         .briefing-content {{
             padding: 25px;
             background-color: #ffffff;
@@ -190,49 +174,57 @@ class HTMLOutput:
             margin-bottom: 20px;
         }}
         
-        .insight-categories {{
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 15px;
-            margin-top: 20px;
+        .briefing-full-content {{
+            color: #495057;
+            line-height: 1.6;
         }}
         
-        .category-card {{
-            background-color: #f8f9fa;
-            border-radius: 8px;
-            padding: 15px;
-            border-left: 4px solid;
-        }}
-        
-        .category-card.technology {{
-            border-left-color: #ffc107;
-        }}
-        
-        .category-card.geopolitics {{
-            border-left-color: #28a745;
-        }}
-        
-        .category-card.economics {{
-            border-left-color: #fd7e14;
-        }}
-        
-        .category-card.general {{
-            border-left-color: #6f42c1;
-        }}
-        
-        .category-header {{
-            font-weight: 600;
+        .briefing-full-content h1,
+        .briefing-full-content h2,
+        .briefing-full-content h3 {{
             color: #2c3e50;
-            margin-bottom: 8px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
+            margin-top: 1.5em;
+            margin-bottom: 0.5em;
         }}
         
-        .category-desc {{
-            font-size: 0.95em;
+        .briefing-full-content h1 {{
+            font-size: 1.4em;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 5px;
+        }}
+        
+        .briefing-full-content h2 {{
+            font-size: 1.2em;
+            color: #667eea;
+        }}
+        
+        .briefing-full-content h3 {{
+            font-size: 1.1em;
             color: #6c757d;
-            line-height: 1.5;
+        }}
+        
+        .briefing-full-content p {{
+            margin-bottom: 1em;
+        }}
+        
+        .briefing-full-content strong {{
+            color: #2c3e50;
+            font-weight: 600;
+        }}
+        
+        .briefing-full-content em {{
+            color: #667eea;
+            font-style: italic;
+        }}
+        
+        .briefing-full-content ul,
+        .briefing-full-content ol {{
+            margin-left: 20px;
+            margin-bottom: 1em;
+        }}
+        
+        .briefing-full-content li {{
+            margin-bottom: 0.5em;
         }}
         
         .posts-section {{
@@ -357,40 +349,6 @@ class HTMLOutput:
             object-fit: cover;
         }}
         
-        .confidence-badge {{
-            display: inline-block;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-            padding: 5px 12px;
-            border-radius: 15px;
-            font-size: 0.8em;
-            font-weight: 600;
-            margin-left: 10px;
-        }}
-        
-        .pattern-card {{
-            background: linear-gradient(135deg, #e8f0ff 0%, #f0e8ff 100%);
-            border: 1px solid #c7d2fe;
-            border-radius: 8px;
-            padding: 15px;
-            margin: 20px 30px;
-        }}
-        
-        .pattern-header {{
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 10px;
-        }}
-        
-        .pattern-title {{
-            font-weight: 600;
-            color: #4c1d95;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }}
-        
         @media (max-width: 768px) {{
             .container {{
                 margin: 10px;
@@ -407,10 +365,6 @@ class HTMLOutput:
             
             .day-header, .briefing-content, .posts-section {{
                 padding: 15px 20px;
-            }}
-            
-            .insight-categories {{
-                grid-template-columns: 1fr;
             }}
         }}
     </style>
@@ -430,49 +384,14 @@ class HTMLOutput:
         """
 
     def _format_briefing_content(self, briefing_text: str) -> str:
-        """Format the AI-generated briefing content into structured HTML."""
+        """Format the AI-generated briefing content into HTML without categorization."""
         if not briefing_text:
             return "<p>No briefing available for this day.</p>"
         
-        # Convert markdown to HTML
+        # Convert the full markdown to HTML without any categorization
         briefing_html = self._convert_markdown_to_html(briefing_text)
         
-        # Try to extract summary and categories if they exist
-        summary_match = re.search(r'Today\'s intelligence indicates(.*?)(?=\n\n|\n###|\n##|$)', briefing_text, re.DOTALL | re.IGNORECASE)
-        summary = summary_match.group(1).strip() if summary_match else briefing_text[:200] + "..."
-        
-        # Look for category sections
-        categories = []
-        tech_match = re.search(r'(Technology|Tech|Technological)(.*?)(?=\n\n|\n###|\n##|Economics|Geopolitics|$)', briefing_text, re.DOTALL | re.IGNORECASE)
-        geo_match = re.search(r'(Geopolitics|Political|International)(.*?)(?=\n\n|\n###|\n##|Economics|Technology|$)', briefing_text, re.DOTALL | re.IGNORECASE)
-        econ_match = re.search(r'(Economics|Economic|Financial|Market)(.*?)(?=\n\n|\n###|\n##|Technology|Geopolitics|$)', briefing_text, re.DOTALL | re.IGNORECASE)
-        
-        if tech_match:
-            categories.append(("🔧", "Technology Sector", tech_match.group(2).strip()[:100] + "..."))
-        if geo_match:
-            categories.append(("🌍", "Geopolitics", geo_match.group(2).strip()[:100] + "..."))
-        if econ_match:
-            categories.append(("💼", "Economics", econ_match.group(2).strip()[:100] + "..."))
-        
-        category_html = ""
-        if categories:
-            category_html = '<div class="insight-categories">'
-            for icon, title, desc in categories:
-                cat_class = title.lower().replace(" ", "")
-                category_html += f'''
-                <div class="category-card {cat_class}">
-                    <div class="category-header">
-                        <span>{icon}</span> {html.escape(title)}
-                    </div>
-                    <div class="category-desc">{html.escape(desc)}</div>
-                </div>
-                '''
-            category_html += '</div>'
-        
-        return f'''
-        <div class="briefing-summary">{html.escape(summary)}</div>
-        {category_html}
-        '''
+        return f'<div class="briefing-full-content">{briefing_html}</div>'
 
     def _format_post(self, post_data: dict) -> str:
         """Format a single post for the daily briefing layout."""
@@ -584,19 +503,9 @@ class HTMLOutput:
                         <span class="briefing-icon">📊</span>
                         Full Daily Briefing
                     </div>
-                    <button class="expand-btn">Expand ▶</button>
                 </div>
                 <div class="briefing-content">
                     {self._format_briefing_content(briefing_text)}
-                </div>
-            </div>
-            
-            <div class="pattern-card">
-                <div class="pattern-header">
-                    <div class="pattern-title">
-                        🧠 View Emerging Intelligence Pattern
-                    </div>
-                    <span class="confidence-badge">87% confidence</span>
                 </div>
             </div>
             
