@@ -9,23 +9,18 @@ from .tool_registry import expose_tool
 
 class TelegramConnector(BaseConnector):
     """
-    I.N.S.I.G.H.T. Telegram Connector v2.3 - The Citadel
+    Telegram Connector
     
-    Handles all Telegram-specific logic including:
     - Telethon client management
     - Album synthesis (grouping related media posts)
     - Request throttling to avoid rate limits
     - Message processing and normalization
-    - ENHANCED: Comprehensive error handling and resilience
     
-    This connector preserves all the advanced logic from Mark I v1.10
-    while conforming to the new modular architecture.
-    Hardened in v2.3 with bulletproof error handling.
     """
     
     def __init__(self):
         """
-        Phase 1: Create blank connector object.
+        Create blank connector object.
         No credentials needed - setup_connector() handles that.
         """
         super().__init__("telegram")
@@ -39,14 +34,13 @@ class TelegramConnector(BaseConnector):
         # Rate limiting defaults
         self.request_counter = 0
         self.REQUEST_THRESHOLD = 15
-        self.COOLDOWN_SECONDS = 60
+        self.COOLDOWN_SECONDS = 30
         
         self.logger.info("TelegramConnector object created (pending setup)")
     
     async def throttle_if_needed(self):
         """
         Checks the request counter and pauses if the threshold is exceeded.
-        Preserves the original Mark I throttling logic.
         """
         if self.request_counter >= self.REQUEST_THRESHOLD:
             self.logger.warning(
@@ -93,14 +87,14 @@ class TelegramConnector(BaseConnector):
             self.api_hash = api_hash
             self.session_file = os.getenv('TELEGRAM_SESSION_FILE', 'insight_session')
             
-            # Load optional rate limiting configuration
-            try:
-                self.REQUEST_THRESHOLD = int(os.getenv('TELEGRAM_REQUEST_THRESHOLD', '15'))
-                self.COOLDOWN_SECONDS = int(os.getenv('TELEGRAM_COOLDOWN_SECONDS', '60'))
-            except ValueError:
-                self.logger.warning("⚠️ Invalid rate limiting config, using defaults")
-                self.REQUEST_THRESHOLD = 15
-                self.COOLDOWN_SECONDS = 60
+            # # Load optional rate limiting configuration
+            # try:
+            #     self.REQUEST_THRESHOLD = int(os.getenv('TELEGRAM_REQUEST_THRESHOLD', '15'))
+            #     self.COOLDOWN_SECONDS = int(os.getenv('TELEGRAM_COOLDOWN_SECONDS', '67'))
+            # except ValueError:
+            #     self.logger.warning("⚠️ Invalid rate limiting config, using defaults")
+            #     self.REQUEST_THRESHOLD = 15
+            #     self.COOLDOWN_SECONDS = 67
             
             self.logger.info("✅ Telegram connector setup successful")
             self.logger.info(f"   Session file: {self.session_file}")
@@ -489,5 +483,5 @@ class TelegramConnector(BaseConnector):
             return self.COOLDOWN_SECONDS * 3   # Longer timeout for ID-based fetch
         else:
             self.logger.info(f"Calculating timeout for recent posts")
-            return self.COOLDOWN_SECONDS       # Normal timeout for recent posts
+            return self.COOLDOWN_SECONDS * 2   # Normal timeout for recent posts
     
