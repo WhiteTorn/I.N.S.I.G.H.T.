@@ -113,7 +113,7 @@ class InsightV4DaySorting:
         # Sorted by Day
         posts_by_days = self.sort_posts_by_day(all_posts)
 
-        target_days = ['2025-06-30', '2025-06-29']
+        target_days = ['2025-07-07', '2025-07-06']
 
         for day, day_posts in posts_by_days.items():
             # Only show posts for target days (optional filter)
