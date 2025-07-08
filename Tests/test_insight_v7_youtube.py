@@ -35,7 +35,7 @@ class InsightV1YouTubeBasic:
 
     def __init__(self):
         # Using a popular educational video that likely has transcripts
-        self.test_video_url = "https://youtu.be/sab7WQI8FQc"  # 3Blue1Brown: Neural Networks
+        self.test_video_url = "https://youtu.be/HIkBIfst8oA"  # 3Blue1Brown: Neural Networks
         # Alternative test URLs (uncomment to try different videos):
         # self.test_video_url = "https://youtu.be/aircAruvnKk"  # Short URL format
         # self.test_video_url = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"  # Rick Roll (classic test)
@@ -57,7 +57,7 @@ class InsightV1YouTubeBasic:
 
         transcript = await self.youtube_connector.fetch_single_video_transcript(self.test_video_url)
 
-        print(transcript)
+        # print(transcript)
         result = await self.gemini_processor.analyze_single_post(transcript[0]) # input dict?
             
         # ConsoleOutput.render_report_to_console(transcript, "YouTube Video Transcript")
