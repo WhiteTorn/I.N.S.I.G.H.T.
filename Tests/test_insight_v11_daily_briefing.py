@@ -28,7 +28,7 @@ class InsightV4DaySorting:
 
     def __init__(self):
         self.config_manager = ConfigManager()
-        self.limit = 25
+        self.limit = 10
     
     def sort_posts_by_date(self, posts: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Sort posts by date (newest first)"""
@@ -113,7 +113,7 @@ class InsightV4DaySorting:
         # Sorted by Day
         posts_by_days = self.sort_posts_by_day(all_posts)
 
-        target_days = ['2025-07-07', '2025-07-06', '2025-07-05', '2025-07-04']
+        target_days = ['2025-07-08']
 
         for day, day_posts in posts_by_days.items():
             # Only show posts for target days (optional filter)
