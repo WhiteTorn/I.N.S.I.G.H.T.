@@ -34,4 +34,5 @@ It features an intelligent synthesis engine that correctly identifies and groups
   ```dotenv
   TELEGRAM_API_ID=12345678
   TELEGRAM_API_HASH=your_api_hash_from_telegram_goes_here
+  GEMINI_API_KEY=your_api_key
   ```
