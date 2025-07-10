@@ -11,7 +11,6 @@
             "channels": [
                 "ai_newz",
                 "llm_under_hood",
-                "seeallochnaya",
                 "epsiloncorrect",
                 "adel_and_ml",
                 "bminaiev_blog",
@@ -24,7 +23,8 @@
             "feeds": [
                 "https://simonwillison.net/atom/everything/",
                 "https://www.oneusefulthing.org/feed",
-                "https://tg.i-c-a.su/rss/denissexy?limit=50"
+                "https://tg.i-c-a.su/rss/denissexy?limit=50",
+                "https://tg.i-c-a.su/rss/seeallochnaya?limit=50"
             ]
         },
         "youtube":

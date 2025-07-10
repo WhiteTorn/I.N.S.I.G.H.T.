@@ -1,33 +1,35 @@
 """
-INSIGHT Gemini AI Processor - Single Post Analysis
-=================================================
+INSIGHT Gemini AI Processor - Single Post Analysis with Token Tracking
+====================================================================
 
-First version: Single post analyzer with JSON output
-Processes unified post structure and returns markdown summary
+Enhanced version with token counting capabilities
+Processes unified post structure and returns markdown summary with token usage
 """
 
 import os
 import json
 import logging
-from typing import Dict, Any, Optional, List
+import time
+from typing import Dict, Any, Optional, List, Tuple
 from google import genai
 from google.genai import types
 
 class GeminiProcessor:
     """
-    Gemini AI Processor for single post analysis
+    Gemini AI Processor for single post analysis with token tracking
     
     Features:
     - Single post summarization
     - JSON output format with markdown content
     - 5-sentence limit for concise summaries
+    - Token usage tracking for input and output
     - Robust error handling
     """
     
     def __init__(self):
         """Initialize Gemini processor"""
         self.client = None
-        self.model = "gemini-2.5-flash"
+        self.model = "gemini-2.0-flash"  # Updated to 2.0-flash for token counting
         self.is_connected = False
         
     def setup_processor(self) -> bool:
@@ -64,17 +66,12 @@ class GeminiProcessor:
         
         try:
             # Test connection with a simple request
-            test_content = [
-                types.Content(
-                    role="user",
-                    parts=[types.Part.from_text(text="Hello")],
-                ),
-            ]
+            test_prompt = "Hello"
             
             # Quick test to validate connection
             response = self.client.models.generate_content(
                 model=self.model,
-                contents=test_content,
+                contents=test_prompt,
                 config=types.GenerateContentConfig(
                     response_mime_type="text/plain",
                 )
@@ -87,16 +84,41 @@ class GeminiProcessor:
         except Exception as e:
             logging.error(f"Failed to connect to Gemini: {e}")
             return False
-    
-    async def analyze_single_post(self, post: Dict[str, Any]) -> Dict[str, str]:
+
+    def count_tokens(self, content: str) -> int:
         """
-        Analyze a single post and return JSON summary
+        Count tokens in content using Gemini's token counting API
+        
+        Args:
+            content: Text content to count tokens for
+            
+        Returns:
+            int: Number of tokens in the content
+        """
+        if not self.is_connected:
+            logging.error("Processor not connected. Call connect() first")
+            return 0
+        
+        try:
+            total_tokens = self.client.models.count_tokens(
+                model=self.model, 
+                contents=content
+            )
+            time.sleep(10)
+            return total_tokens
+        except Exception as e:
+            logging.error(f"Failed to count tokens: {e}")
+            return 0
+
+    async def analyze_single_post_with_tokens(self, post: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Analyze a single post and return JSON summary with token usage
         
         Args:
             post: Unified post structure from any connector
             
         Returns:
-            Dict with 'summary' key containing markdown-formatted summary
+            Dict with 'summary' key and token usage information
             Returns error message on failure
         """
         if not self.is_connected:
@@ -143,31 +165,23 @@ Return ONLY the markdown-formatted summary text. Do not include any JSON formatt
 Analyze the post now:
 """
 
-            contents = [
-                types.Content(
-                    role="user",
-                    parts=[types.Part.from_text(text=prompt)],
-                ),
-            ]
-            
-            generate_content_config = types.GenerateContentConfig(
-                thinking_config=types.ThinkingConfig(
-                    thinking_budget=-1,
-                ),
-                response_mime_type="text/plain",
-            )
+            # Count input tokens
+            input_tokens = self.count_tokens(prompt)
 
-            # Get response from Gemini
-            response_text = ""
-            for chunk in self.client.models.generate_content_stream(
+            # Generate content with non-streaming for token metadata
+            response = self.client.models.generate_content(
                 model=self.model,
-                contents=contents,
-                config=generate_content_config,
-            ):
-                response_text += chunk.text
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    response_mime_type="text/plain",
+                )
+            )
             
-            # Clean and wrap response manually
-            summary = response_text.strip()
+            # Get token usage metadata
+            usage_metadata = response.usage_metadata if hasattr(response, 'usage_metadata') else None
+            
+            # Clean response text
+            summary = response.text.strip()
             
             # Remove any code block formatting if present
             if summary.startswith('```'):
@@ -175,24 +189,35 @@ Analyze the post now:
             if summary.endswith('```'):
                 summary = summary.rsplit('\n', 1)[0] if '\n' in summary else summary[:-3]
             
-            # Manually create JSON structure
-            return {"summary": summary.strip()}
+            # Prepare token information
+            token_info = {
+                "input_tokens_counted": input_tokens,
+                "prompt_tokens": usage_metadata.prompt_token_count if usage_metadata else None,
+                "response_tokens": usage_metadata.candidates_token_count if usage_metadata else None,
+                "total_tokens": usage_metadata.total_token_count if usage_metadata else None
+            }
+            
+            # Return with token information
+            return {
+                "summary": summary.strip(),
+                "token_usage": token_info
+            }
             
         except Exception as e:
             logging.error(f"Failed to analyze post: {e}")
             return {"error": f"Analysis failed: {str(e)}"}
-    
-    async def ask_single_post(self, post: Dict[str, Any], question: str) -> Dict[str, str]:
+
+    async def ask_single_post_with_tokens(self, post: Dict[str, Any], question: str) -> Dict[str, Any]:
         """
-        Ask Gemini to analyze a single post and return the response
+        Ask Gemini to analyze a single post and return the response with token usage
         
         Args:
             post: Unified post structure from any connector
+            question: Question to ask about the post
 
-        output:
-            Json of the answer from Gemini.
+        Returns:
+            Dict with answer and token usage information
         """
-
         if not self.is_connected:
             return {"error": "Processor not connected. Call connect() first"}
         
@@ -241,31 +266,23 @@ Answer the question now:
 - Question: {question}
 """
 
-            contents = [
-                types.Content(
-                    role="user",
-                    parts=[types.Part.from_text(text=prompt)],
-                ),
-            ]
-            
-            generate_content_config = types.GenerateContentConfig(
-                thinking_config=types.ThinkingConfig(
-                    thinking_budget=-1,
-                ),
-                response_mime_type="text/plain",
-            )
+            # Count input tokens
+            input_tokens = self.count_tokens(prompt)
 
-            # Get response from Gemini
-            response_text = ""
-            for chunk in self.client.models.generate_content_stream(
+            # Generate content with non-streaming for token metadata
+            response = self.client.models.generate_content(
                 model=self.model,
-                contents=contents,
-                config=generate_content_config,
-            ):
-                response_text += chunk.text
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    response_mime_type="text/plain",
+                )
+            )
             
-            # Clean and wrap response manually
-            answer = response_text.strip()
+            # Get token usage metadata
+            usage_metadata = response.usage_metadata if hasattr(response, 'usage_metadata') else None
+            
+            # Clean response text
+            answer = response.text.strip()
             
             # Remove any code block formatting if present
             if answer.startswith('```'):
@@ -273,23 +290,34 @@ Answer the question now:
             if answer.endswith('```'):
                 answer = answer.rsplit('\n', 1)[0] if '\n' in answer else answer[:-3]
             
-            # Manually create JSON structure
-            return {"answer": answer.strip()}
+            # Prepare token information
+            token_info = {
+                "input_tokens_counted": input_tokens,
+                "prompt_tokens": usage_metadata.prompt_token_count if usage_metadata else None,
+                "response_tokens": usage_metadata.candidates_token_count if usage_metadata else None,
+                "total_tokens": usage_metadata.total_token_count if usage_metadata else None
+            }
+            
+            # Return with token information
+            return {
+                "answer": answer.strip(),
+                "token_usage": token_info
+            }
             
         except Exception as e:
             logging.error(f"Failed to analyze post: {e}")
             return {"error": f"Analysis failed: {str(e)}"}
-    
 
-    async def daily_briefing(self, posts: List[Dict[str, Any]]) -> Dict[str, str]:
+    async def daily_briefing_with_tokens(self, posts: List[Dict[str, Any]]) -> Dict[str, Any]:
         """
-        Generate a daily briefing for a list of posts
+        Generate a daily briefing for a list of posts with token tracking
 
         Args:
             posts: List of unified post structures
             
+        Returns:
+            Dict with briefing content and token usage information
         """
-
         if not self.is_connected:
             return {"error": "Processor not connected. Call connect() first"}
         
@@ -348,31 +376,23 @@ Answer the question now:
             Actual Briefing:
             """
 
-            contents = [
-                    types.Content(
-                        role="user",
-                        parts=[types.Part.from_text(text=prompt)],
-                    ),
-                ]
-                
-            generate_content_config = types.GenerateContentConfig(
-                thinking_config=types.ThinkingConfig(
-                    thinking_budget=-1,
-                ),
-                response_mime_type="text/plain",
-            )
+            # Count input tokens
+            input_tokens = self.count_tokens(prompt)
 
-            # Get response from Gemini
-            response_text = ""
-            for chunk in self.client.models.generate_content_stream(
+            # Generate content with non-streaming for token metadata
+            response = self.client.models.generate_content(
                 model=self.model,
-                contents=contents,
-                config=generate_content_config,
-            ):
-                response_text += chunk.text
-
-            # Clean and wrap response manually
-            briefing = response_text.strip()
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    response_mime_type="text/plain",
+                )
+            )
+            
+            # Get token usage metadata
+            usage_metadata = response.usage_metadata if hasattr(response, 'usage_metadata') else None
+            
+            # Clean response text
+            briefing = response.text.strip()
             
             # Remove any code block formatting if present
             if briefing.startswith('```'):
@@ -380,13 +400,50 @@ Answer the question now:
             if briefing.endswith('```'):
                 briefing = briefing.rsplit('\n', 1)[0] if '\n' in briefing else briefing[:-3]
             
-            # Manually create JSON structure
-            # return {"briefing": briefing.strip()}
-            return briefing.strip()
+            # Prepare token information
+            token_info = {
+                "input_tokens_counted": input_tokens,
+                "prompt_tokens": usage_metadata.prompt_token_count if usage_metadata else None,
+                "response_tokens": usage_metadata.candidates_token_count if usage_metadata else None,
+                "total_tokens": usage_metadata.total_token_count if usage_metadata else None
+            }
+            
+            return {
+                "briefing": briefing.strip(),
+                "token_usage": token_info
+            }
             
         except Exception as e:
             logging.error(f"Failed to analyze post: {e}")
             return {"error": f"Analysis failed: {str(e)}"}
+
+    # Keep the original methods for backward compatibility
+    async def analyze_single_post(self, post: Dict[str, Any]) -> Dict[str, str]:
+        """
+        Original analyze_single_post method for backward compatibility
+        """
+        result = await self.analyze_single_post_with_tokens(post)
+        if "error" in result:
+            return result
+        return {"summary": result["summary"]}
+
+    async def ask_single_post(self, post: Dict[str, Any], question: str) -> Dict[str, str]:
+        """
+        Original ask_single_post method for backward compatibility
+        """
+        result = await self.ask_single_post_with_tokens(post, question)
+        if "error" in result:
+            return result
+        return {"answer": result["answer"]}
+
+    async def daily_briefing(self, posts: List[Dict[str, Any]]) -> str:
+        """
+        Original daily_briefing method for backward compatibility
+        """
+        result = await self.daily_briefing_with_tokens(posts)
+        if "error" in result:
+            return result["error"]
+        return result["briefing"]
 
     async def disconnect(self) -> bool:
         """
