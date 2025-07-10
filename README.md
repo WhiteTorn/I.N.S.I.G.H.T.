@@ -1,6 +1,6 @@
-# I.N.S.I.G.H.T. Mark I (v1.7) - The Operator
+# I.N.S.I.G.H.T. Mark III - Cherry
 
-**I.N.S.I.G.H.T. (Intelligent Networked Synthesis & Intelligence Gathering Heuristic Terminal)** is a powerful, lightweight Python tool for gathering and synthesizing intelligence from public Telegram channels. This definitive version of the Mark I engine is a robust, flexible tool designed for both deep-dive analysis and consolidated daily briefings.
+**I.N.S.I.G.H.T. (Intelligent Networked Synthesis & Intelligence Gathering Heuristic Terminal)** is a powerful, lightweight Python tool for gathering and synthesizing intelligence from public news.
 
 It features an intelligent synthesis engine that correctly identifies and groups media albums, an adaptive fetching mechanism, and a built-in API throttling defense system to ensure stable, long-term operation.
 
@@ -34,3 +34,4 @@ It features an intelligent synthesis engine that correctly identifies and groups
   ```dotenv
   TELEGRAM_API_ID=12345678
   TELEGRAM_API_HASH=your_api_hash_from_telegram_goes_here
+  ```
