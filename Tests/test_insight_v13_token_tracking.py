@@ -354,7 +354,7 @@ class InsightV13TokenTracking:
                 print(f"   Your Local:   {sample_post['timezone_info']['user_local']}")
 
         # You can modify target_days or remove the filter entirely
-        target_days = ['2025-07-08', '2025-07-07', '2025-07-06', '2025-07-05',]  # Update this to current date for testing
+        target_days = ['2025-07-11', '2025-07-10', '2025-07-09']  # Update this to current date for testing
 
         for day, day_posts in posts_by_days.items():
             # Only show posts for target days (optional filter)

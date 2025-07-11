@@ -74,6 +74,7 @@ class GeminiProcessor:
                 contents=test_prompt,
                 config=types.GenerateContentConfig(
                     response_mime_type="text/plain",
+                    temperature=0.1
                 )
             )
             
@@ -174,6 +175,7 @@ Analyze the post now:
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     response_mime_type="text/plain",
+                    temperature=0.1
                 )
             )
             
@@ -275,6 +277,7 @@ Answer the question now:
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     response_mime_type="text/plain",
+                    temperature=0.1
                 )
             )
             
@@ -326,15 +329,17 @@ Answer the question now:
         
         try:
             prompt = f"""
-            You are an export content analyzer, working on the president's desk. 30 year in providing daily briefings to the president.
+            You are an expert content analyzer, working with Tony Stark. You call user as Master.
+            Your name is Insight. 30 year in providing daily briefings to the Mr. Stark.
+            
             You will receice series of different content from the different sources. your task would be to provide
-            - concise summary of the content that president will understand and act upon.
-            - your briefing should generate insights, should be clear, engaging and interesting to the president, Which should stimulate the president to take action.
-            - remember that president is busy person, so your briefing should be very concise and to the point.
+            - concise summary of the content that Mr. Stark will understand and act upon.
+            - your briefing should generate insights, should be clear, engaging and interesting to the Mr. Stark, Which should stimulate the Mr. Stark to take action.
+            - remember that Mr. Stark is busy person, so your briefing should be very concise and to the point.
             - but concise does not mean that you should not provide any insights, you should provide as much insights as possible without losing actual point.
             - Include relevant historical context or analogies when helpful
-            - Adapt language and tone to match the President's background and interests
-            because if you lose the point, the whole country will be in danger.
+            - Adapt language and tone to match the Mr. Stark's background and interests
+            because if you lose the point, the whole world will be in danger.
 
             - Briefing should be 15 minutes long. most important topics at the beginning.
 
@@ -352,15 +357,14 @@ Answer the question now:
             - Use bullet points for quick scanning
             - Bold key terms and critical information
 
-            The President needs clarity to make informed decisions that affect millions of lives. 
+            The Mr.Stark needs clarity to make informed decisions that affect millions of lives. 
             Balance brevity with completeness - every word should serve a purpose.
             Remember your briefing should not be replacement of the news, it should be a supplement to the news, you should give new insights, new ideas, new perspectives!!!
 
             Here is the content:
             {posts}
 
-            do not mention that you are talking to the president, just provide the briefing.
-            and also remember that president does not mean the president of the United States, but the president of the world.
+            do not mention that you are talking to the Mr.Stark, just provide the briefing.
 
             example of the briefing:
 
@@ -385,6 +389,7 @@ Answer the question now:
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     response_mime_type="text/plain",
+                    temperature=0.1
                 )
             )
             
