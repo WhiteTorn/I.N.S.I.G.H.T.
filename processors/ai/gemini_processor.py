@@ -87,15 +87,7 @@ class GeminiProcessor:
             return False
 
     def count_tokens(self, content: str) -> int:
-        """
-        Count tokens in content using Gemini's token counting API
-        
-        Args:
-            content: Text content to count tokens for
-            
-        Returns:
-            int: Number of tokens in the content
-        """
+        """Count tokens in content using Gemini's token counting API"""
         if not self.is_connected:
             logging.error("Processor not connected. Call connect() first")
             return 0
@@ -105,7 +97,7 @@ class GeminiProcessor:
                 model=self.model, 
                 contents=content
             )
-            time.sleep(10)
+            # Removed: time.sleep(10)  # This was causing performance issues
             return total_tokens
         except Exception as e:
             logging.error(f"Failed to count tokens: {e}")
@@ -466,3 +458,155 @@ Answer the question now:
         except Exception as e:
             logging.error(f"Failed to disconnect Gemini processor: {e}")
             return False
+        
+    async def enhanced_daily_briefing_with_topics(self, posts: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        Enhanced daily briefing generation that includes topic extraction and post references
+        """
+        if not self.is_connected:
+            return {"error": "Processor not connected. Call connect() first"}
+        
+        if not isinstance(posts, list):
+            return {"error": "Invalid posts format. Expected list"}
+        
+        try:
+            # Format posts with URLs/IDs for reference
+            formatted_posts = []
+            for i, post in enumerate(posts):
+                post_id = post.get('url', f"post_{i}")
+                post_content = {
+                    "id": post_id,
+                    "title": post.get('title', ''),
+                    "content": post.get('content', ''),
+                    "source": post.get('source', ''),
+                    "date": str(post.get('date', ''))
+                }
+                formatted_posts.append(post_content)
+            
+            # Simplified prompt that requests text format but structured
+            prompt = f"""
+You are an expert intelligence analyst working with Tony Stark.
+Your name is Insight. 30 years providing daily briefings.
+
+MISSION: Analyze {len(posts)} posts and create enhanced daily briefing.
+
+STEP 1: Generate standard daily briefing
+STEP 2: Extract 3-5 main topics from the posts
+STEP 3: Create topic summaries with post references
+
+OUTPUT FORMAT - Use this EXACT structure:
+
+===DAILY_BRIEFING_START===
+[Your normal briefing here - same format as always]
+===DAILY_BRIEFING_END===
+
+===TOPICS_START===
+Topic 1: [Topic Title]
+ID: topic-1
+Summary: [Detailed analysis of this topic]
+Posts: post_0, post_2, post_4
+
+Topic 2: [Topic Title]  
+ID: topic-2
+Summary: [Detailed analysis of this topic]
+Posts: post_1, post_3
+
+Topic 3: [Topic Title]
+ID: topic-3  
+Summary: [Detailed analysis of this topic]
+Posts: post_5, post_6
+===TOPICS_END===
+
+POSTS DATA:
+{formatted_posts}
+
+Generate the response now:
+"""
+
+            # Use text format instead of JSON
+            response = self.client.models.generate_content(
+                model=self.model,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    response_mime_type="text/plain",  # Changed from application/json
+                    temperature=0.1
+                )
+            )
+            
+            # Get token usage metadata  
+            usage_metadata = response.usage_metadata if hasattr(response, 'usage_metadata') else None
+            
+            # Parse the structured text response
+            response_text = response.text.strip()
+            
+            # Extract daily briefing
+            daily_briefing = ""
+            if "===DAILY_BRIEFING_START===" in response_text and "===DAILY_BRIEFING_END===" in response_text:
+                start = response_text.find("===DAILY_BRIEFING_START===") + len("===DAILY_BRIEFING_START===")
+                end = response_text.find("===DAILY_BRIEFING_END===")
+                daily_briefing = response_text[start:end].strip()
+            
+            # Extract topics
+            topics = []
+            table_of_contents = []
+            
+            if "===TOPICS_START===" in response_text and "===TOPICS_END===" in response_text:
+                start = response_text.find("===TOPICS_START===") + len("===TOPICS_START===")
+                end = response_text.find("===TOPICS_END===")
+                topics_text = response_text[start:end].strip()
+                
+                # Parse topics (simple text parsing)
+                current_topic = {}
+                for line in topics_text.split('\n'):
+                    line = line.strip()
+                    if line.startswith('Topic ') and ':' in line:
+                        # Save previous topic
+                        if current_topic:
+                            topics.append(current_topic)
+                            table_of_contents.append({
+                                "id": current_topic["id"],
+                                "title": current_topic["title"]
+                            })
+                        # Start new topic
+                        title = line.split(':', 1)[1].strip()
+                        current_topic = {"title": title, "summary": "", "post_references": []}
+                    elif line.startswith('ID:'):
+                        current_topic["id"] = line.split(':', 1)[1].strip()
+                    elif line.startswith('Summary:'):
+                        current_topic["summary"] = line.split(':', 1)[1].strip()
+                    elif line.startswith('Posts:'):
+                        posts_str = line.split(':', 1)[1].strip()
+                        current_topic["post_references"] = [p.strip() for p in posts_str.split(',')]
+                    elif line and current_topic.get("summary"):
+                        # Continue summary on next lines
+                        current_topic["summary"] += " " + line
+                
+                # Add last topic
+                if current_topic:
+                    topics.append(current_topic)
+                    table_of_contents.append({
+                        "id": current_topic["id"], 
+                        "title": current_topic["title"]
+                    })
+            
+            # Prepare token information
+            token_info = {
+                "input_tokens_counted": 0,  # Skip token counting for now to avoid sleep
+                "prompt_tokens": usage_metadata.prompt_token_count if usage_metadata else None,
+                "response_tokens": usage_metadata.candidates_token_count if usage_metadata else None,
+                "total_tokens": usage_metadata.total_token_count if usage_metadata else None
+            }
+            
+            # Build result
+            result = {
+                "daily_briefing": daily_briefing,
+                "table_of_contents": table_of_contents,
+                "topics": topics,
+                "token_usage": token_info
+            }
+            
+            return result
+            
+        except Exception as e:
+            logging.error(f"Failed to generate enhanced briefing: {e}")
+            return {"error": f"Enhanced briefing generation failed: {str(e)}"}
