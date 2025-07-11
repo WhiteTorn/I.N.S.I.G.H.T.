@@ -38,3 +38,7 @@ It features an intelligent synthesis engine that correctly identifies and groups
   TELEGRAM_API_HASH=your_api_hash_from_telegram_goes_here
   GEMINI_API_KEY=your_api_key
   ```
+**5. Run Specific Test file or Write your own logic:**
+- Open Tests/ Folder and look at the code )))
+
+Happy Coding
