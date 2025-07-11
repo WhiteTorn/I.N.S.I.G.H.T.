@@ -682,8 +682,7 @@ class HTMLOutput:
         
         # Content preview
         content = post_data.get('content', '')
-        content_preview = content[:200] + "..." if len(content) > 200 else content
-        content_html = self._convert_markdown_to_html(content_preview)
+        content_html = self._convert_markdown_to_html(content)
         
         return f'''
         <div class="referenced-post">
