@@ -27,11 +27,15 @@ It features an intelligent synthesis engine that correctly identifies and groups
 
 **3. Clone/Download the Project:**
 - Get the project files onto your local machine.
-- `git clone https://github.com/WhiteTorn/I.N.S.I.G.H.T..git`
+- ```
+  git clone https://github.com/WhiteTorn/I.N.S.I.G.H.T..git
+  ```
 
 **4. Create the `.env` Configuration File:**
 - In the root of the project directory, create a file named `.env`.
-- `cp .env.example .env`
+- ```
+  cp .env.example .env
+  ```
 - Add your API credentials to this file:
   ```dotenv
   TELEGRAM_API_ID=12345678
