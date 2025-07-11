@@ -13,4 +13,5 @@ __pycache__
 youtube_transcript_https
 reddit_post_analysis_https
 !sources.json
+!.env.example
 insight_session.session
