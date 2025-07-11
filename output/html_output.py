@@ -531,17 +531,17 @@ class HTMLOutput:
     def render_topic_based_daily_briefing(self, day: datetime, enhanced_briefing: dict, posts: list):
         """
         Render a topic-based daily briefing with AI summary, ToC, and topic deep-dives.
-        
-        Args:
-            day: Date for the briefing
-            enhanced_briefing: Dict with daily_briefing, table_of_contents, and topics
-            posts: List of all posts for reference
         """
-        # Create post lookup by URL/ID for quick reference
+        # Create post lookup by URL/ID for quick reference - FIXED to match processor logic
         posts_by_id = {}
-        for post in posts:
-            post_id = post.get('url', f"post_{posts.index(post)}")
+        for i, post in enumerate(posts):  # Changed: use enumerate like in processor
+            post_id = post.get('url', f"post_{i}")  # Changed: consistent ID generation
             posts_by_id[post_id] = post
+        
+        # Debug: Print the lookup to verify
+        print(f"📝 Created posts lookup with {len(posts_by_id)} entries:")
+        for post_id in list(posts_by_id.keys())[:5]:  # Show first 5 for debugging
+            print(f"   {post_id}")
         
         # Format day header
         day_formatted = day.strftime('%B %d, %Y')
@@ -551,6 +551,12 @@ class HTMLOutput:
         daily_briefing = enhanced_briefing.get('daily_briefing', 'No briefing available')
         table_of_contents = enhanced_briefing.get('table_of_contents', [])
         topics = enhanced_briefing.get('topics', [])
+        
+        # Debug: Print topic references
+        print(f"📋 Topics with references:")
+        for topic in topics:
+            topic_refs = topic.get('post_references', [])
+            print(f"   {topic.get('title', 'Unknown')}: {topic_refs}")
         
         # Build the HTML
         self.body_content += f'''
@@ -583,7 +589,7 @@ class HTMLOutput:
                 </div>
                 <div class="toc-content">
                     <ol class="toc-list">
-                        {''.join(f'<li><a href="#{topic["id"]}" class="toc-link">{topic["title"]}</a></li>' for topic in table_of_contents)}
+                        {''.join(f'<li><a href="#{topic["id"]}" class="toc-link">{html.escape(topic["title"])}</a></li>' for topic in table_of_contents)}
                     </ol>
                 </div>
             </div>
@@ -603,15 +609,34 @@ class HTMLOutput:
         topic_summary = topic.get('summary', 'No summary available')
         post_references = topic.get('post_references', [])
         
+        # Debug: Print what we're looking for
+        print(f"🔍 Formatting topic '{topic_title}' with references: {post_references}")
+        
         # Convert summary to HTML
         summary_html = self._convert_markdown_to_html(topic_summary)
         
         # Build referenced posts HTML
         referenced_posts_html = ""
+        found_posts = 0
+        
         for post_ref in post_references:
-            if post_ref in posts_by_id:
-                post = posts_by_id[post_ref]
+            post_ref_clean = post_ref.strip()  # Clean whitespace
+            if post_ref_clean in posts_by_id:
+                post = posts_by_id[post_ref_clean]
                 referenced_posts_html += self._format_referenced_post(post)
+                found_posts += 1
+                print(f"   ✅ Found post: {post_ref_clean}")
+            else:
+                print(f"   ❌ Missing post: {post_ref_clean}")
+        
+        # Add fallback message if no posts found
+        if found_posts == 0 and post_references:
+            referenced_posts_html = f'''
+            <div class="no-posts-found">
+                <p>⚠️ Referenced posts not found: {', '.join(post_references)}</p>
+                <p>Available IDs: {', '.join(list(posts_by_id.keys())[:3])}...</p>
+            </div>
+            '''
         
         return f'''
         <div class="topic-section" id="{topic_id}">
@@ -626,7 +651,7 @@ class HTMLOutput:
                     {summary_html}
                 </div>
                 <div class="topic-sources">
-                    <div class="sources-header">Referenced Intelligence Sources</div>
+                    <div class="sources-header">Referenced Intelligence Sources ({found_posts} found)</div>
                     {referenced_posts_html}
                 </div>
             </div>

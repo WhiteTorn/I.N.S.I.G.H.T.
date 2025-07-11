@@ -470,12 +470,16 @@ Answer the question now:
             return {"error": "Invalid posts format. Expected list"}
         
         try:
-            # Format posts with URLs/IDs for reference
+            # Format posts with actual URLs for reference
             formatted_posts = []
+            post_references = []  # Keep track of actual post IDs
+            
             for i, post in enumerate(posts):
-                post_id = post.get('url', f"post_{i}")
+                post_url = post.get('url', f"post_{i}")
+                post_references.append(post_url)
+                
                 post_content = {
-                    "id": post_id,
+                    "url": post_url,
                     "title": post.get('title', ''),
                     "content": post.get('content', ''),
                     "source": post.get('source', ''),
@@ -483,7 +487,10 @@ Answer the question now:
                 }
                 formatted_posts.append(post_content)
             
-            # Simplified prompt that requests text format but structured
+            # Create example reference format for the prompt
+            example_refs = ", ".join(post_references[:3]) if len(post_references) >= 3 else ", ".join(post_references)
+            
+            # Updated prompt that uses actual URLs for references
             prompt = f"""
 You are an expert intelligence analyst working with Tony Stark.
 Your name is Insight. 30 years providing daily briefings.
@@ -493,6 +500,8 @@ MISSION: Analyze {len(posts)} posts and create enhanced daily briefing.
 STEP 1: Generate standard daily briefing
 STEP 2: Extract 3-5 main topics from the posts
 STEP 3: Create topic summaries with post references
+
+IMPORTANT: When referencing posts, use their ACTUAL URLs, not generic post_0, post_1, etc.
 
 OUTPUT FORMAT - Use this EXACT structure:
 
@@ -504,23 +513,26 @@ OUTPUT FORMAT - Use this EXACT structure:
 Topic 1: [Topic Title]
 ID: topic-1
 Summary: [Detailed analysis of this topic]
-Posts: post_0, post_2, post_4
+Posts: {example_refs}
 
 Topic 2: [Topic Title]  
 ID: topic-2
 Summary: [Detailed analysis of this topic]
-Posts: post_1, post_3
+Posts: [actual URLs from the posts, comma separated]
 
 Topic 3: [Topic Title]
 ID: topic-3  
 Summary: [Detailed analysis of this topic]
-Posts: post_5, post_6
+Posts: [actual URLs from the posts, comma separated]
 ===TOPICS_END===
+
+Available post URLs for reference:
+{chr(10).join(post_references)}
 
 POSTS DATA:
 {formatted_posts}
 
-Generate the response now:
+Generate the response now using ACTUAL URLs in the Posts: lines:
 """
 
             # Use text format instead of JSON
@@ -528,7 +540,7 @@ Generate the response now:
                 model=self.model,
                 contents=prompt,
                 config=types.GenerateContentConfig(
-                    response_mime_type="text/plain",  # Changed from application/json
+                    response_mime_type="text/plain",
                     temperature=0.1
                 )
             )
@@ -576,7 +588,8 @@ Generate the response now:
                         current_topic["summary"] = line.split(':', 1)[1].strip()
                     elif line.startswith('Posts:'):
                         posts_str = line.split(':', 1)[1].strip()
-                        current_topic["post_references"] = [p.strip() for p in posts_str.split(',')]
+                        # Clean up the URLs and split properly
+                        current_topic["post_references"] = [p.strip() for p in posts_str.split(',') if p.strip()]
                     elif line and current_topic.get("summary"):
                         # Continue summary on next lines
                         current_topic["summary"] += " " + line
