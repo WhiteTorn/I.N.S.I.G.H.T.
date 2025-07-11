@@ -7,3 +7,5 @@ praw
 asyncpraw
 markdown
 pymdown-extensions
+google-generativeai
+google-genai
