@@ -271,43 +271,104 @@ class InsightV14EnhancedTopics:
     
     async def process_enhanced_daily_briefing(self, day: datetime, day_posts: List[Dict[str, Any]]) -> tuple:
         """
-        Process daily briefing with enhanced topic analysis and fallback strategy
+        Process daily briefing with enhanced topic extraction and fallback strategy
+        Includes both enhanced and traditional briefings in one file for comparison
         
-        Args:
-            day: Date for the briefing
-            day_posts: List of posts for that day
-            
         Returns:
-            Tuple of (html_output, enhanced_success_flag)
+            tuple: (html_output, enhanced_success: bool)
         """
         day_formatted = day.strftime('%B %d, %Y')
         
+        # Try enhanced topic-based processing first
         try:
-            # Try enhanced processing first
             print(f"🎯 Attempting enhanced topic-based briefing for {day_formatted}...")
             enhanced_result = await self.gemini_processor.enhanced_daily_briefing_with_topics(day_posts)
             
-            if "error" not in enhanced_result:
-                # Enhanced processing successful
+            if "error" not in enhanced_result and enhanced_result.get('daily_briefing'):
                 print(f"✅ Enhanced processing successful for {day_formatted}")
-                self.enhanced_success_count += 1
                 
-                # Track token usage
-                token_info = enhanced_result.get('token_usage', {})
-                self.track_token_usage("enhanced_briefing", token_info)
+                # Track token usage for enhanced
+                enhanced_token_info = enhanced_result.get('token_usage', {})
+                self.track_token_usage("enhanced_briefing", enhanced_token_info)
                 
-                # Create enhanced HTML output
-                html_title = f"Enhanced Daily Briefing for {day_formatted} (GMT{'+' if self.user_timezone_offset >= 0 else ''}{self.user_timezone_offset})"
-                html_output = HTMLOutput(html_title)
-                html_output.render_topic_based_daily_briefing(day, enhanced_result, day_posts)
+                # Generate traditional briefing for comparison
+                print(f"📊 Generating traditional briefing for comparison...")
+                standard_result = await self.gemini_processor.daily_briefing_with_tokens(day_posts)
                 
-                # Display enhanced briefing info
-                print(f"\n📊 Enhanced Daily Briefing (GMT{'+' if self.user_timezone_offset >= 0 else ''}{self.user_timezone_offset}):")
-                print(f"📋 Topics identified: {len(enhanced_result.get('topics', []))}")
-                for topic in enhanced_result.get('topics', []):
-                    print(f"  • {topic.get('title', 'Unknown Topic')} ({len(topic.get('post_references', []))} posts)")
-                
-                return html_output, True
+                if "error" not in standard_result:
+                    # Track token usage for traditional
+                    standard_token_info = standard_result.get('token_usage', {})
+                    self.track_token_usage("traditional_briefing", standard_token_info)
+                    
+                    # Create combined HTML output
+                    html_title = f"Dual Briefing Comparison for {day_formatted} (GMT{'+' if self.user_timezone_offset >= 0 else ''}{self.user_timezone_offset})"
+                    html_output = HTMLOutput(html_title)
+                    
+                    # Render enhanced briefing first
+                    html_output.render_topic_based_daily_briefing(day, enhanced_result, day_posts)
+                    
+                    # Add comparison section with traditional briefing
+                    html_output.body_content += f'''
+                    <!-- COMPARISON SECTION: Traditional vs Enhanced -->
+                    <div class="comparison-section" style="margin-top: 50px; border-top: 3px solid #3498db; padding-top: 30px;">
+                        <div class="comparison-header" style="text-align: center; margin-bottom: 30px;">
+                            <h2 style="color: #2c3e50; font-size: 24px; margin: 0;">🔄 Traditional Briefing Comparison</h2>
+                            <p style="color: #7f8c8d; margin: 10px 0 0 0;">Standard daily briefing format with all posts for debugging and analysis</p>
+                            <div style="background: #ecf0f1; padding: 10px; margin: 15px 0; border-radius: 5px; font-size: 14px;">
+                                <strong>Enhanced:</strong> {enhanced_token_info.get('total_tokens', 'N/A')} tokens | 
+                                <strong>Traditional:</strong> {standard_token_info.get('total_tokens', 'N/A')} tokens | 
+                                <strong>Efficiency:</strong> {len(enhanced_result.get('topics', []))} topics identified
+                            </div>
+                        </div>
+                        
+                        <!-- Traditional Daily Briefing -->
+                        <div class="traditional-briefing-card" style="background: white; border: 1px solid #bdc3c7; border-radius: 8px; margin-bottom: 30px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                            <div class="traditional-briefing-header" style="background: #34495e; color: white; padding: 15px; border-radius: 8px 8px 0 0;">
+                                <h3 style="margin: 0; font-size: 18px;">📋 Traditional Daily Briefing</h3>
+                                <p style="margin: 5px 0 0 0; opacity: 0.8; font-size: 14px;">Generated using standard daily_briefing_with_tokens method</p>
+                            </div>
+                            <div class="traditional-briefing-content" style="padding: 20px;">
+                                {html_output._format_briefing_content(standard_result['briefing'])}
+                            </div>
+                        </div>
+                        
+                        <!-- All Posts in Traditional Format -->
+                        <div class="all-posts-section">
+                            <div class="posts-header" style="background: #95a5a6; color: white; padding: 15px; border-radius: 8px 8px 0 0; margin-bottom: 0;">
+                                <h3 style="margin: 0; font-size: 18px;">📑 All Posts ({len(day_posts)} items)</h3>
+                                <p style="margin: 5px 0 0 0; opacity: 0.9; font-size: 14px;">Complete chronological listing for detailed analysis</p>
+                            </div>
+                            <div class="posts-container" style="border: 1px solid #95a5a6; border-top: none; border-radius: 0 0 8px 8px; background: white;">
+                    '''
+                    
+                    # Add all posts using traditional format
+                    for post in day_posts:
+                        html_output.body_content += html_output._format_post(post)
+                    
+                    # Close the sections
+                    html_output.body_content += '''
+                            </div>
+                        </div>
+                    </div>
+                    '''
+                    
+                    # Display enhanced briefing info
+                    print(f"\n📊 Enhanced Daily Briefing (GMT{'+' if self.user_timezone_offset >= 0 else ''}{self.user_timezone_offset}):")
+                    print(f"📋 Topics identified: {len(enhanced_result.get('topics', []))}")
+                    for topic in enhanced_result.get('topics', []):
+                        print(f"  • {topic.get('title', 'Unknown Topic')} ({len(topic.get('post_references', []))} posts)")
+                    
+                    print(f"🔄 Traditional briefing also generated for comparison")
+                    print(f"🔢 Enhanced: {enhanced_token_info.get('total_tokens', 'N/A')} tokens | Traditional: {standard_token_info.get('total_tokens', 'N/A')} tokens")
+                    
+                    return html_output, True
+                else:
+                    print(f"⚠️ Traditional briefing failed, using enhanced only")
+                    # Fall back to enhanced only
+                    html_title = f"Enhanced Daily Briefing for {day_formatted} (GMT{'+' if self.user_timezone_offset >= 0 else ''}{self.user_timezone_offset})"
+                    html_output = HTMLOutput(html_title)
+                    html_output.render_topic_based_daily_briefing(day, enhanced_result, day_posts)
+                    return html_output, True
                 
         except Exception as e:
             print(f"⚠️ Enhanced processing failed for {day_formatted}: {e}")
@@ -330,6 +391,13 @@ class InsightV14EnhancedTopics:
                 html_title = f"Daily Briefing for {day_formatted} (GMT{'+' if self.user_timezone_offset >= 0 else ''}{self.user_timezone_offset})"
                 html_output = HTMLOutput(html_title)
                 html_output.render_daily_briefing(day, standard_result['briefing'], day_posts)
+                
+                # Add fallback indicator
+                html_output.body_content += '''
+                <div class="fallback-indicator" style="position: fixed; top: 10px; right: 10px; background: #e67e22; color: white; padding: 8px 12px; border-radius: 5px; font-size: 12px; z-index: 1000; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+                    ⚠️ FALLBACK: Enhanced processing failed
+                </div>
+                '''
                 
                 # Display standard briefing
                 print(f"\n📋 Standard Daily Briefing (GMT{'+' if self.user_timezone_offset >= 0 else ''}{self.user_timezone_offset}):")
