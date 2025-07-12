@@ -7,7 +7,7 @@ Handles all post types with unified date processing
 """
 
 from typing import List, Dict, Any, Optional, Union
-from datetime import datetime, date
+from datetime import datetime, date, timezone, timedelta
 from collections import defaultdict
 import logging
 
@@ -115,6 +115,7 @@ class PostSorter:
         posts_by_day = defaultdict(list)
         
         # Group posts by day
+        posts = PostSorter._convert_posts_timezone(posts)
         for post in posts:
             if not isinstance(post, dict):
                 continue
@@ -211,3 +212,36 @@ class PostSorter:
             target_date = target_date.date()
         
         return PostSorter.filter_posts_by_date_range(posts, target_date, target_date)
+    
+
+    def _convert_to_user_timezone(self, dt: datetime) -> datetime:
+        """
+        Convert a datetime object to the user's timezone
+        """
+        if dt == datetime.min:
+            return dt
+        
+        try:
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            return dt.astimezone(self.user_timezone)
+        except Exception:
+            logging.warning(f"Failed to convert datetime to user timezone: {dt}")
+            return dt
+        
+    def _convert_posts_timezone(self, posts: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        converted_posts = []
+        for post in posts:
+            if not isinstance(post, dict):
+                continue
+        
+            if 'date' in post:
+                original_date = post['date']
+                converted_date = self._convert_to_user_timezone(original_date)
+                post['date'] = converted_date
+
+            converted_posts.append(post)
+        return converted_posts
+        
+    
+    
