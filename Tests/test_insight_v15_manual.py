@@ -4,7 +4,7 @@ import sys
 from typing import List, Dict, Any
 from datetime import datetime, timezone, timedelta, date
 from collections import defaultdict
-
+from time import sleep
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from connectors.telegram_connector import TelegramConnector
@@ -92,6 +92,13 @@ class SimpleEnhancedInsight:
         gemini_processor = GeminiProcessor()
         gemini_processor.setup_processor()
         await gemini_processor.connect()
+
+        filename2 = f"simple_standart_briefing_1.html"
+        briefing = await gemini_processor.daily_briefing(day_posts)
+        html_output2 = HTMLOutput(f"Daily Briefing for {day.strftime('%B %d, %Y')}")
+        html_output2.render_daily_briefing(day, briefing, day_posts)
+        html_output2.save_to_file(filename2, html_output2._get_html_template())
+        sleep(60)
         
         try:
             enhanced_result = await gemini_processor.enhanced_daily_briefing_with_topics(day_posts)

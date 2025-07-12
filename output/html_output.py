@@ -663,11 +663,12 @@ class HTMLOutput:
         '''
 
     def _format_referenced_post(self, post_data: dict) -> str:
-        """Format a post that's referenced by a topic."""
+        """Format a post that's referenced by a topic - using the same rich formatting as original posts."""
         # Handle post title
         if post_data.get('platform') == 'rss':
             post_title = post_data.get('title', 'RSS Post')
         else:
+            # For Telegram posts, create a title from content
             content = post_data.get('content', '')
             post_title = content[:50] + "..." if len(content) > 50 else content
             if not post_title.strip():
@@ -684,23 +685,42 @@ class HTMLOutput:
         else:
             source_info = f"📱 @{source}"
         
-        # Content preview
+        # Content
         content = post_data.get('content', '')
-        content_html = self._convert_markdown_to_html(content)
+        if post_data.get('platform') == 'rss' and post_data.get('content_html'):
+            content_html = self._sanitize_rss_html(post_data['content_html'])
+        else:
+            content_html = self._convert_markdown_to_html(content)
         
+        # Media handling - ADDED from original _format_post()
+        media_html = ""
+        media_urls = post_data.get('media_urls', [])
+        if media_urls:
+            media_html = '<div class="media-gallery">'
+            for url in media_urls[:3]:  # Limit to 3 media items
+                if self._is_image_url(url):
+                    media_html += f'<div class="media-item"><img src="{html.escape(url)}" alt="Media content" loading="lazy"></div>'
+            media_html += '</div>'
+        
+        # Use the same rich formatting as original posts
         return f'''
-        <div class="referenced-post">
-            <div class="referenced-post-header">
-                <div class="referenced-post-meta">{formatted_date} • {source_info}</div>
-                <div class="referenced-post-title">{html.escape(post_title)}</div>
+        <div class="post-card">
+            <div class="post-header">
+                <div class="post-meta">{formatted_date} • {source_info}</div>
+                <div class="post-title">{html.escape(post_title)}</div>
             </div>
-            <div class="referenced-post-content">
-                {content_html}
+            <div class="post-content">
+                <div class="post-text">{content_html}</div>
+                {media_html}
             </div>
-            <div class="referenced-post-footer">
-                <a href="{post_data.get('url', '#')}" target="_blank" class="reference-link">
-                    🔗 View Full Post
-                </a>
+            <div class="post-footer">
+                <div class="post-actions">
+                    <a href="{post_data.get('url', '#')}" target="_blank" class="action-btn">
+                        🔗 View Original
+                    </a>
+                    <button class="action-btn">💾 Process</button>
+                    <button class="action-btn">💬 Discuss</button>
+                </div>
             </div>
         </div>
         '''
