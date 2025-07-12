@@ -98,7 +98,7 @@ class PostSorter:
             return posts  # Return original list if sorting fails
     
     @staticmethod
-    def sort_posts_by_day(posts: List[Dict[str, Any]]) -> Dict[date, List[Dict[str, Any]]]:
+    def sort_posts_by_day(posts: List[Dict[str, Any]], user_timezone: timezone) -> Dict[date, List[Dict[str, Any]]]:
         """
         Group and sort posts by day with robust error handling
         
@@ -115,7 +115,7 @@ class PostSorter:
         posts_by_day = defaultdict(list)
         
         # Group posts by day
-        posts = PostSorter._convert_posts_timezone(posts)
+        posts = PostSorter._convert_posts_timezone(posts, user_timezone)
         for post in posts:
             if not isinstance(post, dict):
                 continue
@@ -213,8 +213,8 @@ class PostSorter:
         
         return PostSorter.filter_posts_by_date_range(posts, target_date, target_date)
     
-
-    def _convert_to_user_timezone(self, dt: datetime) -> datetime:
+    @staticmethod
+    def _convert_to_user_timezone(dt: datetime, user_timezone: timezone) -> datetime:
         """
         Convert a datetime object to the user's timezone
         """
@@ -224,12 +224,13 @@ class PostSorter:
         try:
             if dt.tzinfo is None:
                 dt = dt.replace(tzinfo=timezone.utc)
-            return dt.astimezone(self.user_timezone)
+            return dt.astimezone(user_timezone)
         except Exception:
             logging.warning(f"Failed to convert datetime to user timezone: {dt}")
             return dt
         
-    def _convert_posts_timezone(self, posts: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    @staticmethod
+    def _convert_posts_timezone(posts: List[Dict[str, Any]], user_timezone: timezone) -> List[Dict[str, Any]]:
         converted_posts = []
         for post in posts:
             if not isinstance(post, dict):
@@ -237,7 +238,7 @@ class PostSorter:
         
             if 'date' in post:
                 original_date = post['date']
-                converted_date = self._convert_to_user_timezone(original_date)
+                converted_date = PostSorter._convert_to_user_timezone(original_date, user_timezone)
                 post['date'] = converted_date
 
             converted_posts.append(post)
