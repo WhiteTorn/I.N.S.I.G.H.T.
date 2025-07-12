@@ -516,9 +516,13 @@ class HTMLOutput:
         </div>
         '''
 
-    def save_to_file(self, filename="insight_daily_briefing.html"):
+    def save_to_file(self, filename="insight_daily_briefing.html", template = None):
         """Generate and save the final HTML file."""
-        final_html = self._get_html_template()
+        if template:
+            final_html = template
+        else:
+            final_html = self._get_html_template()
+            
         try:
             with open(filename, "w", encoding="utf-8") as f:
                 f.write(final_html)

@@ -134,16 +134,12 @@ async def get_enhanced_briefing_html(target_date: str = None, timezone_offset: i
         HTML content as string
     """
     insight = SimpleEnhancedInsight(timezone_offset)
-    return await insight.run(target_date)
+    html_content = await insight.run(target_date)
+
+    html_output = HTMLOutput()
+    html_output.save_to_file(filename="simple_enhanced_briefing_4.html", template=html_content)
+    
 
 if __name__ == "__main__":
-    # Example usage
-    async def main():
-        # Get latest enhanced briefing
-        html_content = await get_enhanced_briefing_html()
-        
-        # Save to file for testing
-        with open('simple_enhanced_briefing_2.html', 'w', encoding='utf-8') as f:
-            f.write(html_content)
     
-    asyncio.run(main())
+    asyncio.run(get_enhanced_briefing_html())
