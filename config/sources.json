@@ -7,7 +7,7 @@
     "sources": {
         "telegram":
         {
-            "enabled": true,
+            "enabled": false,
             "channels": [
                 "ai_newz",
                 "llm_under_hood",
