@@ -423,15 +423,31 @@ class HTMLOutput:
         else:
             content_html = self._convert_markdown_to_html(content)
         
-        # Media handling
+        # Media handling - FIXED: Remove duplicates and filter valid URLs
         media_html = ""
         media_urls = post_data.get('media_urls', [])
         if media_urls:
-            media_html = '<div class="media-gallery">'
-            for url in media_urls[:3]:  # Limit to 3 media items
-                if self._is_image_url(url):
+            # Remove duplicates and filter valid image URLs
+            unique_image_urls = []
+            seen_urls = set()
+            
+            for url in media_urls:
+                # Clean and validate URL
+                clean_url = url.strip() if url else ""
+                if clean_url and clean_url not in seen_urls and self._is_image_url(clean_url):
+                    unique_image_urls.append(clean_url)
+                    seen_urls.add(clean_url)
+                    
+                    # Limit to 3 unique images
+                    if len(unique_image_urls) >= 3:
+                        break
+            
+            # Generate media gallery only if we have valid images
+            if unique_image_urls:
+                media_html = '<div class="media-gallery">'
+                for url in unique_image_urls:
                     media_html += f'<div class="media-item"><img src="{html.escape(url)}" alt="Media content" loading="lazy"></div>'
-            media_html += '</div>'
+                media_html += '</div>'
         
         return f'''
         <div class="post-card">
@@ -692,15 +708,31 @@ class HTMLOutput:
         else:
             content_html = self._convert_markdown_to_html(content)
         
-        # Media handling - ADDED from original _format_post()
+        # Media handling - FIXED: Remove duplicates and filter valid URLs
         media_html = ""
         media_urls = post_data.get('media_urls', [])
         if media_urls:
-            media_html = '<div class="media-gallery">'
-            for url in media_urls[:3]:  # Limit to 3 media items
-                if self._is_image_url(url):
+            # Remove duplicates and filter valid image URLs
+            unique_image_urls = []
+            seen_urls = set()
+            
+            for url in media_urls:
+                # Clean and validate URL
+                clean_url = url.strip() if url else ""
+                if clean_url and clean_url not in seen_urls and self._is_image_url(clean_url):
+                    unique_image_urls.append(clean_url)
+                    seen_urls.add(clean_url)
+                    
+                    # Limit to 3 unique images
+                    if len(unique_image_urls) >= 3:
+                        break
+            
+            # Generate media gallery only if we have valid images
+            if unique_image_urls:
+                media_html = '<div class="media-gallery">'
+                for url in unique_image_urls:
                     media_html += f'<div class="media-item"><img src="{html.escape(url)}" alt="Media content" loading="lazy"></div>'
-            media_html += '</div>'
+                media_html += '</div>'
         
         # Use the same rich formatting as original posts
         return f'''
