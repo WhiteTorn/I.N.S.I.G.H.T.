@@ -423,31 +423,34 @@ class HTMLOutput:
         else:
             content_html = self._convert_markdown_to_html(content)
         
-        # Media handling - FIXED: Remove duplicates and filter valid URLs
+        # Media handling - FIXED: Skip media gallery if images are already embedded in content
         media_html = ""
-        media_urls = post_data.get('media_urls', [])
-        if media_urls:
-            # Remove duplicates and filter valid image URLs
-            unique_image_urls = []
-            seen_urls = set()
-            
-            for url in media_urls:
-                # Clean and validate URL
-                clean_url = url.strip() if url else ""
-                if clean_url and clean_url not in seen_urls and self._is_image_url(clean_url):
-                    unique_image_urls.append(clean_url)
-                    seen_urls.add(clean_url)
-                    
-                    # Limit to 3 unique images
-                    if len(unique_image_urls) >= 3:
-                        break
-            
-            # Generate media gallery only if we have valid images
-            if unique_image_urls:
-                media_html = '<div class="media-gallery">'
-                for url in unique_image_urls:
-                    media_html += f'<div class="media-item"><img src="{html.escape(url)}" alt="Media content" loading="lazy"></div>'
-                media_html += '</div>'
+        
+        # Only show media gallery if content doesn't already contain images
+        if not self._content_has_images(content_html):
+            media_urls = post_data.get('media_urls', [])
+            if media_urls:
+                # Remove duplicates and filter valid image URLs
+                unique_image_urls = []
+                seen_urls = set()
+                
+                for url in media_urls:
+                    # Clean and validate URL
+                    clean_url = url.strip() if url else ""
+                    if clean_url and clean_url not in seen_urls and self._is_image_url(clean_url):
+                        unique_image_urls.append(clean_url)
+                        seen_urls.add(clean_url)
+                        
+                        # Limit to 3 unique images
+                        if len(unique_image_urls) >= 3:
+                            break
+                
+                # Generate media gallery only if we have valid images
+                if unique_image_urls:
+                    media_html = '<div class="media-gallery">'
+                    for url in unique_image_urls:
+                        media_html += f'<div class="media-item"><img src="{html.escape(url)}" alt="Media content" loading="lazy"></div>'
+                    media_html += '</div>'
         
         return f'''
         <div class="post-card">
@@ -491,6 +494,97 @@ class HTMLOutput:
         clean_url = url.split('?')[0].lower()
         image_extensions = ('.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg')
         return any(clean_url.endswith(ext) for ext in image_extensions)
+
+    def _content_has_images(self, content_html: str) -> bool:
+        """Check if the content already contains embedded images."""
+        if not content_html:
+            return False
+        
+        # Check for <img> tags in the content
+        img_pattern = r'<img[^>]*>'
+        return bool(re.search(img_pattern, content_html, re.IGNORECASE))
+
+    def _format_referenced_post(self, post_data: dict) -> str:
+        """Format a post that's referenced by a topic - using the same rich formatting as original posts."""
+        # Handle post title
+        if post_data.get('platform') == 'rss':
+            post_title = post_data.get('title', 'RSS Post')
+        else:
+            # For Telegram posts, create a title from content
+            content = post_data.get('content', '')
+            post_title = content[:50] + "..." if len(content) > 50 else content
+            if not post_title.strip():
+                post_title = "Telegram Post"
+        
+        # Format date
+        post_date = post_data.get('date', datetime.now())
+        formatted_date = post_date.strftime('%H:%M')
+        
+        # Source information
+        source = post_data.get('source', 'Unknown')
+        if post_data.get('platform') == 'rss':
+            source_info = f"📡 {post_data.get('feed_title', source)}"
+        else:
+            source_info = f"📱 @{source}"
+        
+        # Content
+        content = post_data.get('content', '')
+        if post_data.get('platform') == 'rss' and post_data.get('content_html'):
+            content_html = self._sanitize_rss_html(post_data['content_html'])
+        else:
+            content_html = self._convert_markdown_to_html(content)
+        
+        # Media handling - FIXED: Skip media gallery if images are already embedded in content
+        media_html = ""
+        
+        # Only show media gallery if content doesn't already contain images
+        if not self._content_has_images(content_html):
+            media_urls = post_data.get('media_urls', [])
+            if media_urls:
+                # Remove duplicates and filter valid image URLs
+                unique_image_urls = []
+                seen_urls = set()
+                
+                for url in media_urls:
+                    # Clean and validate URL
+                    clean_url = url.strip() if url else ""
+                    if clean_url and clean_url not in seen_urls and self._is_image_url(clean_url):
+                        unique_image_urls.append(clean_url)
+                        seen_urls.add(clean_url)
+                        
+                        # Limit to 3 unique images
+                        if len(unique_image_urls) >= 3:
+                            break
+                
+                # Generate media gallery only if we have valid images
+                if unique_image_urls:
+                    media_html = '<div class="media-gallery">'
+                    for url in unique_image_urls:
+                        media_html += f'<div class="media-item"><img src="{html.escape(url)}" alt="Media content" loading="lazy"></div>'
+                    media_html += '</div>'
+        
+        # Use the same rich formatting as original posts
+        return f'''
+        <div class="post-card">
+            <div class="post-header">
+                <div class="post-meta">{formatted_date} • {source_info}</div>
+                <div class="post-title">{html.escape(post_title)}</div>
+            </div>
+            <div class="post-content">
+                <div class="post-text">{content_html}</div>
+                {media_html}
+            </div>
+            <div class="post-footer">
+                <div class="post-actions">
+                    <a href="{post_data.get('url', '#')}" target="_blank" class="action-btn">
+                        🔗 View Original
+                    </a>
+                    <button class="action-btn">💾 Process</button>
+                    <button class="action-btn">💬 Discuss</button>
+                </div>
+            </div>
+        </div>
+        '''
 
     def render_daily_briefing(self, day: datetime, briefing_text: str, posts: list):
         """Render a complete daily briefing with AI summary and sorted posts."""
@@ -673,85 +767,6 @@ class HTMLOutput:
                 <div class="topic-sources">
                     <div class="sources-header">Referenced Intelligence Sources ({found_posts} found)</div>
                     {referenced_posts_html}
-                </div>
-            </div>
-        </div>
-        '''
-
-    def _format_referenced_post(self, post_data: dict) -> str:
-        """Format a post that's referenced by a topic - using the same rich formatting as original posts."""
-        # Handle post title
-        if post_data.get('platform') == 'rss':
-            post_title = post_data.get('title', 'RSS Post')
-        else:
-            # For Telegram posts, create a title from content
-            content = post_data.get('content', '')
-            post_title = content[:50] + "..." if len(content) > 50 else content
-            if not post_title.strip():
-                post_title = "Telegram Post"
-        
-        # Format date
-        post_date = post_data.get('date', datetime.now())
-        formatted_date = post_date.strftime('%H:%M')
-        
-        # Source information
-        source = post_data.get('source', 'Unknown')
-        if post_data.get('platform') == 'rss':
-            source_info = f"📡 {post_data.get('feed_title', source)}"
-        else:
-            source_info = f"📱 @{source}"
-        
-        # Content
-        content = post_data.get('content', '')
-        if post_data.get('platform') == 'rss' and post_data.get('content_html'):
-            content_html = self._sanitize_rss_html(post_data['content_html'])
-        else:
-            content_html = self._convert_markdown_to_html(content)
-        
-        # Media handling - FIXED: Remove duplicates and filter valid URLs
-        media_html = ""
-        media_urls = post_data.get('media_urls', [])
-        if media_urls:
-            # Remove duplicates and filter valid image URLs
-            unique_image_urls = []
-            seen_urls = set()
-            
-            for url in media_urls:
-                # Clean and validate URL
-                clean_url = url.strip() if url else ""
-                if clean_url and clean_url not in seen_urls and self._is_image_url(clean_url):
-                    unique_image_urls.append(clean_url)
-                    seen_urls.add(clean_url)
-                    
-                    # Limit to 3 unique images
-                    if len(unique_image_urls) >= 3:
-                        break
-            
-            # Generate media gallery only if we have valid images
-            if unique_image_urls:
-                media_html = '<div class="media-gallery">'
-                for url in unique_image_urls:
-                    media_html += f'<div class="media-item"><img src="{html.escape(url)}" alt="Media content" loading="lazy"></div>'
-                media_html += '</div>'
-        
-        # Use the same rich formatting as original posts
-        return f'''
-        <div class="post-card">
-            <div class="post-header">
-                <div class="post-meta">{formatted_date} • {source_info}</div>
-                <div class="post-title">{html.escape(post_title)}</div>
-            </div>
-            <div class="post-content">
-                <div class="post-text">{content_html}</div>
-                {media_html}
-            </div>
-            <div class="post-footer">
-                <div class="post-actions">
-                    <a href="{post_data.get('url', '#')}" target="_blank" class="action-btn">
-                        🔗 View Original
-                    </a>
-                    <button class="action-btn">💾 Process</button>
-                    <button class="action-btn">💬 Discuss</button>
                 </div>
             </div>
         </div>
