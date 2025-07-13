@@ -737,7 +737,7 @@ class HTMLOutput:
             post_ref_clean = post_ref.strip()  # Clean whitespace
             if post_ref_clean in posts_by_id:
                 post = posts_by_id[post_ref_clean]
-                referenced_posts_html += self._format_referenced_post(post)
+                referenced_posts_html += self._format_post(post)  # Make sure it's _format_post!
                 found_posts += 1
                 print(f"   ✅ Found post: {post_ref_clean}")
             else:
@@ -753,24 +753,26 @@ class HTMLOutput:
             '''
         
         return f'''
-        <div class="topic-section" id="{topic_id}">
-            <div class="topic-header">
-                <div class="topic-title">
-                    <span class="topic-icon">🔍</span>
-                    {html.escape(topic_title)}
-                </div>
-            </div>
-            <div class="topic-content">
-                <div class="topic-summary">
-                    {summary_html}
-                </div>
-                <div class="topic-sources">
-                    <div class="sources-header">Referenced Intelligence Sources ({found_posts} found)</div>
-                    {referenced_posts_html}
-                </div>
+<div class="topic-section" id="{topic_id}">
+    <div class="topic-header">
+        <div class="topic-title">
+            <span class="topic-icon">🔍</span>
+            {html.escape(topic_title)}
+        </div>
+    </div>
+    <div class="topic-content">
+        <div class="topic-summary">
+            {summary_html}
+        </div>
+        <div class="topic-sources">                
+            <div class="sources-header">Referenced Intelligence Sources ({found_posts} found)</div>
+            <div class="posts-section">
+                {referenced_posts_html}
             </div>
         </div>
-        '''
+    </div>
+</div>
+'''
 
     def _get_enhanced_html_template(self):
         """Returns the enhanced HTML template with topic-based styling."""
