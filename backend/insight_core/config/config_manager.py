@@ -90,7 +90,6 @@ class ConfigManager:
         
         return True, "The config is valid."
 
-
     def get_enabled_sources(self, config: Dict) -> List[str]:
         """Returns a list of enabled sources from the config."""
         enabled_sources = []
@@ -135,3 +134,19 @@ class ConfigManager:
             }
         }
 
+    def update_config(self, new_config: Dict) -> Dict:
+        if self.validate_config(new_config):
+            try:
+                self.config.update(new_config)
+                self._save_config()
+                return self.config
+            except Exception as e:
+                print(f"Can't update config, exception {e}")
+                return None
+        else:
+            print(f"new config {new_config} is not valid configuration.")
+            return None
+
+    def _save_config(self):
+        with open(self.config_path, 'w') as file:
+            json.dump(self.config, file, indent = 4)
