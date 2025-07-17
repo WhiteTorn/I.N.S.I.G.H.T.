@@ -90,12 +90,13 @@ class ConfigManager:
         
         return True, "The config is valid."
 
-    def get_enabled_sources(self, config: Dict) -> List[str]:
+    def get_enabled_sources(self, config: Dict) -> Dict:
         """Returns a list of enabled sources from the config."""
-        enabled_sources = []
+        enabled_sources = {}
         for source in config['platforms']:
             if config['platforms'][source]['enabled']:
-                enabled_sources.append({f"{source}": config['platforms'][source]['sources']})
+                # enabled_sources.append({f"{source}": config['platforms'][source]['sources']})
+                enabled_sources[source] = config['platforms'][source]['sources']
 
         return enabled_sources
 
