@@ -135,7 +135,8 @@ class ConfigManager:
         }
 
     def update_config(self, new_config: Dict) -> Dict:
-        if self.validate_config(new_config):
+        is_valid, errors = self.validate_config(new_config)
+        if is_valid:
             try:
                 self.config.update(new_config)
                 self._save_config()
@@ -145,6 +146,7 @@ class ConfigManager:
                 return None
         else:
             print(f"new config {new_config} is not valid configuration.")
+            print(f"Validation errors: {errors}")
             return None
 
     def _save_config(self):

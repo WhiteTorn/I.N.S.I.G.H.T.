@@ -1,7 +1,46 @@
 {
     "metadata": {
-        "name": "test"
+        "name": "Mark II",
+        "description": "Autonomous AI Agent",
+        "version": "1.0.0"
     },
-    "sources": "invalid",
-    "invalid": "structure"
+    "sources": {
+        "telegram": {
+            "enabled": false,
+            "channels": [
+                "ai_newz",
+                "llm_under_hood",
+                "epsiloncorrect",
+                "adel_and_ml",
+                "bminaiev_blog",
+                "gonzo_ML"
+            ]
+        },
+        "rss": {
+            "enabled": true,
+            "feeds": [
+                "https://simonwillison.net/atom/everything/",
+                "https://www.oneusefulthing.org/feed",
+                "https://tg.i-c-a.su/rss/denissexy?limit=50",
+                "https://tg.i-c-a.su/rss/seeallochnaya?limit=50"
+            ]
+        },
+        "youtube": {
+            "enabled": false,
+            "channels": [
+                "UCoryWpk4QVYKFCJul9KBdyw"
+            ]
+        },
+        "reddit": {
+            "enabled": false,
+            "subreddits": [
+                "r/LocalLLaMA",
+                "denissexy",
+                "gonzo_ML",
+                "https://simonwillison.net/atom/everything/",
+                "https://sive.rs/feed",
+                "https://www.oneusefulthing.org/feed"
+            ]
+        }
+    }
 }
