@@ -4,10 +4,11 @@
         "description": "Autonomous AI Agent",
         "version": "1.0.0"
     },
-    "sources": {
-        "telegram": {
-            "enabled": false,
-            "channels": [
+    "platforms": {
+        "telegram":
+        {
+            "enabled": true,
+            "sources": [
                 "ai_newz",
                 "llm_under_hood",
                 "epsiloncorrect",
@@ -16,24 +17,27 @@
                 "gonzo_ML"
             ]
         },
-        "rss": {
+        "rss":
+        {
             "enabled": true,
-            "feeds": [
+            "sources": [
                 "https://simonwillison.net/atom/everything/",
                 "https://www.oneusefulthing.org/feed",
                 "https://tg.i-c-a.su/rss/denissexy?limit=50",
                 "https://tg.i-c-a.su/rss/seeallochnaya?limit=50"
             ]
         },
-        "youtube": {
+        "youtube":
+        {
             "enabled": false,
-            "channels": [
-                "UCoryWpk4QVYKFCJul9KBdyw"
+            "sources": [
+                "UCoryWpk4QVYKFCJul9KBdyw" 
             ]
         },
-        "reddit": {
+        "reddit":
+        {
             "enabled": false,
-            "subreddits": [
+            "sources": [
                 "r/LocalLLaMA",
                 "denissexy",
                 "gonzo_ML",

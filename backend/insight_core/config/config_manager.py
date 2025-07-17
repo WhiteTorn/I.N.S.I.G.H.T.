@@ -61,7 +61,7 @@ class ConfigManager:
             return False, errors
         
         # Check required keys
-        required_keys = ['metadata', 'sources']
+        required_keys = ['metadata', 'platforms']
         for key in required_keys:
             if key not in config:
                 errors.append(f"The key '{key}' is missing from the config.")
@@ -79,9 +79,9 @@ class ConfigManager:
                         errors.append(f"The field '{field}' is missing from the metadata.")
                     # also check the data types of fields
                     
-        if "sources" in config:
-            if not isinstance(config['sources'], dict):
-                errors.append("The sources key must be a dictionary.")
+        if "platforms" in config:
+            if not isinstance(config['platforms'], dict):
+                errors.append("The platforms key must be a dictionary.")
             # check data types of each source in the list
 
         # Return validation result
@@ -93,15 +93,16 @@ class ConfigManager:
     def get_enabled_sources(self, config: Dict) -> List[str]:
         """Returns a list of enabled sources from the config."""
         enabled_sources = []
-        for source in config['sources']:
-            if config['sources'][source]['enabled']:
-                enabled_sources.append(source)
+        for source in config['platforms']:
+            if config['platforms'][source]['enabled']:
+                enabled_sources.append({f"{source}": config['platforms'][source]['sources']})
+
         return enabled_sources
 
     def get_platform_config(self, config: Dict, platform: str) -> Dict:
         """Returns the config for a specific platform from the config."""
         try:
-            return config['sources'][platform]
+            return config['platforms'][platform]
         except KeyError as e:
             print(f"Error: The platform '{platform}' is not defined in the config: {e}")
             return None
@@ -114,22 +115,22 @@ class ConfigManager:
                 "description": "Default config description",
                 "version": "1.0.0"
             },
-            "sources": {
+            "platforms": {
                 "telegram": {
                     "enabled": True,
-                    "channels": ["durov"]
+                    "sources": ["durov"]
                 },
                 "rss": {
                     "enabled": True,
-                    "feeds": ["https://simonwillison.net/atom/everything/"]
+                    "sources": ["https://simonwillison.net/atom/everything/"]
                 },
                 "youtube": {
                     "enabled": True,
-                    "channels": ["UCoryWpk4QVYKFCJul9KBdyw"]
+                    "sources": ["UCoryWpk4QVYKFCJul9KBdyw"]
                 },
                 "reddit": {
                     "enabled": True,
-                    "subreddits": ["LocalLLaMA"]
+                    "sources": ["LocalLLaMA"]
                 }
             }
         }

@@ -7,9 +7,16 @@ class InsightBridge:
 
     def get_sources(self):
         return self.config_manager.config
+    # self.config_manager.get_config
     
     def get_enabled_sources(self):
         return self.config_manager.get_enabled_sources(self.config_manager.config)
 
     def update_config(self, new_config):
         return self.config_manager.update_config(new_config)
+    
+    def daily_briefing(day):
+        # Send Limit Data to post fetchers
+        # They will fetch data from the enabled sources
+        # They will sort by days and we will get briefing by day we have inputed.
+        pass

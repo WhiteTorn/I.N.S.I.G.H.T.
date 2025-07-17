@@ -35,12 +35,19 @@ async def enabled_sources():
         return {"success": False, "error": str(e)}
 
 @app.post("/api/sources")
-async def update_sources(sources_data: dict):
+async def update_config(new_config: dict):
     try:
-        result = bridge.update_config(sources_data)
+        result = bridge.update_config(new_config)
         if result:
             return {"success": True, "message": "Sources updated successfully", "data": result}
         else:
             return {"success": False, "error": "Failed to update sources - validation failed"}
     except Exception as e:
         return {"success": False, "error": str(e)}
+    
+@app.post("/api/daily")
+async def generate_daily_briefing(day: str):
+    # Send Limit Data to post fetchers
+    # They will fetch data from the enabled sources
+    # They will sort by days and we will get briefing by day we have inputed.
+    pass
