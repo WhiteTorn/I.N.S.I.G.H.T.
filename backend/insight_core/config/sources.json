@@ -5,8 +5,7 @@
         "version": "1.0.0"
     },
     "platforms": {
-        "telegram":
-        {
+        "telegram": {
             "enabled": false,
             "sources": [
                 "ai_newz",
@@ -17,8 +16,7 @@
                 "gonzo_ML"
             ]
         },
-        "rss":
-        {
+        "rss": {
             "enabled": true,
             "sources": [
                 "https://simonwillison.net/atom/everything/",
@@ -27,15 +25,13 @@
                 "https://tg.i-c-a.su/rss/seeallochnaya?limit=50"
             ]
         },
-        "youtube":
-        {
+        "youtube": {
             "enabled": false,
             "sources": [
-                "UCoryWpk4QVYKFCJul9KBdyw" 
+                "UCoryWpk4QVYKFCJul9KBdyw"
             ]
         },
-        "reddit":
-        {
+        "reddit": {
             "enabled": false,
             "sources": [
                 "r/LocalLLaMA",

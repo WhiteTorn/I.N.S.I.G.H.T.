@@ -1,9 +1,11 @@
 from insight_core.config.config_manager import ConfigManager
+from insight_core.engines.mark_i_foundation_engine import MarkIFoundationEngine
 
 class InsightBridge:
     def __init__(self):
         self.config_manager = ConfigManager()
         self.config_manager.load_config()
+        self.engine = MarkIFoundationEngine(self.config_manager)
 
     def get_sources(self):
         return self.config_manager.config
@@ -15,9 +17,6 @@ class InsightBridge:
     def update_config(self, new_config):
         return self.config_manager.update_config(new_config)
     
-    async def daily_briefing(self,day):
-        # Send Limit Data to post fetchers
-        # They will fetch data from the enabled sources
-        # They will sort by days and we will get briefing by day we have inputed.
-        pass
+    async def daily_briefing(self, day):
+        return await self.engine.get_daily_briefing(day)
 

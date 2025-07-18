@@ -46,8 +46,13 @@ async def update_config(new_config: dict):
         return {"success": False, "error": str(e)}
     
 @app.post("/api/daily")
-async def generate_daily_briefing(day: str):
-    # Send Limit Data to post fetchers
-    # They will fetch data from the enabled sources
-    # They will sort by days and we will get briefing by day we have inputed.
-    pass
+async def generate_daily_briefing(request: dict):
+    try:
+        day = request.get("date")
+        if not day:
+            return {"success": False, "error": "Date parameter required"}
+        
+        result = await bridge.daily_briefing(day)
+        return {"success": True, "briefing": result}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
