@@ -2,7 +2,13 @@ from abc import ABC, abstractmethod
 from typing import List, Dict, Any
 # import logging
 
-from logs.core.logger_config import get_component_logger
+from ..logs.core.logger_config import get_component_logger
+
+def register(name):
+    def deco(cls):
+        BaseConnector.registry[name] = cls
+        return cls
+    return deco
 
 class BaseConnector(ABC):
     """
@@ -29,6 +35,8 @@ class BaseConnector(ABC):
     all essential information needed for post rendering and processing.
     Future-ready with categories and metadata for advanced features.
     """
+
+    registry = {}
     
     def __init__(self, platform_name: str):
         """
@@ -41,6 +49,17 @@ class BaseConnector(ABC):
         # self.logger = logging.getLogger(f"{__name__}.{platform_name}")
         self.logger = get_component_logger(f"{platform_name} Connector")
         
+    def __init_subclass__(cls, **kwargs) -> None:
+        super().__init_subclass__(**kwargs)
+
+        if cls is BaseConnector:        # don't register the abstract base
+            return
+        
+        platform = getattr(cls, "platform_name",
+                           cls.__name__.replace("Connector", "").lower())
+
+        BaseConnector.registry[platform] = cls
+
     @abstractmethod
     async def connect(self) -> None:
         """

@@ -12,8 +12,8 @@ import inspect
 from typing import Dict, List, Optional, Type
 from dotenv import load_dotenv
 
-from logs.core.logger_config import get_component_logger
-from config.config_manager import ConfigManager
+from ..logs.core.logger_config import get_component_logger
+from ..config.config_manager import ConfigManager
 
 # __all__ = ['BaseConnector', 'TelegramConnector', 'RssConnector', 'YouTubeConnector', 'RedditConnector'] 
 
@@ -53,7 +53,7 @@ def discover_connectors() -> Dict[str, Type]:
         
         try:
             # Dynamic import
-            module = importlib.import_module(f'.{module_name}', package='connectors')
+            module = importlib.import_module(f'.{module_name}', package=__name__)
             
             # Find connector classes in the module
             for name, obj in inspect.getmembers(module, inspect.isclass):
@@ -165,6 +165,8 @@ def list_discovered_connectors() -> Dict[str, str]:
         Dictionary mapping platform names to their class names
     """
     return {platform: cls.__name__ for platform, cls in AVAILABLE_CONNECTORS.items()}
+
+
 
 # Import BaseConnector for external use
 from .base_connector import BaseConnector

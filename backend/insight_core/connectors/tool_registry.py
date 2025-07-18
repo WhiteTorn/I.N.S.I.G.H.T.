@@ -18,7 +18,7 @@ from dataclasses import dataclass, field
 from functools import wraps
 import asyncio
 
-from logs.core.logger_config import get_component_logger
+from ..logs.core.logger_config import get_component_logger
 
 @dataclass
 class ToolParameter:

@@ -15,7 +15,7 @@ class InsightBridge:
     def update_config(self, new_config):
         return self.config_manager.update_config(new_config)
     
-    async def generate_daily_briefing(self, date_str: str, limit: int = 20) -> Dict[str, Any]:
+    async def daily_briefing(self,day):
         # Send Limit Data to post fetchers
         # They will fetch data from the enabled sources
         # They will sort by days and we will get briefing by day we have inputed.
