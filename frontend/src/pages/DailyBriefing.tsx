@@ -1,20 +1,47 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
-import { ChevronLeft, Download, Share2, Calendar, Clock, BarChart3, TrendingUp, Shield, Globe, Cpu, RefreshCw } from 'lucide-react';
+import { ChevronLeft, Download, Share2, Calendar, Clock, BarChart3, TrendingUp, Shield, Globe, Cpu, RefreshCw, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { apiService } from '../services/api';
+import type { BriefingResponse } from '../services/api';
 
 export default function DailyBriefing() {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [activeSection, setActiveSection] = useState('executive-summary');
+  const [briefingData, setBriefingData] = useState<string | null>(null);
+  const [briefingStats, setBriefingStats] = useState<{
+    postsProcessed: number;
+    totalFetched: number;
+    date: string;
+  } | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const handleGenerateBriefing = async () => {
     setIsGenerating(true);
+    setError(null);
+    setBriefingData(null);
+    setBriefingStats(null);
+
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      console.log(`🚀 Generating briefing for date: ${selectedDate}`);
+      const response: BriefingResponse = await apiService.generateBriefing(selectedDate);
+      
+      if (response.success && response.briefing) {
+        console.log('✅ Briefing generated successfully');
+        setBriefingData(response.briefing);
+        setBriefingStats({
+          postsProcessed: response.posts_processed || 0,
+          totalFetched: response.total_posts_fetched || 0,
+          date: response.date || selectedDate
+        });
+      } else {
+        console.error('❌ Briefing generation failed:', response.error);
+        setError(response.error || 'Failed to generate briefing');
+      }
     } catch (error) {
-      console.error('Failed to generate briefing:', error);
+      console.error('❌ API call failed:', error);
+      setError(error instanceof Error ? error.message : 'Network error occurred');
     } finally {
       setIsGenerating(false);
     }
@@ -29,15 +56,20 @@ export default function DailyBriefing() {
   ];
 
   const executiveSummary = {
-    keyInsights: [
+    keyInsights: briefingData ? [
+      "AI-generated briefing successfully created from multiple intelligence sources",
+      `Processed ${briefingStats?.postsProcessed || 0} posts from ${briefingStats?.totalFetched || 0} total sources`,
+      "Mark I Foundation Engine operational and generating real-time intelligence",
+      "Integration between frontend and backend systems functioning properly"
+    ] : [
       "Major security vulnerability discovered in popular React ecosystem affecting 2M+ weekly downloads",
-      "AI development tools showing 30-40% productivity improvements in enterprise environments",
+      "AI development tools showing 30-40% productivity improvements in enterprise environments", 
       "TypeScript performance optimization discussions trending in developer communities",
       "Cybersecurity investments correlating directly with AI adoption rates across industries"
     ],
     threatLevel: "Medium",
-    opportunities: 3,
-    criticalUpdates: 2
+    opportunities: briefingData ? briefingStats?.postsProcessed || 3 : 3,
+    criticalUpdates: briefingData ? Math.min(briefingStats?.postsProcessed || 2, 5) : 2
   };
 
   return (
@@ -74,7 +106,8 @@ export default function DailyBriefing() {
                 type="date"
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
-                className="w-full pl-10 pr-3 py-2 border border-gray-200 rounded-lg bg-white text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-colors"
+                disabled={isGenerating}
+                className="w-full pl-10 pr-3 py-2 border border-gray-200 rounded-lg bg-white text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-colors disabled:opacity-50"
               />
             </div>
             <button
@@ -95,6 +128,31 @@ export default function DailyBriefing() {
               )}
             </button>
           </div>
+
+          {/* Status Indicators */}
+          {briefingStats && (
+            <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+              <div className="flex items-center gap-2 mb-2">
+                <CheckCircle2 className="w-4 h-4 text-green-600" />
+                <span className="text-sm font-medium text-green-800">Briefing Generated</span>
+              </div>
+              <div className="text-xs text-green-700 space-y-1">
+                <div>📊 Posts processed: {briefingStats.postsProcessed}</div>
+                <div>🔍 Total sources: {briefingStats.totalFetched}</div>
+                <div>📅 Date: {briefingStats.date}</div>
+              </div>
+            </div>
+          )}
+
+          {error && (
+            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <div className="flex items-center gap-2 mb-2">
+                <AlertCircle className="w-4 h-4 text-red-600" />
+                <span className="text-sm font-medium text-red-800">Generation Failed</span>
+              </div>
+              <div className="text-xs text-red-700">{error}</div>
+            </div>
+          )}
         </div>
 
         {/* Navigation */}
@@ -122,11 +180,17 @@ export default function DailyBriefing() {
         <div className="border-t border-gray-200 pt-6">
           <h3 className="text-sm font-semibold text-gray-900 mb-3">Actions</h3>
           <div className="space-y-2">
-            <button className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
+            <button 
+              disabled={!briefingData}
+              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
               <Download className="w-4 h-4" />
               Export PDF
             </button>
-            <button className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
+            <button 
+              disabled={!briefingData}
+              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
               <Share2 className="w-4 h-4" />
               Share Briefing
             </button>
@@ -149,16 +213,18 @@ export default function DailyBriefing() {
                 })}
               </div>
               <div className="flex items-center gap-2 text-sm">
-                <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                <span className="text-green-700">Live</span>
+                <div className={`w-2 h-2 rounded-full ${briefingData ? 'bg-green-400' : 'bg-gray-400'}`}></div>
+                <span className={briefingData ? 'text-green-700' : 'text-gray-500'}>
+                  {briefingData ? 'Generated' : 'Ready'}
+                </span>
               </div>
             </div>
             
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-4 text-sm text-gray-600">
                 <span>🎯 Threat Level: <strong className="text-yellow-600">Medium</strong></span>
-                <span>📊 Sources: <strong>47</strong></span>
-                <span>🔄 Updates: <strong>12</strong></span>
+                <span>📊 Sources: <strong>{briefingStats?.totalFetched || '47'}</strong></span>
+                <span>🔄 Updates: <strong>{briefingStats?.postsProcessed || '12'}</strong></span>
               </div>
             </div>
           </div>
@@ -204,6 +270,50 @@ export default function DailyBriefing() {
                     <p className="text-xs text-gray-500 mt-1">Overall assessment</p>
                   </div>
                 </div>
+
+                {/* AI-Generated Briefing Content */}
+                {briefingData ? (
+                  <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                      🤖 AI-Generated Intelligence Briefing
+                    </h3>
+                    <div className="prose max-w-none">
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <BarChart3 className="w-4 h-4 text-blue-600" />
+                          <span className="text-sm font-medium text-blue-800">
+                            Mark I Foundation Engine Output
+                          </span>
+                        </div>
+                        <div className="text-xs text-blue-700">
+                          Generated from {briefingStats?.totalFetched} sources • {briefingStats?.postsProcessed} posts processed
+                        </div>
+                      </div>
+                      <div className="whitespace-pre-wrap text-gray-800 leading-relaxed">
+                        {briefingData}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-white border border-gray-200 rounded-lg p-8 text-center mb-6">
+                    <BarChart3 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                      {isGenerating ? 'Generating Intelligence Briefing...' : 'Ready to Generate Briefing'}
+                    </h3>
+                    <p className="text-gray-600 mb-4">
+                      {isGenerating 
+                        ? 'Mark I Foundation Engine is analyzing intelligence sources and generating your briefing...'
+                        : 'Select a date and click "Generate Briefing" to create your AI-powered intelligence report.'
+                      }
+                    </p>
+                    {isGenerating && (
+                      <div className="flex items-center justify-center gap-2 text-sm text-blue-600">
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        <span>Processing intelligence data...</span>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Key Insights */}
                 <div className="bg-white border border-gray-200 rounded-lg p-6">
