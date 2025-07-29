@@ -94,7 +94,8 @@ class MarkIFoundationEngine:
                         "briefing": brief,
                         "date": day,
                         "posts_processed": len(day_posts),
-                        "total_posts_fetched": len(all_posts)
+                        "total_posts_fetched": len(all_posts),
+                        "posts": day_posts  # Add the actual posts for the specific day
                     }
                 else:
                     return {"error": "Failed to setup connector"}

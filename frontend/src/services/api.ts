@@ -11,7 +11,19 @@ export interface BriefingResponse {
   date?: string;
   posts_processed?: number;
   total_posts_fetched?: number;
+  posts?: Post[]; // Array of individual source posts
   error?: string;
+}
+
+export interface Post {
+  title?: string;
+  content: string;
+  date: string;
+  source: string;
+  platform: string;
+  url?: string;
+  feed_title?: string;
+  media_urls?: string[];
 }
 
 export interface SourceStats {

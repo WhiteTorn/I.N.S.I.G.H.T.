@@ -97,7 +97,8 @@ async def generate_daily_briefing(request: BriefingRequest):
             "briefing": result.get("briefing", result) if isinstance(result, dict) else result,
             "date": date,
             "posts_processed": result.get("posts_processed", 0) if isinstance(result, dict) else 0,
-            "total_posts_fetched": result.get("total_posts_fetched", 0) if isinstance(result, dict) else 0
+            "total_posts_fetched": result.get("total_posts_fetched", 0) if isinstance(result, dict) else 0,
+            "posts": result.get("posts", []) if isinstance(result, dict) else []  # Include actual posts
         }
         
     except HTTPException:

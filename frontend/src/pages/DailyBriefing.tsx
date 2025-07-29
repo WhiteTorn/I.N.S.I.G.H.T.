@@ -1,9 +1,9 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
-import { ChevronLeft, Download, Share2, Calendar, Clock, BarChart3, TrendingUp, Shield, Globe, Cpu, RefreshCw, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { ChevronLeft, Download, Share2, Calendar, Clock, BarChart3, TrendingUp, Shield, Globe, Cpu, RefreshCw, AlertCircle, CheckCircle2, ExternalLink } from 'lucide-react';
 import { apiService } from '../services/api';
-import type { BriefingResponse } from '../services/api';
+import type { BriefingResponse, Post } from '../services/api';
 import MarkdownRenderer from '../components/ui/MarkdownRenderer';
 
 export default function DailyBriefing() {
@@ -11,6 +11,7 @@ export default function DailyBriefing() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [activeSection, setActiveSection] = useState('executive-summary');
   const [briefingData, setBriefingData] = useState<string | null>(null);
+  const [sourcePosts, setSourcePosts] = useState<Post[]>([]); // Add state for actual posts
   const [briefingStats, setBriefingStats] = useState<{
     postsProcessed: number;
     totalFetched: number;
@@ -23,6 +24,7 @@ export default function DailyBriefing() {
     setError(null);
     setBriefingData(null);
     setBriefingStats(null);
+    setSourcePosts([]); // Clear previous posts
 
     try {
       console.log(`🚀 Generating briefing for date: ${selectedDate}`);
@@ -31,6 +33,7 @@ export default function DailyBriefing() {
       if (response.success && response.briefing) {
         console.log('✅ Briefing generated successfully');
         setBriefingData(response.briefing);
+        setSourcePosts(response.posts || []); // Store the actual posts
         setBriefingStats({
           postsProcessed: response.posts_processed || 0,
           totalFetched: response.total_posts_fetched || 0,
@@ -56,22 +59,24 @@ export default function DailyBriefing() {
     { id: 'geopolitical', title: 'Geopolitical Events', icon: Globe }
   ];
 
-  const executiveSummary = {
-    keyInsights: briefingData ? [
-      "AI-generated briefing successfully created from multiple intelligence sources",
-      `Processed ${briefingStats?.postsProcessed || 0} posts from ${briefingStats?.totalFetched || 0} total sources`,
-      "Mark I Foundation Engine operational and generating real-time intelligence",
-      "Integration between frontend and backend systems functioning properly"
-    ] : [
-      "Major security vulnerability discovered in popular React ecosystem affecting 2M+ weekly downloads",
-      "AI development tools showing 30-40% productivity improvements in enterprise environments", 
-      "TypeScript performance optimization discussions trending in developer communities",
-      "Cybersecurity investments correlating directly with AI adoption rates across industries"
-    ],
-    threatLevel: "Medium",
-    opportunities: briefingData ? briefingStats?.postsProcessed || 3 : 3,
-    criticalUpdates: briefingData ? Math.min(briefingStats?.postsProcessed || 2, 5) : 2
+  // Dynamic metrics based on actual data
+  const getDynamicMetrics = () => {
+    if (!briefingStats || !sourcePosts.length) {
+      return {
+        criticalUpdates: 0,
+        opportunities: 0,
+        threatLevel: "Unknown"
+      };
+    }
+
+    return {
+      criticalUpdates: Math.min(briefingStats.postsProcessed, 5), // Cap at 5 for realism
+      opportunities: Math.max(Math.floor(briefingStats.postsProcessed * 0.6), 1), // ~60% of posts as opportunities
+      threatLevel: briefingStats.postsProcessed > 5 ? "High" : briefingStats.postsProcessed > 2 ? "Medium" : "Low"
+    };
   };
+
+  const metrics = getDynamicMetrics();
 
   return (
     <div className="flex h-screen bg-gray-100">
@@ -245,7 +250,7 @@ export default function DailyBriefing() {
                       </div>
                       <h3 className="font-semibold text-gray-900">Critical Updates</h3>
                     </div>
-                    <div className="text-2xl font-bold text-red-600">{executiveSummary.criticalUpdates}</div>
+                    <div className="text-2xl font-bold text-red-600">{metrics.criticalUpdates}</div>
                     <p className="text-xs text-gray-500 mt-1">Requiring immediate attention</p>
                   </div>
 
@@ -256,7 +261,7 @@ export default function DailyBriefing() {
                       </div>
                       <h3 className="font-semibold text-gray-900">Opportunities</h3>
                     </div>
-                    <div className="text-2xl font-bold text-green-600">{executiveSummary.opportunities}</div>
+                    <div className="text-2xl font-bold text-green-600">{metrics.opportunities}</div>
                     <p className="text-xs text-gray-500 mt-1">Strategic opportunities identified</p>
                   </div>
 
@@ -267,7 +272,7 @@ export default function DailyBriefing() {
                       </div>
                       <h3 className="font-semibold text-gray-900">Threat Level</h3>
                     </div>
-                    <div className="text-2xl font-bold text-yellow-600">{executiveSummary.threatLevel}</div>
+                    <div className="text-2xl font-bold text-yellow-600">{metrics.threatLevel}</div>
                     <p className="text-xs text-gray-500 mt-1">Overall assessment</p>
                   </div>
                 </div>
@@ -314,19 +319,47 @@ export default function DailyBriefing() {
                   </div>
                 )}
 
-                {/* Key Insights */}
+                {/* Source Posts Section */}
                 <div className="bg-white border border-gray-200 rounded-lg p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Key Insights</h3>
-                  <div className="space-y-3">
-                    {executiveSummary.keyInsights.map((insight, index) => (
-                      <div key={index} className="flex items-start gap-3">
-                        <div className="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs font-bold mt-0.5">
-                          {index + 1}
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Source Intelligence Posts</h3>
+                  {sourcePosts.length > 0 ? (
+                    <div className="space-y-4">
+                      {sourcePosts.map((post, index) => (
+                        <div key={index} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex-1">
+                              <h4 className="font-medium text-gray-900 mb-1">
+                                {post.title || `${post.platform.toUpperCase()} Post`}
+                              </h4>
+                              <div className="flex items-center gap-4 text-sm text-gray-500 mb-2">
+                                <span>📡 {post.feed_title || post.source}</span>
+                                <span>📅 {new Date(post.date).toLocaleDateString()}</span>
+                                <span>🔗 {post.platform.toUpperCase()}</span>
+                              </div>
+                            </div>
+                            {post.url && (
+                              <a
+                                href={post.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-indigo-600 hover:text-indigo-800 transition-colors"
+                              >
+                                <ExternalLink className="w-4 h-4" />
+                              </a>
+                            )}
+                          </div>
+                          <div className="text-gray-700 text-sm leading-relaxed">
+                            <MarkdownRenderer content= {post.content} />
+                          </div>
                         </div>
-                        <p className="text-gray-800 leading-relaxed">{insight}</p>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-gray-500">
+                      <BarChart3 className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                      <p>No source posts available. Generate a briefing to see intelligence posts.</p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
