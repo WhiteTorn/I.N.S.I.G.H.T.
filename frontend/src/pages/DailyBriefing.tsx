@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { ChevronLeft, Download, Share2, Calendar, Clock, BarChart3, TrendingUp, Shield, Globe, Cpu, RefreshCw, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { apiService } from '../services/api';
 import type { BriefingResponse } from '../services/api';
+import MarkdownRenderer from '../components/ui/MarkdownRenderer';
 
 export default function DailyBriefing() {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
@@ -289,9 +290,7 @@ export default function DailyBriefing() {
                           Generated from {briefingStats?.totalFetched} sources • {briefingStats?.postsProcessed} posts processed
                         </div>
                       </div>
-                      <div className="whitespace-pre-wrap text-gray-800 leading-relaxed">
-                        {briefingData}
-                      </div>
+                      <MarkdownRenderer content={briefingData} />
                     </div>
                   </div>
                 ) : (
