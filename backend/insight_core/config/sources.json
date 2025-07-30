@@ -6,7 +6,7 @@
     },
     "platforms": {
         "telegram": {
-            "enabled": false,
+            "enabled": true,
             "sources": [
                 "ai_newz",
                 "llm_under_hood",
