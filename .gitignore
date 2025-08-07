@@ -10,6 +10,7 @@
 insight_debug.log
 __pycache__
 *.html
+!index.html
 youtube_transcript_https
 reddit_post_analysis_https
 !sources.json
