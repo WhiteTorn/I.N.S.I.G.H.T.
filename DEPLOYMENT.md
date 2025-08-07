@@ -23,11 +23,11 @@ Complete deployment guide for the INSIGHT Mark I Foundation Engine with sophisti
 
 ### 1. Start Backend (Terminal 1)
 ```bash
+# Install Python dependencies (if not done)
+pip install -r requirements.txt
+
 # Navigate to backend directory
 cd backend
-
-# Install Python dependencies (if not done)
-pip install -r ../requirements.txt
 
 # Start the API server
 python start_api.py
