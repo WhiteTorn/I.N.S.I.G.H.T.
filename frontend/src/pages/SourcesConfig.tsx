@@ -15,6 +15,31 @@ export default function SourcesConfig() {
   const [dirty, setDirty] = useState(false);
   const navigate = useNavigate();
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [pulsing, setPulsing] = useState<Record<string, boolean>>({});
+
+  const EXPANDED_KEY = 'insight.sources.expanded';
+
+  const loadExpanded = (keys: string[]): Record<string, boolean> => {
+    try {
+      const raw = typeof window !== 'undefined' ? localStorage.getItem(EXPANDED_KEY) : null;
+      const parsed: Record<string, boolean> | null = raw ? JSON.parse(raw) : null;
+      const obj: Record<string, boolean> = {};
+      keys.forEach((k) => {
+        obj[k] = parsed && typeof parsed[k] === 'boolean' ? parsed[k] : true; // default expanded
+      });
+      return obj;
+    } catch {
+      const obj: Record<string, boolean> = {};
+      keys.forEach((k) => (obj[k] = true));
+      return obj;
+    }
+  };
+
+  const saveExpanded = (obj: Record<string, boolean>) => {
+    try {
+      if (typeof window !== 'undefined') localStorage.setItem(EXPANDED_KEY, JSON.stringify(obj));
+    } catch {}
+  };
 
   useEffect(() => {
     let mounted = true;
@@ -37,12 +62,11 @@ export default function SourcesConfig() {
 
   useEffect(() => {
     // Initialize expanded state when config loads
-    if (platforms.length && Object.keys(expanded).length === 0) {
-      const init: Record<string, boolean> = {};
-      platforms.forEach((p) => { init[p] = true; });
+    if (platforms.length) {
+      const init = loadExpanded(platforms as string[]);
       setExpanded(init);
     }
-  }, [platforms]);
+  }, [platforms.length]);
 
   const platformIcon: Record<string, ReactNode> = {
     rss: <Rss className="w-5 h-5" />,
@@ -205,16 +229,50 @@ export default function SourcesConfig() {
               <span className="text-sm">Validated configuration</span>
             </div>
             <div className="flex items-center gap-3">
-              <span className="inline-flex items-center gap-2 text-xs bg-gray-100 text-gray-700 px-3 py-1.5 rounded-md border border-gray-200">All sources: <strong className="text-gray-900">{totalSources}</strong></span>
-              <span className="inline-flex items-center gap-2 text-xs bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-md border border-indigo-200">Enabled sources: <strong className="text-indigo-900">{enabledSourcesCount}</strong></span>
+              <span className="inline-flex items-center gap-2 text-xs bg-gray-100 text-gray-700 px-3 py-1.5 rounded-md border border-gray-200">All: <strong className="text-gray-900">{totalSources}</strong></span>
+              <span className="inline-flex items-center gap-2 text-xs bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-md border border-indigo-200">Enabled: <strong className="text-indigo-900">{enabledSourcesCount}</strong></span>
             </div>
+          </div>
+        </div>
+
+        {/* Platform Dock (macOS-like) */}
+        <div className="flex justify-center mb-6">
+          <div className="flex items-end gap-3 px-4 py-2 rounded-2xl bg-white/80 backdrop-blur border border-gray-200 shadow-lg">
+            {platforms.map((platform) => {
+              const enabled = config.platforms[platform].enabled;
+              const ringClass = enabled ? 'ring-2 ring-green-400 bg-green-50' : 'ring-1 ring-gray-200 bg-gray-50';
+              const pulseClass = pulsing[platform] ? 'animate-pulse' : '';
+              return (
+                <button
+                  key={`dock-${platform}`}
+                  onClick={() => {
+                    // Expand and persist
+                    const next = { ...expanded, [platform]: true };
+                    setExpanded(next);
+                    saveExpanded(next);
+                    // Pulse
+                    setPulsing((prev) => ({ ...prev, [platform]: true }));
+                    setTimeout(() => setPulsing((prev) => ({ ...prev, [platform]: false })), 600);
+                    // Scroll to card
+                    const el = document.getElementById(`platform-${platform}`);
+                    el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }}
+                  className={`relative h-12 w-12 rounded-xl flex items-center justify-center transition-transform duration-200 hover:-translate-y-1 hover:scale-105 ${ringClass} ${pulseClass}`}
+                  title={platform}
+                >
+                  <span className={`${enabled ? 'text-green-700' : 'text-gray-600'}`}>
+                    {platformIcon[platform] || <MessageSquare className="w-5 h-5" />}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
         {/* Platforms */}
         <div className="space-y-6">
           {platforms.map((platform) => (
-            <div key={platform} className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+            <div key={platform} id={`platform-${platform}`} className="bg-white border border-gray-200 rounded-lg overflow-hidden">
               <div className="flex items-center justify-between p-4 border-b border-gray-200">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-md bg-gray-100 text-gray-700 flex items-center justify-center">
@@ -227,7 +285,7 @@ export default function SourcesConfig() {
                 </div>
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => setExpanded((prev) => ({ ...prev, [platform]: !prev[platform] }))}
+                    onClick={() => setExpanded((prev) => { const next = { ...prev, [platform]: !prev[platform] }; saveExpanded(next); return next; })}
                     className="inline-flex items-center gap-1 px-2 py-1.5 rounded-md text-sm border border-gray-300 hover:bg-gray-50"
                     title={expanded[platform] ? 'Collapse' : 'Expand'}
                   >
