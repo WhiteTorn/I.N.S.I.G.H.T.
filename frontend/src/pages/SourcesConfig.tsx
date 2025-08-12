@@ -3,12 +3,17 @@ import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiService } from '../services/api';
 import type { SourceConfig } from '../types';
-import { CheckCircle2, ChevronLeft, Loader2, Plus, Save, Trash2, Rss, Youtube, Send, MessageSquare, ChevronDown, ChevronRight, Download as DownloadIcon, ExternalLink, FileText } from 'lucide-react';
+import { Loader2, Save, Plus, Trash2, ChevronLeft, ChevronDown, ChevronRight, Rss, Youtube, Send, MessageSquare, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 
 type PlatformKey = keyof SourceConfig['platforms'];
 
-export default function SourcesConfig() {
+type SourcesConfigProps = {
+  embedded?: boolean;
+  onClose?: () => void;
+};
+
+export default function SourcesConfig({ embedded = false, onClose }: SourcesConfigProps) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [config, setConfig] = useState<SourceConfig | null>(null);
@@ -170,7 +175,7 @@ export default function SourcesConfig() {
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center text-gray-600">
+      <div className={`flex ${embedded ? 'h-48' : 'h-screen'} items-center justify-center text-gray-600`}>
         <Loader2 className="w-5 h-5 mr-2 animate-spin" /> Loading configuration...
       </div>
     );
@@ -178,40 +183,53 @@ export default function SourcesConfig() {
 
   if (!config) {
     return (
-      <div className="flex h-screen items-center justify-center text-red-600">
+      <div className={`flex ${embedded ? 'h-48' : 'h-screen'} items-center justify-center text-red-600`}>
         Failed to load configuration
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <div className="max-w-5xl mx-auto p-8">
-        {/* Back link */}
-        <div className="mb-3">
-          <button
-            type="button"
-            onClick={() => {
-              if (window.history.length > 1) navigate(-1);
-              else navigate('/briefing');
-            }}
-            className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 transition-colors"
-          >
-            <ChevronLeft className="w-4 h-4 mr-1" /> Back to Briefing
-          </button>
-        </div>
+    <div className={embedded ? "bg-gray-100" : "min-h-screen bg-gray-100"}>
+      <div className={embedded ? "max-w-5xl mx-auto p-6" : "max-w-5xl mx-auto p-8"}>
+        {/* Back link (hidden when embedded) */}
+  {!embedded && (
+          <div className="mb-3">
+            <button
+              type="button"
+              onClick={() => {
+                if (window.history.length > 1) navigate(-1);
+                else navigate('/briefing');
+              }}
+              className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 transition-colors"
+            >
+              <ChevronLeft className="w-4 h-4 mr-1" /> Back to Briefing
+            </button>
+          </div>
+        )}
 
         {/* Title and Save */}
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-bold text-gray-900">Sources Configuration</h1>
-          <button
-            onClick={onSave}
-            disabled={!dirty || saving}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50"
-          >
-            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            Save Changes
-          </button>
+          <div className="flex items-center gap-2">
+            {embedded && (
+              <button
+                onClick={onClose}
+                className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-300 bg-white hover:bg-gray-50"
+                title="Close"
+              >
+                Close
+              </button>
+            )}
+            <button
+              onClick={onSave}
+              disabled={!dirty || saving}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50"
+            >
+              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+              Save Changes
+            </button>
+          </div>
         </div>
 
         {/* Global Actions */}
@@ -247,8 +265,8 @@ export default function SourcesConfig() {
         </div>
 
         {/* Summary Card */}
-  <div className="bg-white border border-gray-200 rounded-lg p-6 mb-4">
-          <div className="grid md:grid-cols-4 gap-6 items-start">
+        <div className="bg-white border border-gray-200 rounded-lg p-6 mb-4">
+          <div className="grid md:grid-cols-3 gap-6 items-start">
             <div>
               <h3 className="text-sm font-medium text-gray-900">Project</h3>
               <p className="text-sm text-gray-700">{config.metadata.name}</p>
@@ -256,10 +274,6 @@ export default function SourcesConfig() {
             <div>
               <h3 className="text-sm font-medium text-gray-900">Version</h3>
               <p className="text-sm text-gray-700">{config.metadata.version}</p>
-            </div>
-            <div className="flex items-center gap-2 text-green-700 bg-green-50 border border-green-200 rounded-md px-3 py-1.5">
-              <CheckCircle2 className="w-4 h-4" />
-              <span className="text-sm">Validated configuration</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="inline-flex items-center gap-2 text-sm bg-gray-50 text-gray-700 px-3 py-2 rounded-md border border-gray-200">
@@ -327,21 +341,7 @@ export default function SourcesConfig() {
                   >
                     {expanded[platform] ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                   </button>
-                  <button
-                    onClick={() => {
-                      if (!navigator.clipboard) {
-                        toast.error('Clipboard not available');
-                        return;
-                      }
-                      const txt = (config.platforms[platform].sources || []).join('\n');
-                      navigator.clipboard.writeText(txt).then(() => toast.success('Exported to clipboard'));
-                    }}
-                    className="inline-flex items-center gap-1 px-2 py-1.5 rounded-md text-sm border border-gray-300 hover:bg-gray-50"
-                    title="Export sources"
-                  >
-                    <DownloadIcon className="w-4 h-4" />
-                    Export
-                  </button>
+                  {/* Export removed per request */}
                   <button
                     onClick={() => setBulkEdit({ platform: String(platform), text: config.platforms[platform].sources.join('\n') })}
                     className="inline-flex items-center gap-1 px-2 py-1.5 rounded-md text-sm border border-gray-300 hover:bg-gray-50"

@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
 import { ChevronLeft, Download, Share2, Calendar, Clock, BarChart3, TrendingUp, Shield, Globe, Cpu, RefreshCw, AlertCircle, CheckCircle2, ExternalLink, Settings } from 'lucide-react';
+import SourcesConfig from './SourcesConfig';
 import { apiService } from '../services/api';
 import type { BriefingResponse, Post } from '../services/api';
 import MarkdownRenderer from '../components/ui/MarkdownRenderer';
@@ -18,6 +19,7 @@ export default function DailyBriefing() {
     date: string;
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Inline sections-only experience; sources config is a first-class section now
 
   const handleGenerateBriefing = async () => {
     setIsGenerating(true);
@@ -56,7 +58,8 @@ export default function DailyBriefing() {
     { id: 'technology', title: 'Technology Sector', icon: Cpu },
     { id: 'security', title: 'Security Updates', icon: Shield },
     { id: 'markets', title: 'Market Analysis', icon: TrendingUp },
-    { id: 'geopolitical', title: 'Geopolitical Events', icon: Globe }
+    { id: 'geopolitical', title: 'Geopolitical Events', icon: Globe },
+    { id: 'configure-sources', title: 'Configure Sources', icon: Settings },
   ];
 
   // Dynamic metrics based on actual data
@@ -200,13 +203,13 @@ export default function DailyBriefing() {
               <Share2 className="w-4 h-4" />
               Share Briefing
             </button>
-            <Link 
-              to="/settings/sources"
+            <button 
+              onClick={() => setActiveSection('configure-sources')}
               className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
             >
               <Settings className="w-4 h-4" />
               Configure Sources
-            </Link>
+            </button>
           </div>
         </div>
       </div>
@@ -372,8 +375,17 @@ export default function DailyBriefing() {
             </div>
           )}
 
-          {/* Section Content Placeholder */}
-          {activeSection !== 'executive-summary' && (
+          {/* Configure Sources Section */}
+          {activeSection === 'configure-sources' && (
+            <div className="space-y-8">
+              <div>
+                <SourcesConfig embedded />
+              </div>
+            </div>
+          )}
+
+          {/* Placeholder for other sections */}
+          {activeSection !== 'executive-summary' && activeSection !== 'configure-sources' && (
             <div className="bg-white border border-gray-200 rounded-lg p-8 text-center">
               <div className="mb-4">
                 {briefingSections.find(s => s.id === activeSection)?.icon && (
@@ -398,6 +410,8 @@ export default function DailyBriefing() {
           )}
         </div>
       </div>
+
+  {/* No modal; sources config is embedded as a section */}
     </div>
   );
 } 
