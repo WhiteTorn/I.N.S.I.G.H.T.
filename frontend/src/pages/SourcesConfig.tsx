@@ -16,6 +16,7 @@ export default function SourcesConfig() {
   const navigate = useNavigate();
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [pulsing, setPulsing] = useState<Record<string, boolean>>({});
+  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
 
   const EXPANDED_KEY = 'insight.sources.expanded';
 
@@ -229,19 +230,28 @@ export default function SourcesConfig() {
               <span className="text-sm">Validated configuration</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 text-xs bg-gray-50 text-gray-700 px-2.5 py-1 rounded-md border border-gray-200">All: <strong className="text-gray-900">{totalSources}</strong></span>
-              <span className="inline-flex items-center gap-1.5 text-xs bg-green-50 text-green-700 px-2.5 py-1 rounded-md border border-green-200">Enabled: <strong className="text-green-900">{enabledSourcesCount}</strong></span>
+              <span className="inline-flex items-center gap-2 text-sm bg-gray-50 text-gray-700 px-3 py-2 rounded-md border border-gray-200">
+                All:
+                <strong className="text-gray-900 text-base">{totalSources}</strong>
+              </span>
+              <span className="inline-flex items-center gap-2 text-sm bg-green-50 text-green-700 px-3 py-2 rounded-md border border-green-200">
+                Enabled:
+                <strong className="text-green-900 text-base">{enabledSourcesCount}</strong>
+              </span>
             </div>
           </div>
         </div>
 
         {/* Platform Dock (macOS-like) */}
         <div className="flex justify-center mb-4">
-          <div className="flex items-end gap-2 px-3 py-1.5 rounded-2xl bg-white/80 backdrop-blur border border-gray-200 shadow-md">
-            {platforms.map((platform) => {
+          <div className="flex items-end gap-1.5 px-3 py-1.5 rounded-2xl bg-white/80 backdrop-blur border border-gray-200 shadow-md">
+            {platforms.map((platform, idx) => {
               const enabled = config.platforms[platform].enabled;
               const ringClass = enabled ? 'ring ring-green-400 bg-green-50' : 'ring ring-gray-200 bg-gray-50';
               const pulseClass = pulsing[platform] ? 'scale-95' : '';
+              const dist = hoveredIdx === null ? 99 : Math.abs((hoveredIdx as number) - idx);
+              const scale = dist === 0 ? 1.15 : dist === 1 ? 1.08 : dist === 2 ? 1.03 : 1;
+              const translateY = dist === 0 ? -2 : 0;
               return (
                 <button
                   key={`dock-${platform}`}
@@ -257,8 +267,14 @@ export default function SourcesConfig() {
                     const el = document.getElementById(`platform-${platform}`);
                     el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                   }}
-                  className={`relative h-9 w-9 rounded-lg flex items-center justify-center transform transition-transform duration-150 hover:-translate-y-0.5 hover:scale-105 ${ringClass} ${pulseClass}`}
-                  title={platform}
+                  onMouseEnter={() => setHoveredIdx(idx)}
+                  onMouseLeave={() => setHoveredIdx(null)}
+                  className={`relative h-9 w-9 rounded-lg flex items-center justify-center transform transition-transform duration-150 ${ringClass} ${pulseClass}`}
+                  style={{
+                    transform: `translateY(${translateY}px) scale(${scale})`,
+                    marginInline: dist <= 1 ? '0.2rem' : '0rem',
+                  }}
+                  title={String(platform)}
                 >
                   <span className={`${enabled ? 'text-green-700' : 'text-gray-600'}`}>
                     {platformIcon[platform] || <MessageSquare className="w-5 h-5" />}
