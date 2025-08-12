@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiService } from '../services/api';
 import type { SourceConfig } from '../types';
-import { CheckCircle2, ChevronLeft, Loader2, Plus, Save, Trash2, Rss, Youtube, Send, MessageSquare, ChevronDown, ChevronRight, Upload, Download as DownloadIcon, GripVertical } from 'lucide-react';
+import { CheckCircle2, ChevronLeft, Loader2, Plus, Save, Trash2, Rss, Youtube, Send, MessageSquare, ChevronDown, ChevronRight, Upload, Download as DownloadIcon } from 'lucide-react';
 import { toast } from 'sonner';
 
 type PlatformKey = keyof SourceConfig['platforms'];
@@ -16,7 +16,6 @@ export default function SourcesConfig() {
   const navigate = useNavigate();
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [pulsing] = useState<Record<string, boolean>>({});
-  const [dragInfo, setDragInfo] = useState<{ platform: string; from: number } | null>(null);
 
   const EXPANDED_KEY = 'insight.sources.expanded';
 
@@ -276,11 +275,11 @@ export default function SourcesConfig() {
 
         {/* Platform Dock (macOS-like) */}
         <div className="flex justify-center mb-4">
-          <div className="flex items-center gap-3 px-4 py-2 rounded-2xl bg-white/80 backdrop-blur border border-gray-200 shadow-md">
+      <div className="flex items-center gap-3 px-4 py-2 rounded-2xl bg-white/80 backdrop-blur border border-gray-200 shadow-md">
             {platforms.map((platform) => {
               const enabled = config.platforms[platform].enabled;
               const ringClass = enabled ? 'ring ring-green-400 bg-green-50' : 'ring ring-gray-200 bg-gray-50';
-              const pulseClass = '';
+        const pulseClass = '';
               return (
                 <button
                   key={`dock-${platform}`}
@@ -293,7 +292,7 @@ export default function SourcesConfig() {
                     const el = document.getElementById(`platform-${platform}`);
                     el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                   }}
-                  className={`relative h-10 w-10 rounded-xl flex items-center justify-center ${ringClass} ${pulseClass}`}
+          className={`relative h-10 w-10 rounded-xl flex items-center justify-center ${ringClass} ${pulseClass} shadow-sm hover:shadow-lg transition-shadow duration-150`}
                   title={String(platform)}
                 >
                   <span className={`${enabled ? 'text-green-700' : 'text-gray-600'}`}>
@@ -386,31 +385,9 @@ export default function SourcesConfig() {
                   </div>
                   <div className="space-y-2">
                     {config.platforms[platform].sources.map((src, idx) => (
-                      <div
-                        key={idx}
-                        className="flex items-center gap-2"
-                        draggable
-                        onDragStart={() => setDragInfo({ platform: String(platform), from: idx })}
-                        onDragOver={(e) => e.preventDefault()}
-                        onDrop={() => {
-                          if (!dragInfo || dragInfo.platform !== String(platform)) return;
-                          const list = [...config.platforms[platform].sources];
-                          const [moved] = list.splice(dragInfo.from, 1);
-                          list.splice(idx, 0, moved);
-                          const next = { ...config } as SourceConfig;
-                          next.platforms[platform].sources = list;
-                          setConfig(next);
-                          setDirty(true);
-                          setDragInfo(null);
-                        }}
-                        onDragEnd={() => setDragInfo(null)}
-                        title="Drag to reorder"
-                      >
+                      <div key={idx} className="flex items-center gap-2">
                         <span className="inline-flex items-center justify-center w-7 h-9 rounded-md bg-gray-100 text-gray-700 border border-gray-200 font-mono text-xs">
                           {idx + 1}
-                        </span>
-                        <span className="inline-flex items-center justify-center w-6 h-9 text-gray-400">
-                          <GripVertical className="w-3.5 h-3.5" />
                         </span>
                         <input
                           value={src}
