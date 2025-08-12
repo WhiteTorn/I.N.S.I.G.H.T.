@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { apiService } from '../services/api';
 import type { SourceConfig } from '../types';
 import { CheckCircle2, ChevronLeft, Loader2, Plus, Save, Trash2 } from 'lucide-react';
@@ -12,6 +12,7 @@ export default function SourcesConfig() {
   const [saving, setSaving] = useState(false);
   const [config, setConfig] = useState<SourceConfig | null>(null);
   const [dirty, setDirty] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     let mounted = true;
@@ -135,9 +136,17 @@ export default function SourcesConfig() {
       <div className="max-w-5xl mx-auto p-6">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <Link to="/" className="text-gray-600 hover:text-gray-900 inline-flex items-center">
+            <button
+              type="button"
+              onClick={() => {
+                // Try history back; if none, go to briefing
+                if (window.history.length > 1) navigate(-1);
+                else navigate('/briefing');
+              }}
+              className="text-gray-600 hover:text-gray-900 inline-flex items-center"
+            >
               <ChevronLeft className="w-4 h-4 mr-1" /> Back
-            </Link>
+            </button>
             <h1 className="text-2xl font-semibold text-gray-900">Sources Configuration</h1>
           </div>
           <button
