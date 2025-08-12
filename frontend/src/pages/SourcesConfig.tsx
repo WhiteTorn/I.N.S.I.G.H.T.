@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiService } from '../services/api';
 import type { SourceConfig } from '../types';
-import { CheckCircle2, ChevronLeft, Loader2, Plus, Save, Trash2, Rss, Youtube, Send, MessageSquare, ChevronDown, ChevronRight, Upload, Download as DownloadIcon } from 'lucide-react';
+import { CheckCircle2, ChevronLeft, Loader2, Plus, Save, Trash2, Rss, Youtube, Send, MessageSquare, ChevronDown, ChevronRight, Download as DownloadIcon, ExternalLink, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 
 type PlatformKey = keyof SourceConfig['platforms'];
@@ -16,6 +16,7 @@ export default function SourcesConfig() {
   const navigate = useNavigate();
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [pulsing] = useState<Record<string, boolean>>({});
+  const [bulkEdit, setBulkEdit] = useState<{ platform: string; text: string } | null>(null);
 
   const EXPANDED_KEY = 'insight.sources.expanded';
 
@@ -342,22 +343,12 @@ export default function SourcesConfig() {
                     Export
                   </button>
                   <button
-                    onClick={() => {
-                      const input = window.prompt('Paste sources (one per line):');
-                      if (!input) return;
-                      const lines = input.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
-                      if (!lines.length) return;
-                      const next = { ...config } as SourceConfig;
-                      next.platforms[platform].sources = [...next.platforms[platform].sources, ...lines];
-                      setConfig(next);
-                      setDirty(true);
-                      toast.success(`Imported ${lines.length} sources`);
-                    }}
+                    onClick={() => setBulkEdit({ platform: String(platform), text: config.platforms[platform].sources.join('\n') })}
                     className="inline-flex items-center gap-1 px-2 py-1.5 rounded-md text-sm border border-gray-300 hover:bg-gray-50"
-                    title="Import sources"
+                    title="Bulk edit sources"
                   >
-                    <Upload className="w-4 h-4" />
-                    Import
+                    <FileText className="w-4 h-4" />
+                    Bulk Edit
                   </button>
                   <button
                     onClick={() => togglePlatform(platform)}
@@ -414,6 +405,41 @@ export default function SourcesConfig() {
           ))}
         </div>
       </div>
+      {/* Bulk Editor Modal */}
+      {bulkEdit && (
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
+          <div className="bg-white w-full max-w-2xl rounded-lg border border-gray-200 shadow-xl p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold text-gray-900">Bulk Edit – {bulkEdit.platform}</h3>
+              <button className="text-gray-600 hover:text-gray-900" onClick={() => setBulkEdit(null)}>✕</button>
+            </div>
+            <textarea
+              className="w-full h-64 border border-gray-300 rounded-md p-3 font-mono text-sm"
+              value={bulkEdit.text}
+              onChange={(e) => setBulkEdit({ ...bulkEdit, text: e.target.value })}
+              placeholder="One source per line"
+            />
+            <div className="mt-3 flex items-center justify-end gap-2">
+              <button className="px-3 py-1.5 rounded-md border border-gray-300" onClick={() => setBulkEdit(null)}>Cancel</button>
+              <button
+                className="px-3 py-1.5 rounded-md bg-indigo-600 text-white"
+                onClick={() => {
+                  if (!config) return;
+                  const lines = bulkEdit.text.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+                  const next = { ...config } as SourceConfig;
+                  next.platforms[bulkEdit.platform].sources = lines;
+                  setConfig(next);
+                  setDirty(true);
+                  setBulkEdit(null);
+                  toast.success('Sources updated');
+                }}
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
