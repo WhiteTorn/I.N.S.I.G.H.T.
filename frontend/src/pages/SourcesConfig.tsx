@@ -212,15 +212,6 @@ export default function SourcesConfig({ embedded = false, onClose }: SourcesConf
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-bold text-gray-900">Sources Configuration</h1>
           <div className="flex items-center gap-2">
-            {embedded && (
-              <button
-                onClick={onClose}
-                className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-300 bg-white hover:bg-gray-50"
-                title="Close"
-              >
-                Close
-              </button>
-            )}
             <button
               onClick={onSave}
               disabled={!dirty || saving}
