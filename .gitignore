@@ -17,3 +17,6 @@ reddit_post_analysis_https
 !.env.example
 !package.json
 insight_session.session
+venv
+.venv
+.venv/
