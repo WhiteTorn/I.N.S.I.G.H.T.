@@ -124,10 +124,10 @@ export default function NavigationPanel({ className = "" }: NavigationPanelProps
 
       {/* Settings Footer */}
       <div className="border-t border-gray-200 pt-4">
-        <button className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors duration-200">
+        <a href="/settings/sources" className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors duration-200">
           <Settings className="w-4 h-4" />
-          <span>Settings</span>
-        </button>
+          <span>Sources</span>
+        </a>
       </div>
     </div>
   );

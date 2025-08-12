@@ -21,6 +21,13 @@ export default function Index() {
           >
             Access Daily Briefing
           </Link>
+
+          <Link 
+            to="/settings/sources" 
+            className="block w-full p-3 bg-card text-foreground border border-border rounded-lg text-center hover:bg-accent transition-colors"
+          >
+            Configure Sources
+          </Link>
         </div>
       </div>
       

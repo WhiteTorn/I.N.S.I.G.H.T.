@@ -1,5 +1,7 @@
 // API service for INSIGHT backend communication
-const API_BASE_URL = 'http://localhost:8000';
+// Use relative base by default (Vite dev proxy will forward /api to backend). Override with VITE_API_URL in production.
+const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || '';
+import type { SourceConfig } from '../types';
 
 export interface BriefingRequest {
   date: string; // Format: "YYYY-MM-DD"
@@ -93,6 +95,22 @@ class ApiService {
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to fetch sources'
+      };
+    }
+  }
+
+  async updateSources(config: SourceConfig): Promise<SourceStats> {
+    try {
+      const response = await this.makeRequest<SourceStats>('/api/sources', {
+        method: 'POST',
+        body: JSON.stringify(config),
+      });
+      return response;
+    } catch (error) {
+      console.error('Failed to update sources:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to update sources'
       };
     }
   }
