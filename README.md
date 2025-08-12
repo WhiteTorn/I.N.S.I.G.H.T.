@@ -13,3 +13,11 @@ For Telegram RSS use:
 
 For Twitter RSS use:
 - https://github.com/sekai-soft/guide-nitter-self-hosting
+
+## Installation
+
+```
+cp .env.example .env
+```
+
+Edit the `.env` file with actual credentials
