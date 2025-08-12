@@ -59,7 +59,6 @@ export default function DailyBriefing() {
     { id: 'security', title: 'Security Updates', icon: Shield },
     { id: 'markets', title: 'Market Analysis', icon: TrendingUp },
     { id: 'geopolitical', title: 'Geopolitical Events', icon: Globe },
-    { id: 'configure-sources', title: 'Configure Sources', icon: Settings },
   ];
 
   // Dynamic metrics based on actual data
@@ -205,7 +204,11 @@ export default function DailyBriefing() {
             </button>
             <button 
               onClick={() => setActiveSection('configure-sources')}
-              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${
+                activeSection === 'configure-sources'
+                  ? 'bg-indigo-50 text-indigo-900 border border-indigo-200'
+                  : 'text-gray-700 hover:bg-gray-100'
+              }`}
             >
               <Settings className="w-4 h-4" />
               Configure Sources
