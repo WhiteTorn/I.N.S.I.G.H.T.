@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { apiService } from '../services/api';
 import type { SourceConfig } from '../types';
 import { CheckCircle2, ChevronLeft, Loader2, Plus, Save, Trash2, Rss, Youtube, Send, MessageSquare, ChevronDown, ChevronRight } from 'lucide-react';
@@ -214,7 +214,7 @@ export default function SourcesConfig() {
         </div>
 
         {/* Summary Card */}
-        <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
+  <div className="bg-white border border-gray-200 rounded-lg p-6 mb-4">
           <div className="grid md:grid-cols-4 gap-6 items-start">
             <div>
               <h3 className="text-sm font-medium text-gray-900">Project</h3>
@@ -224,24 +224,24 @@ export default function SourcesConfig() {
               <h3 className="text-sm font-medium text-gray-900">Version</h3>
               <p className="text-sm text-gray-700">{config.metadata.version}</p>
             </div>
-            <div className="flex items-center gap-2 text-green-700 bg-green-50 border border-green-200 rounded-md px-3 py-2">
+            <div className="flex items-center gap-2 text-green-700 bg-green-50 border border-green-200 rounded-md px-3 py-1.5">
               <CheckCircle2 className="w-4 h-4" />
               <span className="text-sm">Validated configuration</span>
             </div>
-            <div className="flex items-center gap-3">
-              <span className="inline-flex items-center gap-2 text-xs bg-gray-100 text-gray-700 px-3 py-1.5 rounded-md border border-gray-200">All: <strong className="text-gray-900">{totalSources}</strong></span>
-              <span className="inline-flex items-center gap-2 text-xs bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-md border border-indigo-200">Enabled: <strong className="text-indigo-900">{enabledSourcesCount}</strong></span>
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 text-xs bg-gray-50 text-gray-700 px-2.5 py-1 rounded-md border border-gray-200">All: <strong className="text-gray-900">{totalSources}</strong></span>
+              <span className="inline-flex items-center gap-1.5 text-xs bg-green-50 text-green-700 px-2.5 py-1 rounded-md border border-green-200">Enabled: <strong className="text-green-900">{enabledSourcesCount}</strong></span>
             </div>
           </div>
         </div>
 
         {/* Platform Dock (macOS-like) */}
-        <div className="flex justify-center mb-6">
-          <div className="flex items-end gap-3 px-4 py-2 rounded-2xl bg-white/80 backdrop-blur border border-gray-200 shadow-lg">
+        <div className="flex justify-center mb-4">
+          <div className="flex items-end gap-2 px-3 py-1.5 rounded-2xl bg-white/80 backdrop-blur border border-gray-200 shadow-md">
             {platforms.map((platform) => {
               const enabled = config.platforms[platform].enabled;
-              const ringClass = enabled ? 'ring-2 ring-green-400 bg-green-50' : 'ring-1 ring-gray-200 bg-gray-50';
-              const pulseClass = pulsing[platform] ? 'animate-pulse' : '';
+              const ringClass = enabled ? 'ring ring-green-400 bg-green-50' : 'ring ring-gray-200 bg-gray-50';
+              const pulseClass = pulsing[platform] ? 'scale-95' : '';
               return (
                 <button
                   key={`dock-${platform}`}
@@ -250,14 +250,14 @@ export default function SourcesConfig() {
                     const next = { ...expanded, [platform]: true };
                     setExpanded(next);
                     saveExpanded(next);
-                    // Pulse
+                    // Subtle pulse
                     setPulsing((prev) => ({ ...prev, [platform]: true }));
-                    setTimeout(() => setPulsing((prev) => ({ ...prev, [platform]: false })), 600);
+                    setTimeout(() => setPulsing((prev) => ({ ...prev, [platform]: false })), 250);
                     // Scroll to card
                     const el = document.getElementById(`platform-${platform}`);
                     el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                   }}
-                  className={`relative h-12 w-12 rounded-xl flex items-center justify-center transition-transform duration-200 hover:-translate-y-1 hover:scale-105 ${ringClass} ${pulseClass}`}
+                  className={`relative h-9 w-9 rounded-lg flex items-center justify-center transform transition-transform duration-150 hover:-translate-y-0.5 hover:scale-105 ${ringClass} ${pulseClass}`}
                   title={platform}
                 >
                   <span className={`${enabled ? 'text-green-700' : 'text-gray-600'}`}>
