@@ -10,15 +10,24 @@ import os
 import importlib
 import inspect
 from typing import Dict, List, Optional, Type
-from dotenv import load_dotenv
+from dotenv import load_dotenv, find_dotenv
 
 from ..logs.core.logger_config import get_component_logger
 from ..config.config_manager import ConfigManager
 
 # __all__ = ['BaseConnector', 'TelegramConnector', 'RssConnector', 'YouTubeConnector', 'RedditConnector'] 
 
-# Load environment variables
-load_dotenv()
+# Load environment variables from nearest .env (project root) if available
+try:
+    dotenv_path = find_dotenv()
+    if dotenv_path:
+        load_dotenv(dotenv_path=dotenv_path, override=False)
+    else:
+        # Fallback to default behavior
+        load_dotenv()
+except Exception:
+    # If dotenv isn't available or fails, continue; env vars may be provided by the host
+    pass
 
 # Initialize logger for connector management
 logger = get_component_logger('connector_package')

@@ -98,7 +98,9 @@ class MarkIFoundationEngine:
                         "posts": day_posts  # Add the actual posts for the specific day
                     }
                 else:
-                    return {"error": "Failed to setup connector"}
+                    return {
+                        "error": "AI processor setup failed: GEMINI_API_KEY missing or invalid. Set GEMINI_API_KEY in your environment (.env) and restart the server."
+                    }
                 
             except Exception as e:
                 return {"error": f"Briefing Generation Error: {e}"}

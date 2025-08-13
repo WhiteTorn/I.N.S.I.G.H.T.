@@ -7,6 +7,7 @@ Starts the FastAPI server with Mark I Foundation Engine integration
 import uvicorn
 import sys
 import os
+from dotenv import load_dotenv, find_dotenv
 
 # Add the backend directory to the Python path
 backend_path = os.path.dirname(os.path.abspath(__file__))
@@ -14,6 +15,14 @@ sys.path.insert(0, backend_path)
 
 def start_server():
     """Start the INSIGHT API server"""
+    # Ensure environment variables from the project root .env are loaded
+    try:
+        dotenv_path = find_dotenv()
+        if dotenv_path:
+            load_dotenv(dotenv_path=dotenv_path, override=False)
+    except Exception:
+        # Non-fatal if .env isn't present; connectors may load their own
+        pass
     print("🚀 Starting INSIGHT Intelligence Platform API...")
     print("📡 Frontend URL: http://localhost:5173")
     print("🔧 Backend URL: http://localhost:8000")
