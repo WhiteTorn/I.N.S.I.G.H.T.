@@ -20,7 +20,11 @@ export interface BriefingResponse {
 export interface Post {
   title?: string;
   content: string;
-  date: string;
+  // When available (e.g., RSS), original HTML content of the post
+  // Prefer this for richer rendering; fall back to `content` (plain text)
+  content_html?: string;
+  // Some connectors may omit or fail to serialize a date; treat as optional
+  date?: string | null;
   source: string;
   platform: string;
   url?: string;

@@ -2,6 +2,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import rehypeSanitize from 'rehype-sanitize';
+import { defaultSchema } from 'hast-util-sanitize';
 
 interface MarkdownRendererProps {
   content: string;
@@ -16,9 +17,42 @@ export default function MarkdownRenderer({ content, className = "" }: MarkdownRe
   return (
     <div className={`markdown-content ${className}`}>
       <ReactMarkdown
+        // Enable GFM and treat single newlines as breaks
         remarkPlugins={[remarkGfm]}
-        rehypePlugins={[rehypeRaw, rehypeSanitize]}
+        rehypePlugins={[
+          rehypeRaw,
+          [
+            rehypeSanitize,
+            {
+              ...defaultSchema,
+              attributes: {
+                ...defaultSchema.attributes,
+                a: [
+                  ...(defaultSchema.attributes?.a || []),
+                  ['href'],
+                  ['target'],
+                  ['rel'],
+                ],
+                img: [
+                  ['src'],
+                  ['alt'],
+                  ['title'],
+                  ['width'],
+                  ['height'],
+                ],
+              },
+            },
+          ],
+        ]}
+  skipHtml={false}
+        // Render soft line breaks as actual <br/>
         components={{
+          // Custom paragraph to preserve single line breaks from plain text sources
+          p: ({ children }) => (
+            <p className="text-gray-800 leading-relaxed mb-4 whitespace-pre-wrap">
+              {children}
+            </p>
+          ),
           h1: ({ children }) => (
             <h1 className="text-2xl font-bold text-gray-900 mt-6 mb-4 pb-2 border-b-2 border-indigo-500">
               {children}
@@ -33,11 +67,6 @@ export default function MarkdownRenderer({ content, className = "" }: MarkdownRe
             <h3 className="text-lg font-medium text-gray-700 mt-4 mb-2">
               {children}
             </h3>
-          ),
-          p: ({ children }) => (
-            <p className="text-gray-800 leading-relaxed mb-4">
-              {children}
-            </p>
           ),
           strong: ({ children }) => (
             <strong className="font-semibold text-gray-900">
@@ -71,18 +100,18 @@ export default function MarkdownRenderer({ content, className = "" }: MarkdownRe
               </div>
             </blockquote>
           ),
-          code: ({ inline, children }) => {
-            if (inline) {
+          code: (props: any) => {
+            if (props.inline) {
               return (
                 <code className="bg-gray-100 text-gray-800 px-1.5 py-0.5 rounded font-mono text-sm">
-                  {children}
+                  {props.children}
                 </code>
               );
             }
             return (
               <pre className="bg-gray-100 border border-gray-200 rounded-lg p-4 my-4 overflow-x-auto">
                 <code className="font-mono text-sm text-gray-800">
-                  {children}
+                  {props.children}
                 </code>
               </pre>
             );

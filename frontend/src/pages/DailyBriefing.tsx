@@ -337,35 +337,48 @@ export default function DailyBriefing() {
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Source Intelligence Posts</h3>
                   {sourcePosts.length > 0 ? (
                     <div className="space-y-4">
-                      {sourcePosts.map((post, index) => (
-                        <div key={index} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
-                          <div className="flex items-start justify-between mb-2">
-                            <div className="flex-1">
-                              <h4 className="font-medium text-gray-900 mb-1">
-                                {post.title || `${post.platform.toUpperCase()} Post`}
-                              </h4>
-                              <div className="flex items-center gap-4 text-sm text-gray-500 mb-2">
-                                <span>📡 {post.feed_title || post.source}</span>
-                                <span>📅 {new Date(post.date).toLocaleDateString()}</span>
-                                <span>🔗 {post.platform.toUpperCase()}</span>
+                      {sourcePosts.map((post, index) => {
+                        // Defensive guards: avoid crashes on unexpected/missing fields
+                        const platformLabel = (post?.platform || 'unknown').toUpperCase();
+                        let dateLabel = 'Unknown date';
+                        try {
+                          const d = new Date(post?.date as string);
+                          if (!isNaN(d.getTime())) dateLabel = d.toLocaleDateString();
+                        } catch (_) {
+                          // keep default
+                        }
+
+                        return (
+                          <div key={index} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                            <div className="flex items-start justify-between mb-2">
+                              <div className="flex-1">
+                                <h4 className="font-medium text-gray-900 mb-1">
+                                  {post.title || `${platformLabel} Post`}
+                                </h4>
+                                <div className="flex items-center gap-4 text-sm text-gray-500 mb-2">
+                                  <span>📡 {post.feed_title || post.source}</span>
+                                  <span>📅 {dateLabel}</span>
+                                  <span>🔗 {platformLabel}</span>
+                                </div>
                               </div>
+                              {post.url && (
+                                <a
+                                  href={post.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-indigo-600 hover:text-indigo-800 transition-colors"
+                                >
+                                  <ExternalLink className="w-4 h-4" />
+                                </a>
+                              )}
                             </div>
-                            {post.url && (
-                              <a
-                                href={post.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-indigo-600 hover:text-indigo-800 transition-colors"
-                              >
-                                <ExternalLink className="w-4 h-4" />
-                              </a>
-                            )}
+                            <div className="text-gray-700 text-sm leading-relaxed prose max-w-none">
+                              {/* Use MarkdownRenderer for both Markdown and embedded HTML with sanitization */}
+                              <MarkdownRenderer content={post.content_html || post.content} />
+                            </div>
                           </div>
-                          <div className="text-gray-700 text-sm leading-relaxed">
-                            <MarkdownRenderer content= {post.content} />
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   ) : (
                     <div className="text-center py-8 text-gray-500">
@@ -403,7 +416,10 @@ export default function DailyBriefing() {
                 {briefingSections.find(s => s.id === activeSection)?.title}
               </h3>
               <p className="text-gray-600 mb-6">
-                This section will contain detailed analysis and intelligence for {briefingSections.find(s => s.id === activeSection)?.title.toLowerCase()}.
+                {(() => {
+                  const title = briefingSections.find(s => s.id === activeSection)?.title;
+                  return `This section will contain detailed analysis and intelligence for ${(title || '').toLowerCase()}.`;
+                })()}
               </p>
               <div className="inline-flex items-center gap-2 text-sm text-blue-600 bg-blue-50 px-4 py-2 rounded-lg">
                 <RefreshCw className="w-4 h-4" />
