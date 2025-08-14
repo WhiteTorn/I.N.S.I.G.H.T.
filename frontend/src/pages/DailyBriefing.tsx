@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { ChevronLeft, Download, Share2, Calendar, Clock, BarChart3, TrendingUp, Shield, Globe, Cpu, RefreshCw, AlertCircle, CheckCircle2, ExternalLink, Settings } from 'lucide-react';
 import SourcesConfig from './SourcesConfig';
 import { apiService } from '../services/api';
-import type { BriefingResponse, Post } from '../services/api';
+import type { BriefingResponse, Post, BriefingTopicsResponse, Topic } from '../services/api';
 import MarkdownRenderer from '../components/ui/MarkdownRenderer';
 
 export default function DailyBriefing() {
@@ -19,6 +19,13 @@ export default function DailyBriefing() {
     date: string;
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Topics-based briefing state
+  const [isGeneratingTopics, setIsGeneratingTopics] = useState(false);
+  const [topicsBriefing, setTopicsBriefing] = useState<string | null>(null);
+  const [topics, setTopics] = useState<Topic[]>([]);
+  const [postsMap, setPostsMap] = useState<Record<string, Post>>({});
+  const [unreferencedIds, setUnreferencedIds] = useState<string[]>([]);
+  const [openTopic, setOpenTopic] = useState<string | null>(null);
   // Inline sections-only experience; sources config is a first-class section now
 
   const handleGenerateBriefing = async () => {
@@ -27,6 +34,12 @@ export default function DailyBriefing() {
     setBriefingData(null);
     setBriefingStats(null);
     setSourcePosts([]); // Clear previous posts
+  // Reset topics area when generating standard briefing
+  setTopicsBriefing(null);
+  setTopics([]);
+  setPostsMap({});
+  setUnreferencedIds([]);
+  setOpenTopic(null);
 
     try {
       console.log(`🚀 Generating briefing for date: ${selectedDate}`);
@@ -50,6 +63,33 @@ export default function DailyBriefing() {
       setError(error instanceof Error ? error.message : 'Network error occurred');
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleGenerateTopicBriefing = async () => {
+    setIsGeneratingTopics(true);
+    setError(null);
+    setTopicsBriefing(null);
+    setTopics([]);
+    setPostsMap({});
+    setUnreferencedIds([]);
+    setOpenTopic(null);
+    try {
+      const response: BriefingTopicsResponse = await apiService.generateBriefingWithTopics(selectedDate, { includeUnreferenced: true });
+      if (response.success) {
+        setTopicsBriefing(response.briefing || null);
+        setTopics(response.topics || []);
+        setPostsMap(response.posts || {});
+        setUnreferencedIds(response.unreferenced_posts || []);
+        const first = (response.topics || [])[0];
+        setOpenTopic(first ? first.id : null);
+      } else {
+        setError(response.error || 'Failed to generate topic-based briefing');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Network error occurred');
+    } finally {
+      setIsGeneratingTopics(false);
     }
   };
 
@@ -135,6 +175,23 @@ export default function DailyBriefing() {
                 </>
               )}
             </button>
+                <button
+                  onClick={handleGenerateTopicBriefing}
+                  disabled={isGeneratingTopics}
+                  className="w-full mt-2 flex items-center justify-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {isGeneratingTopics ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      Generating Topic-based Briefing...
+                    </>
+                  ) : (
+                    <>
+                      <BarChart3 className="w-4 h-4" />
+                      Generate Topic-based Briefing
+                    </>
+                  )}
+                </button>
           </div>
 
           {/* Status Indicators */}
@@ -327,6 +384,116 @@ export default function DailyBriefing() {
                       <div className="flex items-center justify-center gap-2 text-sm text-blue-600">
                         <RefreshCw className="w-4 h-4 animate-spin" />
                         <span>Processing intelligence data...</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Topic-based Briefing Content */}
+                {(topicsBriefing || topics.length > 0) && (
+                  <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">🧩 Topic-based Briefing</h3>
+                    {/* BRIEFING */}
+                    {topicsBriefing ? (
+                      <div className="prose max-w-none mb-4">
+                        <MarkdownRenderer content={topicsBriefing} />
+                      </div>
+                    ) : null}
+                    {/* spacer like a tab */}
+                    <div className="h-4" />
+                    {/* Collapsible topics */}
+                    <div className="space-y-3">
+                      {topics.map((topic, tIndex) => {
+                        const isOpen = openTopic === topic.id;
+                        return (
+                          <div key={topic.id || `topic_${tIndex}`} className="border border-gray-200 rounded-lg overflow-hidden">
+                            <button
+                              onClick={() => setOpenTopic(isOpen ? null : topic.id)}
+                              className="w-full text-left px-4 py-3 flex items-center justify-between hover:bg-gray-50"
+                            >
+                              <span className="font-medium text-gray-900">{tIndex + 1}. {topic.title || 'Untitled Topic'}</span>
+                              <span className="text-xs text-gray-500">{isOpen ? 'Collapse' : 'Expand'}</span>
+                            </button>
+                            {isOpen && (
+                              <div className="px-4 pb-4">
+                                {topic.summary && (
+                                  <div className="text-sm text-gray-700 mb-3">
+                                    <MarkdownRenderer content={topic.summary} />
+                                  </div>
+                                )}
+                                <ol className="list-decimal pl-5 space-y-3">
+                                  {(topic.post_ids || []).map((pid, rIndex) => {
+                                    const post = postsMap[pid];
+                                    if (!post) return null;
+                                    const platformLabel = (post.platform || 'unknown').toUpperCase();
+                                    let dateLabel = 'Unknown date';
+                                    try { const d = new Date(post.date as string); if (!isNaN(d.getTime())) dateLabel = d.toLocaleDateString(); } catch {}
+                                    return (
+                                      <li key={`${pid}_${rIndex}`} className="border border-gray-200 rounded-lg p-4">
+                                        <div className="flex items-start justify-between mb-2">
+                                          <div className="flex-1">
+                                            <h4 className="font-medium text-gray-900 mb-1">Post {pid}: {post.title || `${platformLabel} Post`}</h4>
+                                            <div className="flex items-center gap-4 text-xs text-gray-500">
+                                              <span>📡 {post.feed_title || post.source}</span>
+                                              <span>📅 {dateLabel}</span>
+                                              <span>🔗 {platformLabel}</span>
+                                            </div>
+                                          </div>
+                                          {post.url && (
+                                            <a href={post.url} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:text-indigo-800">
+                                              <ExternalLink className="w-4 h-4" />
+                                            </a>
+                                          )}
+                                        </div>
+                                        <div className="text-gray-700 text-sm leading-relaxed prose max-w-none">
+                                          <MarkdownRenderer content={post.content_html || post.content} />
+                                        </div>
+                                      </li>
+                                    );
+                                  })}
+                                </ol>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Unreferenced posts */}
+                    {unreferencedIds.length > 0 && (
+                      <div className="mt-6">
+                        <h4 className="font-semibold text-gray-900 mb-3">Unreferenced Posts</h4>
+                        <ol className="list-decimal pl-5 space-y-3">
+                          {unreferencedIds.map((pid) => {
+                            const post = postsMap[pid];
+                            if (!post) return null;
+                            const platformLabel = (post.platform || 'unknown').toUpperCase();
+                            let dateLabel = 'Unknown date';
+                            try { const d = new Date(post.date as string); if (!isNaN(d.getTime())) dateLabel = d.toLocaleDateString(); } catch {}
+                            return (
+                              <li key={`unref_${pid}`} className="border border-gray-200 rounded-lg p-4">
+                                <div className="flex items-start justify-between mb-2">
+                                  <div className="flex-1">
+                                    <h5 className="font-medium text-gray-900 mb-1">Post {pid}: {post.title || `${platformLabel} Post`}</h5>
+                                    <div className="flex items-center gap-4 text-xs text-gray-500">
+                                      <span>📡 {post.feed_title || post.source}</span>
+                                      <span>📅 {dateLabel}</span>
+                                      <span>🔗 {platformLabel}</span>
+                                    </div>
+                                  </div>
+                                  {post.url && (
+                                    <a href={post.url} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:text-indigo-800">
+                                      <ExternalLink className="w-4 h-4" />
+                                    </a>
+                                  )}
+                                </div>
+                                <div className="text-gray-700 text-sm leading-relaxed prose max-w-none">
+                                  <MarkdownRenderer content={post.content_html || post.content} />
+                                </div>
+                              </li>
+                            );
+                          })}
+                        </ol>
                       </div>
                     )}
                   </div>

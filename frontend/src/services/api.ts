@@ -17,6 +17,28 @@ export interface BriefingResponse {
   error?: string;
 }
 
+export interface Topic {
+  id: string;
+  title: string;
+  summary: string;
+  post_ids: string[]; // numeric IDs as strings: ["1","2",...]
+}
+
+export interface BriefingTopicsResponse {
+  success: boolean;
+  briefing?: string;
+  date?: string;
+  posts_processed?: number;
+  total_posts_fetched?: number;
+  enhanced?: boolean;
+  topics?: Topic[];
+  // posts map keyed by numeric post_id
+  posts?: Record<string, Post>;
+  // list of numeric post IDs not referenced by any topic
+  unreferenced_posts?: string[];
+  error?: string;
+}
+
 export interface Post {
   title?: string;
   content: string;
@@ -74,6 +96,26 @@ class ApiService {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error occurred'
       };
+    }
+  }
+
+  async generateBriefingWithTopics(
+    date: string,
+    opts?: { includeUnreferenced?: boolean }
+  ): Promise<BriefingTopicsResponse> {
+    try {
+      const endpoint = `/api/daily/topics`;
+      const response = await this.makeRequest<BriefingTopicsResponse>(endpoint, {
+        method: 'POST',
+        body: JSON.stringify({ date, includeUnreferenced: opts?.includeUnreferenced ?? true })
+      });
+      return response;
+    } catch (error) {
+      console.error('Failed to generate briefing with topics:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error occurred'
+      } as BriefingTopicsResponse;
     }
   }
 

@@ -20,3 +20,7 @@ class InsightBridge:
     async def daily_briefing(self, day):
         return await self.engine.get_daily_briefing(day)
 
+    async def daily_briefing_with_topics(self, day: str, include_unreferenced: bool = True):
+        """Generate topic-based daily briefing using numeric post IDs."""
+        return await self.engine.get_daily_briefing_with_topics(day, include_unreferenced=include_unreferenced)
+
