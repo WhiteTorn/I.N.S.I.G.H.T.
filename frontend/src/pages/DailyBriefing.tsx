@@ -71,8 +71,10 @@ export default function DailyBriefing() {
     setError(null);
     setTopicsBriefing(null);
     setTopics([]);
-    setPostsMap({});
-    setUnreferencedIds([]);
+  setPostsMap({});
+  setUnreferencedIds([]);
+  // Clear then repopulate source posts from the topics response
+  setSourcePosts([]);
     setOpenTopic(null);
     try {
       const response: BriefingTopicsResponse = await apiService.generateBriefingWithTopics(selectedDate, { includeUnreferenced: true });
@@ -81,6 +83,9 @@ export default function DailyBriefing() {
         setTopics(response.topics || []);
         setPostsMap(response.posts || {});
         setUnreferencedIds(response.unreferenced_posts || []);
+    // Populate Source Intelligence Posts with ALL posts returned by the topics endpoint
+    const allPostsFromMap = Object.values(response.posts || {});
+    if (allPostsFromMap.length) setSourcePosts(allPostsFromMap);
         const first = (response.topics || [])[0];
         setOpenTopic(first ? first.id : null);
       } else {
@@ -502,9 +507,10 @@ export default function DailyBriefing() {
                 {/* Source Posts Section */}
                 <div className="bg-white border border-gray-200 rounded-lg p-6">
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Source Intelligence Posts</h3>
-                  {sourcePosts.length > 0 ? (
+          {/* Prefer posts from the standard flow; if empty, fallback to posts from the topics map */}
+          {(sourcePosts.length > 0 || Object.keys(postsMap).length > 0) ? (
                     <div className="space-y-4">
-                      {sourcePosts.map((post, index) => {
+            {(sourcePosts.length ? sourcePosts : Object.values(postsMap)).map((post: Post, index: number) => {
                         // Defensive guards: avoid crashes on unexpected/missing fields
                         const platformLabel = (post?.platform || 'unknown').toUpperCase();
                         let dateLabel = 'Unknown date';
