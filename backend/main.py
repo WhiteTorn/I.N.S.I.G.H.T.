@@ -28,6 +28,8 @@ bridge = InsightBridge()
 # Request models
 class BriefingRequest(BaseModel):
     date: str  # Format: "YYYY-MM-DD"
+    includeTopics: bool | None = None
+    includeUnreferenced: bool | None = True
 
 @app.get("/")
 async def root():
@@ -84,27 +86,73 @@ async def generate_daily_briefing(request: BriefingRequest):
         if not date:
             raise HTTPException(status_code=400, detail="Date parameter required")
         
-        # Call the Mark I Foundation Engine
-        result = await bridge.daily_briefing(date)
+        # If includeTopics flag is set, use enhanced path
+        if request.includeTopics:
+            result = await bridge.daily_briefing_with_topics(date)
+        else:
+            # Call the Mark I Foundation Engine
+            result = await bridge.daily_briefing(date)
         
         if isinstance(result, dict) and "error" in result:
             logger.error(f"❌ Engine error: {result['error']}")
             return {"success": False, "error": result["error"]}
         
         logger.info("✅ Briefing generated successfully")
-        return {
-            "success": True, 
+        response_payload = {
+            "success": True,
             "briefing": result.get("briefing", result) if isinstance(result, dict) else result,
-            "date": date,
+            "date": result.get("date", date) if isinstance(result, dict) else date,
             "posts_processed": result.get("posts_processed", 0) if isinstance(result, dict) else 0,
             "total_posts_fetched": result.get("total_posts_fetched", 0) if isinstance(result, dict) else 0,
-            "posts": result.get("posts", []) if isinstance(result, dict) else []  # Include actual posts
+            "posts": result.get("posts", []) if isinstance(result, dict) else []
         }
+        # If enhanced data exists, include it without token usage
+        if isinstance(result, dict) and result.get("topics") is not None:
+            response_payload.update({
+                "enhanced": result.get("enhanced", True),
+                "topics": result.get("topics", []),
+                "unreferenced_posts": result.get("unreferenced_posts", [])
+            })
+
+        return response_payload
         
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"❌ Failed to generate briefing: {e}")
+        return {"success": False, "error": str(e)}
+
+@app.post("/api/daily/topics")
+async def generate_daily_briefing_with_topics(request: BriefingRequest):
+    try:
+        date = request.date
+        logger.info(f"🚀 Generating topic-based daily briefing for date: {date}")
+        if not date:
+            raise HTTPException(status_code=400, detail="Date parameter required")
+
+        include_unreferenced = True if request.includeUnreferenced is None else request.includeUnreferenced
+        result = await bridge.daily_briefing_with_topics(date, include_unreferenced=include_unreferenced)
+        if isinstance(result, dict) and "error" in result:
+            logger.error(f"❌ Engine error: {result['error']}")
+            return {"success": False, "error": result["error"]}
+
+        # Construct payload (no token costs exposed)
+        return {
+            "success": True,
+            "enhanced": result.get("enhanced", True),
+            # Topic-based daily briefing string (top-level summary)
+            "briefing": result.get("briefing", ""),
+            "topics": result.get("topics", []),
+            "unreferenced_posts": result.get("unreferenced_posts", []),
+            "posts": result.get("posts", {}),
+            "date": result.get("date", date),
+            "posts_processed": result.get("posts_processed", 0),
+            "total_posts_fetched": result.get("total_posts_fetched", 0)
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Failed to generate topic-based briefing: {e}")
         return {"success": False, "error": str(e)}
 
 @app.get("/health")

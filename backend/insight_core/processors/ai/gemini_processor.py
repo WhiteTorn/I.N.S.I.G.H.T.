@@ -321,56 +321,35 @@ Answer the question now:
         
         try:
             prompt = f"""
-            You are an expert content analyzer, working with Tony Stark. You call user as Master.
-            Your name is Insight. 30 year in providing daily briefings to the Mr. Stark.
-            
-            You will receice series of different content from the different sources. your task would be to provide
-            - concise summary of the content that Mr. Stark will understand and act upon.
-            - your briefing should generate insights, should be clear, engaging and interesting to the Mr. Stark, Which should stimulate the Mr. Stark to take action.
-            - remember that Mr. Stark is busy person, so your briefing should be very concise and to the point.
-            - but concise does not mean that you should not provide any insights, you should provide as much insights as possible without losing actual point.
-            - Include relevant historical context or analogies when helpful
-            - Adapt language and tone to match the Mr. Stark's background and interests
-            because if you lose the point, the whole world will be in danger.
+You are Insight — Tony Stark's senior intelligence companion. Deliver a complete, self-sufficient briefing so Stark can act without opening the sources.
 
-            - Briefing should be 15 minutes long. most important topics at the beginning.
+Directive
+- Be decisive, analytical, and surgical. Avoid filler. Use crisp markdown.
+- Synthesize across sources; infer second- and third-order effects.
+- Call out risks, opportunities, and time-sensitive moves. If facts conflict, say so.
 
-            QUALITY CONTROLS:
-            - Flag any unverified information clearly
-            - Note conflicting sources or uncertain intelligence
-            - Escalate items requiring immediate attention
+Output (markdown only)
+## Global Situation Briefing
+- 10–15 bullets that explain what happened and why it matters. Connect dots across tech, markets, security, and geopolitics. Prefer specifics over generalities.
 
-            - Topics must be specific and descriptive (e.g., "Meta's New AI Model Launch" instead of "Topic 1")
-            - Each topic should include:
-                * Specific event/development
-                * Direct impact on Global interests
-                * Recommended actions or considerations
+## Strategic Implications
+- Markets: 3–5 bullets (capital flows, regulatory posture, enterprise adoption).
+- Technology: 3–5 bullets (capabilities, constraints, moats, infra shifts).
+- Security/Privacy: 2–4 bullets (attack surface, failures, mitigations).
+- Geopolitics: 2–4 bullets (state actors, alliances, export controls).
 
-            - Use bullet points for quick scanning
-            - Bold key terms and critical information
+## Early Warning Signals (Leading Indicators)
+- 5–8 bullets. Name concrete metrics, datasets, or events to watch next.
 
-            The Mr.Stark needs clarity to make informed decisions that affect millions of lives. 
-            Balance brevity with completeness - every word should serve a purpose.
-            Remember your briefing should not be replacement of the news, it should be a supplement to the news, you should give new insights, new ideas, new perspectives!!!
+## Recommended Actions (Next 24–72h)
+- 5–10 bullets. Clear, testable actions with intended outcome. Use strong verbs.
 
-            Here is the content:
-            {posts}
+Constraints
+- No code blocks. No JSON. No acknowledgements. Just the briefing.
 
-            do not mention that you are talking to the Mr.Stark, just provide the briefing.
-
-            example of the briefing:
-
-            Today we have 3 main topics to discuss:
-            1. Topic 1
-            - Key point 1
-            - Key point 2
-            2. Topic 2
-            3. Topic 3
-
-            Output Format is Strictly Followed Markdown Format:
-
-            Actual Briefing:
-            """
+Intelligence Package
+{posts}
+"""
 
             # Count input tokens
             input_tokens = self.count_tokens(prompt)
@@ -623,3 +602,156 @@ Generate the response now using ACTUAL URLs in the Posts: lines:
         except Exception as e:
             logging.error(f"Failed to generate enhanced briefing: {e}")
             return {"error": f"Enhanced briefing generation failed: {str(e)}"}
+
+    async def topic_briefing_with_numeric_ids(self, posts: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        Generate topic-based briefing where each topic references numeric post IDs (1..N) only.
+        The backend will map these IDs to actual posts.
+        """
+        if not self.is_connected:
+            return {"error": "Processor not connected. Call connect() first"}
+        if not isinstance(posts, list):
+            return {"error": "Invalid posts format. Expected list"}
+
+        try:
+            # Prepare compact input with numeric indices to reduce prompt length
+            indexed_summaries = []
+            for i, post in enumerate(posts, start=1):
+                indexed_summaries.append({
+                    "id": i,
+                    "title": post.get("title", ""),
+                    "source": post.get("source", ""),
+                    "content": post.get("content", "")[:1500]  # truncate to keep prompt efficient
+                })
+
+            prompt = f"""
+You are Insight — Stark's senior analyst. Produce a topic-based briefing with TL;DRs so Stark can decide fast.
+
+Constraints
+- Cite sources using ONLY numeric IDs (e.g., 1,2,3). Never output URLs.
+- Unlimited posts per topic. Do not fabricate IDs.
+- First produce the topic-based daily briefing overview; then list topics.
+
+OUTPUT FORMAT (exact markers required)
+===DAILY_BRIEFING_START===
+## Global Situation Briefing
+- 8–14 bullets tying cross-domain signals to concrete implications and likely next moves.
+
+## Momentum & Trendlines
+- 3–6 bullets on acceleration/decay, reversals, or tipping points.
+===DAILY_BRIEFING_END===
+
+===TOPICS_START===
+Topic 1: [Topic Title]
+ID: topic-1
+Summary:
+TL;DR: 1–3 sentences that capture the essence and conclusion.
+- Context: What happened and how it connects to prior signals.
+- Why it matters: Strategic implications (market/tech/security/geopolitics).
+- Signals to watch: 3–6 concrete leading indicators.
+- Recommended actions: 3–6 decisive, testable actions.
+- Confidence: High/Med/Low with one-line rationale.
+Posts: 1,2,3
+
+Topic 2: [Topic Title]
+ID: topic-2
+Summary:
+TL;DR: 1–3 sentences.
+- Context: ...
+- Why it matters: ...
+- Signals to watch: ...
+- Recommended actions: ...
+- Confidence: ...
+Posts: 4,5
+===TOPICS_END===
+
+AVAILABLE_POSTS (id, title, source, content_snippet):
+{indexed_summaries}
+
+Generate now using ONLY numeric IDs in Posts lines. Do not output URLs.
+"""
+
+            response = self.client.models.generate_content(
+                model=self.model,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    response_mime_type="text/plain",
+                    temperature=0.1
+                )
+            )
+
+            response_text = response.text.strip()
+
+            # Extract daily briefing (topic-based)
+            daily_briefing = ""
+            if "===DAILY_BRIEFING_START===" in response_text and "===DAILY_BRIEFING_END===" in response_text:
+                s = response_text.find("===DAILY_BRIEFING_START===") + len("===DAILY_BRIEFING_START===")
+                e = response_text.find("===DAILY_BRIEFING_END===")
+                daily_briefing = response_text[s:e].strip()
+
+            # Extract topics with numeric IDs
+            topics: List[Dict[str, Any]] = []
+            if "===TOPICS_START===" in response_text and "===TOPICS_END===" in response_text:
+                s = response_text.find("===TOPICS_START===") + len("===TOPICS_START===")
+                e = response_text.find("===TOPICS_END===")
+                topics_text = response_text[s:e].strip()
+
+                current: Dict[str, Any] = {}
+                in_summary = False
+                summary_lines: List[str] = []
+
+                def flush_current():
+                    nonlocal current, summary_lines, in_summary
+                    if current:
+                        # Join summary lines preserving bullets/newlines
+                        if summary_lines:
+                            current["summary"] = "\n".join([l for l in summary_lines if l is not None]).strip()
+                        topics.append(current)
+                    current = {}
+                    summary_lines = []
+                    in_summary = False
+
+                for raw in topics_text.split("\n"):
+                    line = raw.rstrip()
+                    stripped = line.strip()
+                    if stripped.startswith("Topic ") and ":" in stripped:
+                        flush_current()
+                        title = stripped.split(":", 1)[1].strip()
+                        current = {"title": title, "summary": "", "post_ids": []}
+                        in_summary = False
+                        summary_lines = []
+                    elif stripped.startswith("ID:"):
+                        if current is not None:
+                            current["id"] = stripped.split(":", 1)[1].strip()
+                    elif stripped.startswith("Summary:"):
+                        # Start capturing summary lines (may be empty on this line)
+                        in_summary = True
+                        # Capture anything after 'Summary:' on same line
+                        after = stripped.split(":", 1)[1].strip()
+                        if after:
+                            summary_lines.append(after)
+                    elif stripped.startswith("Posts:"):
+                        # End summary capture when we hit Posts
+                        in_summary = False
+                        ids_str = stripped.split(":", 1)[1].strip()
+                        nums: List[str] = []
+                        for tok in ids_str.replace(" ", "").split(","):
+                            if tok.isdigit():
+                                nums.append(tok)
+                        current["post_ids"] = nums
+                    else:
+                        # Accumulate summary lines if we're inside the summary block
+                        if in_summary:
+                            summary_lines.append(line)
+
+                # flush last topic
+                flush_current()
+
+            return {
+                "daily_briefing": daily_briefing,
+                "topics": topics
+            }
+
+        except Exception as e:
+            logging.error(f"Failed to generate topic briefing with numeric ids: {e}")
+            return {"error": f"Topic briefing failed: {str(e)}"}
