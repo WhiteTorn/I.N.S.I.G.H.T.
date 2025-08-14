@@ -180,23 +180,23 @@ export default function DailyBriefing() {
                 </>
               )}
             </button>
-                <button
-                  onClick={handleGenerateTopicBriefing}
-                  disabled={isGeneratingTopics}
-                  className="w-full mt-2 flex items-center justify-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  {isGeneratingTopics ? (
-                    <>
-                      <RefreshCw className="w-4 h-4 animate-spin" />
-                      Generating Topic-based Briefing...
-                    </>
-                  ) : (
-                    <>
-                      <BarChart3 className="w-4 h-4" />
-                      Generate Topic-based Briefing
-                    </>
-                  )}
-                </button>
+            <button
+              onClick={handleGenerateTopicBriefing}
+              disabled={isGeneratingTopics}
+              className="w-full mt-2 flex items-center justify-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {isGeneratingTopics ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  Generating Topic-based Briefing...
+                </>
+              ) : (
+                <>
+                  <BarChart3 className="w-4 h-4" />
+                  Generate Topic-based Briefing
+                </>
+              )}
+            </button>
           </div>
 
           {/* Status Indicators */}
@@ -464,43 +464,7 @@ export default function DailyBriefing() {
                       })}
                     </div>
 
-                    {/* Unreferenced posts */}
-                    {unreferencedIds.length > 0 && (
-                      <div className="mt-6">
-                        <h4 className="font-semibold text-gray-900 mb-3">Unreferenced Posts</h4>
-                        <ol className="list-decimal pl-5 space-y-3">
-                          {unreferencedIds.map((pid) => {
-                            const post = postsMap[pid];
-                            if (!post) return null;
-                            const platformLabel = (post.platform || 'unknown').toUpperCase();
-                            let dateLabel = 'Unknown date';
-                            try { const d = new Date(post.date as string); if (!isNaN(d.getTime())) dateLabel = d.toLocaleDateString(); } catch {}
-                            return (
-                              <li key={`unref_${pid}`} className="border border-gray-200 rounded-lg p-4">
-                                <div className="flex items-start justify-between mb-2">
-                                  <div className="flex-1">
-                                    <h5 className="font-medium text-gray-900 mb-1">Post {pid}: {post.title || `${platformLabel} Post`}</h5>
-                                    <div className="flex items-center gap-4 text-xs text-gray-500">
-                                      <span>📡 {post.feed_title || post.source}</span>
-                                      <span>📅 {dateLabel}</span>
-                                      <span>🔗 {platformLabel}</span>
-                                    </div>
-                                  </div>
-                                  {post.url && (
-                                    <a href={post.url} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:text-indigo-800">
-                                      <ExternalLink className="w-4 h-4" />
-                                    </a>
-                                  )}
-                                </div>
-                                <div className="text-gray-700 text-sm leading-relaxed prose max-w-none">
-                                  <MarkdownRenderer content={post.content_html || post.content} />
-                                </div>
-                              </li>
-                            );
-                          })}
-                        </ol>
-                      </div>
-                    )}
+                    {/* Unreferenced posts section removed: all posts are shown in Source Intelligence */}
                   </div>
                 )}
 

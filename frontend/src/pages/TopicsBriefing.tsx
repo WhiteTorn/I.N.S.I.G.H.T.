@@ -152,43 +152,7 @@ export default function TopicsBriefing() {
             );
           })}
 
-          {/* Unreferenced posts shown separately, still with briefing above */}
-          {unreferencedIds.length > 0 && (
-            <div className="bg-white border border-gray-200 rounded-lg p-6 mb-8">
-              <h3 className="text-lg font-semibold mb-4">Unreferenced Posts</h3>
-              <ol className="list-decimal pl-5 space-y-4">
-                {unreferencedIds.map((pid) => {
-                  const post = postsMap[pid];
-                  if (!post) return null;
-                  const platformLabel = (post.platform || 'unknown').toUpperCase();
-                  let dateLabel = 'Unknown date';
-                  try { const d = new Date(post.date as string); if (!isNaN(d.getTime())) dateLabel = d.toLocaleDateString(); } catch {}
-                  return (
-                    <li key={`unref_${pid}`} className="border border-gray-200 rounded-lg p-4">
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex-1">
-                          <h4 className="font-medium text-gray-900 mb-1">Post {pid}: {post.title || `${platformLabel} Post`}</h4>
-                          <div className="flex items-center gap-4 text-xs text-gray-500">
-                            <span>📡 {post.feed_title || post.source}</span>
-                            <span>📅 {dateLabel}</span>
-                            <span>🔗 {platformLabel}</span>
-                          </div>
-                        </div>
-                        {post.url && (
-                          <a href={post.url} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:text-indigo-800">
-                            <ExternalLink className="w-4 h-4" />
-                          </a>
-                        )}
-                      </div>
-                      <div className="text-gray-700 text-sm leading-relaxed prose max-w-none">
-                        <MarkdownRenderer content={post.content_html || post.content} />
-                      </div>
-                    </li>
-                  );
-                })}
-              </ol>
-            </div>
-          )}
+          {/* Unreferenced posts section removed: all posts are shown in Source Intelligence on Daily Briefing */}
         </div>
       </div>
     </div>
