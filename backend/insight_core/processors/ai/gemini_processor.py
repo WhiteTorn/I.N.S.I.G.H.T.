@@ -627,6 +627,9 @@ Generate the response now using ACTUAL URLs in the Posts: lines:
             prompt = f"""
 You are Insight — Stark's senior analyst. Produce a topic-based briefing with TL;DRs so Stark can decide fast.
 
+Mindset
+- Think like the best human analyst—then go further. Synthesize across posts, infer causality, and surface second/third‑order effects.
+
 Constraints
 - Cite sources using ONLY numeric IDs (e.g., 1,2,3). Never output URLs.
 - Unlimited posts per topic. Do not fabricate IDs.
@@ -637,15 +640,14 @@ OUTPUT FORMAT (exact markers required)
 ## Global Situation Briefing
 - 8–14 bullets tying cross-domain signals to concrete implications and likely next moves.
 
-## Momentum & Trendlines
-- 3–6 bullets on acceleration/decay, reversals, or tipping points.
++## Momentum & Trendlines
++- 3–6 bullets on acceleration/decay, reversals, or tipping points.
 ===DAILY_BRIEFING_END===
 
 ===TOPICS_START===
 Topic 1: [Topic Title]
 ID: topic-1
 Summary:
-TL;DR: 1–3 sentences that capture the essence and conclusion.
 - Context: What happened and how it connects to prior signals.
 - Why it matters: Strategic implications (market/tech/security/geopolitics).
 - Signals to watch: 3–6 concrete leading indicators.
@@ -656,7 +658,6 @@ Posts: 1,2,3
 Topic 2: [Topic Title]
 ID: topic-2
 Summary:
-TL;DR: 1–3 sentences.
 - Context: ...
 - Why it matters: ...
 - Signals to watch: ...
