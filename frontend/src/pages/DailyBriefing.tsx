@@ -28,6 +28,8 @@ export default function DailyBriefing() {
   const [openTopic, setOpenTopic] = useState<string | null>(null);
   // expanded state per post for topic sections
   const [expandedPosts, setExpandedPosts] = useState<Record<string, boolean>>({});
+  // expanded state for posts in Source Intelligence section
+  const [sourceExpanded, setSourceExpanded] = useState<Record<string, boolean>>({});
   // Inline sections-only experience; sources config is a first-class section now
 
   const handleGenerateBriefing = async () => {
@@ -566,33 +568,84 @@ export default function DailyBriefing() {
                         } catch (_) {
                           // keep default
                         }
+                        const key = `source:${index}`;
+                        const isExpanded = sourceExpanded[key] ?? true;
 
                         return (
-                          <div key={index} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
-                            <div className="flex items-start justify-between mb-2">
-                              <div className="flex-1">
-                                <h4 className="font-medium text-gray-900 mb-1">{post.title || `${platformLabel} Post`}</h4>
-                                <div className="flex items-center gap-4 text-sm text-gray-500 mb-2">
-                                  <span>📡 {post.feed_title || post.source}</span>
-                                  <span>📅 {dateLabel}</span>
-                                  <span>🔗 {platformLabel}</span>
+                          <div key={index} className="border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                            <button
+                              type="button"
+                              className={`w-full text-left px-6 py-4 flex items-start justify-between select-none transition-colors ${isExpanded ? 'bg-gray-50' : ''} hover:bg-gray-50`}
+                              aria-expanded={isExpanded}
+                              onClick={() => setSourceExpanded((prev) => ({ ...prev, [key]: !isExpanded }))}
+                            >
+                              <div className="flex items-start gap-3 flex-1">
+                                <div className="shrink-0 w-8 h-8 rounded-md bg-indigo-50 text-indigo-700 font-semibold flex items-center justify-center">{index + 1}</div>
+                                <div className="flex-1">
+                                  <div className="flex items-start justify-between">
+                                    <div className="pr-3">
+                                      <h4 className="text-base font-semibold text-gray-900 leading-snug">{post.title || `${platformLabel} Post`}</h4>
+                                      <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-600">
+                                        <span>📡 {post.feed_title || post.source}</span>
+                                        <span>📅 {dateLabel}</span>
+                                        <span>🔗 {platformLabel}</span>
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                      {post.url && (
+                                        <a
+                                          href={post.url}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="text-indigo-600 hover:text-indigo-800"
+                                          aria-label="Open source"
+                                          onClick={(e) => e.stopPropagation()}
+                                          title="Open source"
+                                        >
+                                          <ExternalLink className="w-4 h-4" />
+                                        </a>
+                                      )}
+                                      <button
+                                        className="text-gray-600 hover:text-gray-800"
+                                        title="Copy post content"
+                                        onClick={async (e) => {
+                                          e.stopPropagation();
+                                          try {
+                                            const tmp = document.createElement('div');
+                                            tmp.innerHTML = (post.content_html || post.content) as string;
+                                            const text = (tmp.textContent || tmp.innerText || '').trim();
+                                            await navigator.clipboard.writeText(text);
+                                          } catch {}
+                                        }}
+                                      >
+                                        <Copy className="w-4 h-4" />
+                                      </button>
+                                      {post.url && (
+                                        <button
+                                          className="text-gray-600 hover:text-gray-800"
+                                          title="Copy source link"
+                                          onClick={async (e) => {
+                                            e.stopPropagation();
+                                            try {
+                                              await navigator.clipboard.writeText(post.url as string);
+                                            } catch {}
+                                          }}
+                                        >
+                                          <Share2 className="w-4 h-4" />
+                                        </button>
+                                      )}
+                                    </div>
+                                  </div>
+                                  {isExpanded && <div className="mt-3 border-t border-gray-100" />}
                                 </div>
                               </div>
-                              {post.url && (
-                                <a
-                                  href={post.url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-indigo-600 hover:text-indigo-800 transition-colors"
-                                >
-                                  <ExternalLink className="w-4 h-4" />
-                                </a>
-                              )}
-                            </div>
-                            <div className="text-gray-700 text-sm leading-relaxed prose max-w-none">
-                              {/* Use MarkdownRenderer for both Markdown and embedded HTML with sanitization */}
-                              <MarkdownRenderer content={post.content_html || post.content} />
-                            </div>
+                            </button>
+                            {isExpanded && (
+                              <div className="p-4 pt-3 text-gray-800 text-sm leading-relaxed prose max-w-none">
+                                {/* Use MarkdownRenderer for both Markdown and embedded HTML with sanitization */}
+                                <MarkdownRenderer content={post.content_html || post.content} />
+                              </div>
+                            )}
                           </div>
                         );
                       })}
