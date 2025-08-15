@@ -30,6 +30,8 @@ export default function DailyBriefing() {
   const [expandedPosts, setExpandedPosts] = useState<Record<string, boolean>>({});
   // expanded state for posts in Source Intelligence section
   const [sourceExpanded, setSourceExpanded] = useState<Record<string, boolean>>({});
+  // ephemeral "Copied to clipboard" notice keyed by post
+  const [copied, setCopied] = useState<Record<string, boolean>>({});
   // Inline sections-only experience; sources config is a first-class section now
 
   const handleGenerateBriefing = async () => {
@@ -464,7 +466,7 @@ export default function DailyBriefing() {
                                     const key = `${topic.id}:${pid}`;
                                     const isExpanded = expandedPosts[key] ?? true;
                                     return (
-                                      <div key={`${pid}_${rIndex}`} className="border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                                      <div key={`${pid}_${rIndex}`} className="border border-gray-200 rounded-xl overflow-hidden shadow-sm relative">
                                         <button
                                           type="button"
                                           className={`w-full text-left px-6 py-4 flex items-start justify-between select-none transition-colors ${isExpanded ? 'bg-gray-50' : ''} hover:bg-gray-50`}
@@ -489,7 +491,7 @@ export default function DailyBriefing() {
                                                       href={post.url}
                                                       target="_blank"
                                                       rel="noopener noreferrer"
-                                                      className="text-indigo-600 hover:text-indigo-800"
+                                                      className="text-indigo-600 hover:text-indigo-800 p-1 rounded transition-all duration-150 hover:bg-indigo-50 hover:scale-110"
                                                       aria-label="Open original"
                                                       onClick={(e) => e.stopPropagation()}
                                                       title="Open source"
@@ -498,7 +500,7 @@ export default function DailyBriefing() {
                                                     </a>
                                                   )}
                                                   <button
-                                                    className="text-gray-600 hover:text-gray-800"
+                                                    className="text-gray-600 hover:text-gray-900 p-1 rounded transition-all duration-150 hover:bg-gray-100 hover:scale-110"
                                                     title="Copy post content"
                                                     onClick={async (e) => {
                                                       e.stopPropagation();
@@ -507,6 +509,8 @@ export default function DailyBriefing() {
                                                         tmp.innerHTML = (post.content_html || post.content) as string;
                                                         const text = (tmp.textContent || tmp.innerText || '').trim();
                                                         await navigator.clipboard.writeText(text);
+                                                        setCopied((prev) => ({ ...prev, [key]: true }));
+                                                        setTimeout(() => setCopied((prev) => ({ ...prev, [key]: false })), 1500);
                                                       } catch {}
                                                     }}
                                                   >
@@ -514,12 +518,14 @@ export default function DailyBriefing() {
                                                   </button>
                                                   {post.url && (
                                                     <button
-                                                      className="text-gray-600 hover:text-gray-800"
+                                                      className="text-gray-600 hover:text-gray-900 p-1 rounded transition-all duration-150 hover:bg-gray-100 hover:scale-110"
                                                       title="Copy source link"
                                                       onClick={async (e) => {
                                                         e.stopPropagation();
                                                         try {
                                                           await navigator.clipboard.writeText(post.url as string);
+                                                          setCopied((prev) => ({ ...prev, [key]: true }));
+                                                          setTimeout(() => setCopied((prev) => ({ ...prev, [key]: false })), 1500);
                                                         } catch {}
                                                       }}
                                                     >
@@ -532,6 +538,11 @@ export default function DailyBriefing() {
                                             </div>
                                           </div>
                                         </button>
+                                        {copied[key] && (
+                                          <div className="absolute right-4 top-4 text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full px-3 py-1 shadow-sm animate-pulse">
+                                            Copied to clipboard
+                                          </div>
+                                        )}
                                         {isExpanded && (
                                           <div className="p-4 pt-3 text-gray-800 text-sm leading-relaxed prose max-w-none">
                                             <MarkdownRenderer content={post.content_html || post.content} />
@@ -572,7 +583,7 @@ export default function DailyBriefing() {
                         const isExpanded = sourceExpanded[key] ?? true;
 
                         return (
-                          <div key={index} className="border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                          <div key={index} className="border border-gray-200 rounded-xl overflow-hidden shadow-sm relative">
                             <button
                               type="button"
                               className={`w-full text-left px-6 py-4 flex items-start justify-between select-none transition-colors ${isExpanded ? 'bg-gray-50' : ''} hover:bg-gray-50`}
@@ -597,7 +608,7 @@ export default function DailyBriefing() {
                                           href={post.url}
                                           target="_blank"
                                           rel="noopener noreferrer"
-                                          className="text-indigo-600 hover:text-indigo-800"
+                                          className="text-indigo-600 hover:text-indigo-800 p-1 rounded transition-all duration-150 hover:bg-indigo-50 hover:scale-110"
                                           aria-label="Open source"
                                           onClick={(e) => e.stopPropagation()}
                                           title="Open source"
@@ -606,7 +617,7 @@ export default function DailyBriefing() {
                                         </a>
                                       )}
                                       <button
-                                        className="text-gray-600 hover:text-gray-800"
+                                        className="text-gray-600 hover:text-gray-900 p-1 rounded transition-all duration-150 hover:bg-gray-100 hover:scale-110"
                                         title="Copy post content"
                                         onClick={async (e) => {
                                           e.stopPropagation();
@@ -615,6 +626,8 @@ export default function DailyBriefing() {
                                             tmp.innerHTML = (post.content_html || post.content) as string;
                                             const text = (tmp.textContent || tmp.innerText || '').trim();
                                             await navigator.clipboard.writeText(text);
+                                            setCopied((prev) => ({ ...prev, [key]: true }));
+                                            setTimeout(() => setCopied((prev) => ({ ...prev, [key]: false })), 1500);
                                           } catch {}
                                         }}
                                       >
@@ -622,12 +635,14 @@ export default function DailyBriefing() {
                                       </button>
                                       {post.url && (
                                         <button
-                                          className="text-gray-600 hover:text-gray-800"
+                                          className="text-gray-600 hover:text-gray-900 p-1 rounded transition-all duration-150 hover:bg-gray-100 hover:scale-110"
                                           title="Copy source link"
                                           onClick={async (e) => {
                                             e.stopPropagation();
                                             try {
                                               await navigator.clipboard.writeText(post.url as string);
+                                              setCopied((prev) => ({ ...prev, [key]: true }));
+                                              setTimeout(() => setCopied((prev) => ({ ...prev, [key]: false })), 1500);
                                             } catch {}
                                           }}
                                         >
@@ -640,6 +655,11 @@ export default function DailyBriefing() {
                                 </div>
                               </div>
                             </button>
+                            {copied[key] && (
+                              <div className="absolute right-4 top-4 text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full px-3 py-1 shadow-sm animate-pulse">
+                                Copied to clipboard
+                              </div>
+                            )}
                             {isExpanded && (
                               <div className="p-4 pt-3 text-gray-800 text-sm leading-relaxed prose max-w-none">
                                 {/* Use MarkdownRenderer for both Markdown and embedded HTML with sanitization */}
