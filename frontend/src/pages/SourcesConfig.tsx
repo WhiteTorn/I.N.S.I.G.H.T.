@@ -314,7 +314,19 @@ export default function SourcesConfig({ embedded = false, onClose }: SourcesConf
         <div className="space-y-6">
           {platforms.map((platform) => (
             <div key={platform} id={`platform-${platform}`} className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-              <div className="flex items-center justify-between p-4 border-b border-gray-200">
+              <div
+                role="button"
+                tabIndex={0}
+                aria-expanded={!!expanded[platform]}
+                onClick={() => setExpanded((prev) => { const next = { ...prev, [platform]: !prev[platform] }; saveExpanded(next); return next; })}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setExpanded((prev) => { const next = { ...prev, [platform]: !prev[platform] }; saveExpanded(next); return next; });
+                  }
+                }}
+                className={`flex items-center justify-between p-4 border-b border-gray-200 transition-colors hover:bg-gray-50 ${expanded[platform] ? 'bg-gray-50' : ''}`}
+              >
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-md bg-gray-100 text-gray-700 flex items-center justify-center">
                     {platformIcon[platform] || <MessageSquare className="w-5 h-5" />}
@@ -325,16 +337,12 @@ export default function SourcesConfig({ embedded = false, onClose }: SourcesConf
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setExpanded((prev) => { const next = { ...prev, [platform]: !prev[platform] }; saveExpanded(next); return next; })}
-                    className="inline-flex items-center gap-1 px-2 py-1.5 rounded-md text-sm border border-gray-300 hover:bg-gray-50"
-                    title={expanded[platform] ? 'Collapse' : 'Expand'}
-                  >
+                  <span className="inline-flex items-center justify-center w-7 h-7 rounded-md border border-gray-200 bg-white text-gray-600 pointer-events-none">
                     {expanded[platform] ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                  </button>
+                  </span>
                   {/* Export removed per request */}
                   <button
-                    onClick={() => setBulkEdit({ platform: String(platform), text: config.platforms[platform].sources.join('\n') })}
+                    onClick={(e) => { e.stopPropagation(); setBulkEdit({ platform: String(platform), text: config.platforms[platform].sources.join('\n') }); }}
                     className="inline-flex items-center gap-1 px-2 py-1.5 rounded-md text-sm border border-gray-300 hover:bg-gray-50"
                     title="Bulk edit sources"
                   >
@@ -342,7 +350,7 @@ export default function SourcesConfig({ embedded = false, onClose }: SourcesConf
                     Bulk Edit
                   </button>
                   <button
-                    onClick={() => togglePlatform(platform)}
+                    onClick={(e) => { e.stopPropagation(); togglePlatform(platform); }}
                     className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm border ${
                       config.platforms[platform].enabled
                         ? 'bg-green-50 text-green-700 border-green-300'
