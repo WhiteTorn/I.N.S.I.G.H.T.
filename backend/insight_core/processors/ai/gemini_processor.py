@@ -640,8 +640,8 @@ OUTPUT FORMAT (exact markers required)
 ## Global Situation Briefing
 - 8–14 bullets tying cross-domain signals to concrete implications and likely next moves.
 
-+## Momentum & Trendlines
-+- 3–6 bullets on acceleration/decay, reversals, or tipping points.
+## Momentum & Trendlines
+- 3–6 bullets on acceleration/decay, reversals, or tipping points.
 ===DAILY_BRIEFING_END===
 
 ===TOPICS_START===
