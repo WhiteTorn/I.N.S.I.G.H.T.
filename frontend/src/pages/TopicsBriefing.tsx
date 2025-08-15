@@ -14,6 +14,8 @@ export default function TopicsBriefing() {
   const [postsMap, setPostsMap] = useState<Record<string, Post>>({});
   const [unreferencedIds, setUnreferencedIds] = useState<string[]>([]);
   const [openTopic, setOpenTopic] = useState<string | null>(null);
+  // expanded state per post: key = `${topicId}:${postId}`
+  const [expandedPosts, setExpandedPosts] = useState<Record<string, boolean>>({});
 
   const handleGenerate = async () => {
     setIsGenerating(true);
@@ -22,7 +24,7 @@ export default function TopicsBriefing() {
     setTopics([]);
   setPostsMap({});
   setUnreferencedIds([]);
-    try {
+  try {
       const res: BriefingTopicsResponse = await apiService.generateBriefingWithTopics(selectedDate);
       if (res.success) {
         setBriefing(res.briefing || null);
@@ -32,6 +34,10 @@ export default function TopicsBriefing() {
     // open first topic by default
     const first = (res.topics || [])[0];
     setOpenTopic(first ? first.id : null);
+    // default expand all posts initially
+    const nextExpanded: Record<string, boolean> = {};
+    (res.topics || []).forEach((t) => (t.post_ids || []).forEach((pid) => { nextExpanded[`${t.id}:${pid}`] = true; }));
+    setExpandedPosts(nextExpanded);
       } else {
         setError(res.error || 'Failed to generate topics');
       }
@@ -100,52 +106,102 @@ export default function TopicsBriefing() {
           {topics.map((topic, tIndex) => {
             const isOpen = openTopic === topic.id;
             return (
-              <div key={topic.id || `topic_${tIndex}`} className="bg-white border border-gray-200 rounded-lg mb-4 overflow-hidden">
+              <div key={topic.id || `topic_${tIndex}`} className="bg-white border border-gray-200 rounded-xl mb-5 overflow-hidden shadow-sm">
                 <button
                   onClick={() => setOpenTopic(isOpen ? null : topic.id)}
                   className="w-full text-left px-6 py-4 flex items-center justify-between hover:bg-gray-50"
                 >
-                  <span className="font-semibold text-gray-900">{tIndex + 1}. {topic.title || 'Untitled Topic'}</span>
-                  <span className="text-xs text-gray-500">{isOpen ? 'Collapse' : 'Expand'}</span>
+                  <span className="text-gray-900 font-bold tracking-tight text-lg md:text-xl flex-1">
+                    <span className="inline-block border-l-4 border-indigo-600 pl-4">{tIndex + 1}. {topic.title || 'Untitled Topic'}</span>
+                  </span>
+                  <span className="text-xs text-gray-500 ml-4">{isOpen ? 'Collapse' : 'Expand'}</span>
                 </button>
                 {isOpen && (
                   <div className="px-6 pb-6">
                     {topic.summary && (
-                      <div className="text-sm text-gray-700 mb-4">
+                      <div className="text-sm text-gray-700 leading-relaxed mb-5">
                         <MarkdownRenderer content={topic.summary} />
                       </div>
                     )}
-                    <ol className="list-decimal pl-5 space-y-4">
+                    {/* Topic-level controls */}
+                    <div className="flex items-center justify-end gap-2 mb-3 text-xs">
+                      <button
+                        className="px-2 py-1 rounded border border-gray-200 hover:bg-gray-50"
+                        onClick={() => {
+                          const updated = { ...expandedPosts };
+                          (topic.post_ids || []).forEach((pid) => { updated[`${topic.id}:${pid}`] = true; });
+                          setExpandedPosts(updated);
+                        }}
+                        aria-label="Expand all posts"
+                      >Expand all posts</button>
+                      <button
+                        className="px-2 py-1 rounded border border-gray-200 hover:bg-gray-50"
+                        onClick={() => {
+                          const updated = { ...expandedPosts };
+                          (topic.post_ids || []).forEach((pid) => { updated[`${topic.id}:${pid}`] = false; });
+                          setExpandedPosts(updated);
+                        }}
+                        aria-label="Collapse all posts"
+                      >Collapse all posts</button>
+                    </div>
+                    <div className="space-y-4">
                       {(topic.post_ids || []).map((pid, rIndex) => {
                         const post = postsMap[pid];
                         if (!post) return null;
                         const platformLabel = (post.platform || 'unknown').toUpperCase();
                         let dateLabel = 'Unknown date';
                         try { const d = new Date(post.date as string); if (!isNaN(d.getTime())) dateLabel = d.toLocaleDateString(); } catch {}
+
+                        const key = `${topic.id}:${pid}`;
+                        const isExpanded = expandedPosts[key] ?? true;
                         return (
-                          <li key={`${pid}_${rIndex}`} className="border border-gray-200 rounded-lg p-4">
-                            <div className="flex items-start justify-between mb-2">
-                              <div className="flex-1">
-                                <h4 className="font-medium text-gray-900 mb-1">Post {pid}: {post.title || `${platformLabel} Post`}</h4>
-                                <div className="flex items-center gap-4 text-xs text-gray-500">
-                                  <span>📡 {post.feed_title || post.source}</span>
-                                  <span>📅 {dateLabel}</span>
-                                  <span>🔗 {platformLabel}</span>
+                          <div key={`${pid}_${rIndex}`} className="border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                            {/* Header */}
+                            <div className="p-4">
+                              <div className="flex items-start gap-3">
+                                {/* Number badge fixes misalignment */}
+                                <div className="shrink-0 w-8 h-8 rounded-md bg-indigo-50 text-indigo-700 font-semibold flex items-center justify-center">{rIndex + 1}</div>
+                                <div className="flex-1">
+                                  <div className="flex items-start justify-between">
+                                    <div className="pr-3">
+                                      <h4 className="text-base font-semibold text-gray-900 leading-snug">
+                                        Post {pid}: {post.title || `${platformLabel} Post`}
+                                      </h4>
+                                      <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-600">
+                                        <span>📡 {post.feed_title || post.source}</span>
+                                        <span>📅 {dateLabel}</span>
+                                        <span>🔗 {platformLabel}</span>
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                      {post.url && (
+                                        <a href={post.url} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:text-indigo-800" aria-label="Open original">
+                                          <ExternalLink className="w-4 h-4" />
+                                        </a>
+                                      )}
+                                      <button
+                                        onClick={() => setExpandedPosts((prev) => ({ ...prev, [key]: !isExpanded }))}
+                                        className="text-xs text-gray-600 px-2 py-1 border border-gray-200 rounded hover:bg-gray-50"
+                                        aria-expanded={isExpanded}
+                                        aria-controls={`post-content-${key}`}
+                                      >{isExpanded ? 'Collapse' : 'Expand'}</button>
+                                    </div>
+                                  </div>
+                                  {/* Divider to separate header from body */}
+                                  {isExpanded && <div className="mt-3 border-t border-gray-100" />}
                                 </div>
                               </div>
-                              {post.url && (
-                                <a href={post.url} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:text-indigo-800">
-                                  <ExternalLink className="w-4 h-4" />
-                                </a>
-                              )}
                             </div>
-                            <div className="text-gray-700 text-sm leading-relaxed prose max-w-none">
-                              <MarkdownRenderer content={post.content_html || post.content} />
-                            </div>
-                          </li>
+                            {/* Body */}
+                            {isExpanded && (
+                              <div id={`post-content-${key}`} className="p-4 pt-3 text-gray-800 text-sm leading-relaxed prose max-w-none">
+                                <MarkdownRenderer content={post.content_html || post.content} />
+                              </div>
+                            )}
+                          </div>
                         );
                       })}
-                    </ol>
+                    </div>
                   </div>
                 )}
               </div>
