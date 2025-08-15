@@ -165,7 +165,7 @@ export default function TopicsBriefing() {
                                   <div className="flex items-start justify-between">
                                     <div className="pr-3">
                                       <h4 className="text-base font-semibold text-gray-900 leading-snug">
-                                        Post {pid}: {post.title || `${platformLabel} Post`}
+                                        {post.title || `${platformLabel} Post`}
                                       </h4>
                                       <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-600">
                                         <span>📡 {post.feed_title || post.source}</span>

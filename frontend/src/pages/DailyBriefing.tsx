@@ -470,7 +470,7 @@ export default function DailyBriefing() {
                                             <div className="flex-1">
                                               <div className="flex items-start justify-between">
                                                 <div className="pr-3">
-                                                  <h4 className="text-base font-semibold text-gray-900 leading-snug">Post {pid}: {post.title || `${platformLabel} Post`}</h4>
+                                                  <h4 className="text-base font-semibold text-gray-900 leading-snug">{post.title || `${platformLabel} Post`}</h4>
                                                   <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-600">
                                                     <span>📡 {post.feed_title || post.source}</span>
                                                     <span>📅 {dateLabel}</span>
@@ -535,9 +535,7 @@ export default function DailyBriefing() {
                           <div key={index} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
                             <div className="flex items-start justify-between mb-2">
                               <div className="flex-1">
-                                <h4 className="font-medium text-gray-900 mb-1">
-                                  {post.title || `${platformLabel} Post`}
-                                </h4>
+                                <h4 className="font-medium text-gray-900 mb-1">{post.title || `${platformLabel} Post`}</h4>
                                 <div className="flex items-center gap-4 text-sm text-gray-500 mb-2">
                                   <span>📡 {post.feed_title || post.source}</span>
                                   <span>📅 {dateLabel}</span>
