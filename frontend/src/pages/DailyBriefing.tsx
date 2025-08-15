@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
-import { ChevronLeft, Download, Share2, Calendar, Clock, BarChart3, TrendingUp, Shield, Globe, Cpu, RefreshCw, AlertCircle, CheckCircle2, ExternalLink, Settings } from 'lucide-react';
+import { ChevronLeft, Download, Share2, Calendar, Clock, BarChart3, TrendingUp, Shield, Globe, Cpu, RefreshCw, AlertCircle, CheckCircle2, ExternalLink, Settings, Copy } from 'lucide-react';
 import SourcesConfig from './SourcesConfig';
 import { apiService } from '../services/api';
 import type { BriefingResponse, Post, BriefingTopicsResponse, Topic } from '../services/api';
@@ -419,12 +419,11 @@ export default function DailyBriefing() {
                           <div key={topic.id || `topic_${tIndex}`} className="border border-gray-200 rounded-xl overflow-hidden shadow-sm">
                             <button
                               onClick={() => setOpenTopic(isOpen ? null : topic.id)}
-                              className="w-full text-left px-6 py-4 flex items-center justify-between hover:bg-gray-50"
+                              className={`w-full text-left px-6 py-4 flex items-center justify-between transition-colors hover:bg-gray-50 ${isOpen ? 'bg-gray-50' : ''}`}
                             >
                               <span className="text-gray-900 font-bold tracking-tight text-lg md:text-xl flex-1">
                                 <span className="inline-block border-l-4 border-indigo-600 pl-4">{tIndex + 1}. {topic.title || 'Untitled Topic'}</span>
                               </span>
-                              <span className="text-xs text-gray-500 ml-4">{isOpen ? 'Collapse' : 'Expand'}</span>
                             </button>
                             {isOpen && (
                               <div className="px-6 pb-6">
@@ -464,8 +463,13 @@ export default function DailyBriefing() {
                                     const isExpanded = expandedPosts[key] ?? true;
                                     return (
                                       <div key={`${pid}_${rIndex}`} className="border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-                                        <div className="p-4">
-                                          <div className="flex items-start gap-3">
+                                        <button
+                                          type="button"
+                                          className={`w-full text-left px-6 py-4 flex items-start justify-between select-none transition-colors ${isExpanded ? 'bg-gray-50' : ''} hover:bg-gray-50`}
+                                          aria-expanded={isExpanded}
+                                          onClick={() => setExpandedPosts((prev) => ({ ...prev, [key]: !isExpanded }))}
+                                        >
+                                          <div className="flex items-start gap-3 flex-1">
                                             <div className="shrink-0 w-8 h-8 rounded-md bg-indigo-50 text-indigo-700 font-semibold flex items-center justify-center">{rIndex + 1}</div>
                                             <div className="flex-1">
                                               <div className="flex items-start justify-between">
@@ -479,21 +483,53 @@ export default function DailyBriefing() {
                                                 </div>
                                                 <div className="flex items-center gap-3">
                                                   {post.url && (
-                                                    <a href={post.url} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:text-indigo-800" aria-label="Open original">
+                                                    <a
+                                                      href={post.url}
+                                                      target="_blank"
+                                                      rel="noopener noreferrer"
+                                                      className="text-indigo-600 hover:text-indigo-800"
+                                                      aria-label="Open original"
+                                                      onClick={(e) => e.stopPropagation()}
+                                                      title="Open source"
+                                                    >
                                                       <ExternalLink className="w-4 h-4" />
                                                     </a>
                                                   )}
                                                   <button
-                                                    onClick={() => setExpandedPosts((prev) => ({ ...prev, [key]: !isExpanded }))}
-                                                    className="text-xs text-gray-600 px-2 py-1 border border-gray-200 rounded hover:bg-gray-50"
-                                                    aria-expanded={isExpanded}
-                                                  >{isExpanded ? 'Collapse' : 'Expand'}</button>
+                                                    className="text-gray-600 hover:text-gray-800"
+                                                    title="Copy post content"
+                                                    onClick={async (e) => {
+                                                      e.stopPropagation();
+                                                      try {
+                                                        const tmp = document.createElement('div');
+                                                        tmp.innerHTML = (post.content_html || post.content) as string;
+                                                        const text = (tmp.textContent || tmp.innerText || '').trim();
+                                                        await navigator.clipboard.writeText(text);
+                                                      } catch {}
+                                                    }}
+                                                  >
+                                                    <Copy className="w-4 h-4" />
+                                                  </button>
+                                                  {post.url && (
+                                                    <button
+                                                      className="text-gray-600 hover:text-gray-800"
+                                                      title="Copy source link"
+                                                      onClick={async (e) => {
+                                                        e.stopPropagation();
+                                                        try {
+                                                          await navigator.clipboard.writeText(post.url as string);
+                                                        } catch {}
+                                                      }}
+                                                    >
+                                                      <Share2 className="w-4 h-4" />
+                                                    </button>
+                                                  )}
                                                 </div>
                                               </div>
                                               {isExpanded && <div className="mt-3 border-t border-gray-100" />}
                                             </div>
                                           </div>
-                                        </div>
+                                        </button>
                                         {isExpanded && (
                                           <div className="p-4 pt-3 text-gray-800 text-sm leading-relaxed prose max-w-none">
                                             <MarkdownRenderer content={post.content_html || post.content} />
