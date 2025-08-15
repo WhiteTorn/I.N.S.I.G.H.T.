@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiService } from '../services/api';
 import type { SourceConfig } from '../types';
-import { Loader2, Save, Plus, Trash2, ChevronLeft, ChevronDown, ChevronRight, Rss, Youtube, Send, MessageSquare, FileText } from 'lucide-react';
+import { Loader2, Save, Plus, Trash2, ChevronLeft, Rss, Youtube, Send, MessageSquare, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 
 type PlatformKey = keyof SourceConfig['platforms'];
@@ -337,9 +337,6 @@ export default function SourcesConfig({ embedded = false, onClose }: SourcesConf
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center justify-center w-7 h-7 rounded-md border border-gray-200 bg-white text-gray-600 pointer-events-none">
-                    {expanded[platform] ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                  </span>
                   {/* Export removed per request */}
                   <button
                     onClick={(e) => { e.stopPropagation(); setBulkEdit({ platform: String(platform), text: config.platforms[platform].sources.join('\n') }); }}
