@@ -1,11 +1,11 @@
 import React, { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Calendar, ChevronLeft, ExternalLink, RefreshCw } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight, ExternalLink, RefreshCw } from 'lucide-react';
 import { apiService } from '../services/api';
 import type { BriefingTopicsResponse, Topic, Post } from '../services/api';
 import MarkdownRenderer from '../components/ui/MarkdownRenderer';
 
 export default function TopicsBriefing() {
+  const [showSidebar, setShowSidebar] = useState(true);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -52,12 +52,18 @@ export default function TopicsBriefing() {
 
   return (
     <div className="flex h-screen bg-gray-100">
-      <div className="w-80 bg-white border-r border-gray-200 p-6 overflow-y-auto">
+    {showSidebar && (
+    <div className="w-80 bg-white border-r border-gray-200 pt-4 pr-6 pb-6 pl-6 overflow-y-auto relative">
+        <button
+          type="button"
+          onClick={() => setShowSidebar(false)}
+      className="absolute top-2 right-2 inline-flex items-center justify-center w-8 h-8 text-gray-500 hover:text-gray-900"
+          aria-label="Hide left panel"
+          title="Hide left panel"
+        >
+          <ChevronLeft className="w-4 h-4" />
+        </button>
         <div className="mb-8">
-          <Link to="/" className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 mb-4 transition-colors">
-            <ChevronLeft className="w-4 h-4 mr-1" />
-            Back to Dashboard
-          </Link>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Topics Briefing</h1>
           <p className="text-sm text-gray-600">Group posts by AI-extracted topics</p>
         </div>
@@ -84,9 +90,10 @@ export default function TopicsBriefing() {
           )}
         </div>
       </div>
+      )}
 
-      <div className="flex-1 overflow-y-auto">
-        <div className="max-w-4xl mx-auto p-8">
+      <div className={`flex-1 overflow-y-auto ${showSidebar ? '' : 'flex items-start justify-center'}`}>
+        <div className={`p-8 ${showSidebar ? 'max-w-4xl mx-auto' : 'w-full max-w-3xl'}`}>
           {/* BRIEFING */}
           <div className="bg-white border border-gray-200 rounded-lg p-6 mb-8">
             <h2 className="text-xl font-semibold mb-4">Briefing</h2>
@@ -211,6 +218,18 @@ export default function TopicsBriefing() {
           {/* Unreferenced posts section removed: all posts are shown in Source Intelligence on Daily Briefing */}
         </div>
       </div>
+
+      {!showSidebar && (
+        <button
+          type="button"
+          onClick={() => setShowSidebar(true)}
+          className="fixed left-3 top-3 z-50 inline-flex items-center justify-center w-8 h-8 text-gray-500 hover:text-gray-900"
+          aria-label="Show left panel"
+          title="Show left panel"
+        >
+          <ChevronRight className="w-4 h-4" />
+        </button>
+      )}
     </div>
   );
 }

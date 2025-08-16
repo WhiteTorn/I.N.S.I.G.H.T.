@@ -1,13 +1,13 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
 import { useState } from 'react';
-import { ChevronLeft, Download, Share2, Calendar, Clock, BarChart3, TrendingUp, Shield, Globe, Cpu, RefreshCw, AlertCircle, CheckCircle2, ExternalLink, Settings, Copy } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Download, Share2, Calendar, BarChart3, TrendingUp, Shield, Globe, Cpu, RefreshCw, AlertCircle, CheckCircle2, ExternalLink, Settings, Copy } from 'lucide-react';
 import SourcesConfig from './SourcesConfig';
 import { apiService } from '../services/api';
 import type { BriefingResponse, Post, BriefingTopicsResponse, Topic } from '../services/api';
 import MarkdownRenderer from '../components/ui/MarkdownRenderer';
 
 export default function DailyBriefing() {
+  const [showSidebar, setShowSidebar] = useState(true);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [activeSection, setActiveSection] = useState('executive-summary');
@@ -137,15 +137,18 @@ export default function DailyBriefing() {
   return (
     <div className="flex h-screen bg-gray-100">
       {/* Table of Contents Sidebar */}
-      <div className="w-80 bg-white border-r border-gray-200 p-6 overflow-y-auto">
+    {showSidebar && (
+    <div className="w-80 bg-white border-r border-gray-200 pt-4 pr-6 pb-6 pl-6 overflow-y-auto relative">
+        <button
+          type="button"
+          onClick={() => setShowSidebar(false)}
+      className="absolute top-2 right-2 inline-flex items-center justify-center w-8 h-8 text-gray-500 hover:text-gray-900"
+          aria-label="Hide left panel"
+          title="Hide left panel"
+        >
+          <ChevronLeft className="w-4 h-4" />
+        </button>
         <div className="mb-8">
-          <Link 
-            to="/" 
-            className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 mb-4 transition-colors"
-          >
-            <ChevronLeft className="w-4 h-4 mr-1" />
-            Back to Dashboard
-          </Link>
           
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Daily Briefing</h1>
           <p className="text-sm text-gray-600">
@@ -287,37 +290,12 @@ export default function DailyBriefing() {
           </div>
         </div>
       </div>
+      )}
 
       {/* Main Content */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="max-w-4xl mx-auto p-8">
-          {/* Status Bar */}
-          <div className="flex items-center justify-between mb-8 p-4 bg-white border border-gray-200 rounded-lg">
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <Clock className="w-4 h-4" />
-                Last updated: {new Date().toLocaleTimeString('en-US', { 
-                  hour: '2-digit', 
-                  minute: '2-digit',
-                  timeZoneName: 'short'
-                })}
-              </div>
-              <div className="flex items-center gap-2 text-sm">
-                <div className={`w-2 h-2 rounded-full ${briefingData ? 'bg-green-400' : 'bg-gray-400'}`}></div>
-                <span className={briefingData ? 'text-green-700' : 'text-gray-500'}>
-                  {briefingData ? 'Generated' : 'Ready'}
-                </span>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-4 text-sm text-gray-600">
-                <span>🎯 Threat Level: <strong className="text-yellow-600">Medium</strong></span>
-                <span>📊 Sources: <strong>{briefingStats?.totalFetched || '47'}</strong></span>
-                <span>🔄 Updates: <strong>{briefingStats?.postsProcessed || '12'}</strong></span>
-              </div>
-            </div>
-          </div>
+      <div className={`flex-1 overflow-y-auto ${showSidebar ? '' : 'flex items-start justify-center'}`}>
+        <div className={`p-8 ${showSidebar ? 'max-w-4xl mx-auto' : 'w-full max-w-3xl'}`}>
+          {/* Status Bar removed as requested */}
 
           {/* Executive Summary */}
           {activeSection === 'executive-summary' && (
@@ -719,6 +697,19 @@ export default function DailyBriefing() {
           )}
         </div>
       </div>
+
+      {/* Floating Show Panel button when hidden */}
+      {!showSidebar && (
+        <button
+          type="button"
+          onClick={() => setShowSidebar(true)}
+          className="fixed left-3 top-3 z-50 inline-flex items-center justify-center w-8 h-8 text-gray-500 hover:text-gray-900"
+          aria-label="Show left panel"
+          title="Show left panel"
+        >
+          <ChevronRight className="w-4 h-4" />
+        </button>
+      )}
 
   {/* No modal; sources config is embedded as a section */}
     </div>
