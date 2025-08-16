@@ -138,16 +138,16 @@ export default function DailyBriefing() {
   return (
     <div className="flex h-screen bg-gray-100">
       {/* Floating Focus toggle – always visible while scrolling */}
-      <div className="fixed right-4 md:right-6 top-24 z-50">
+    <div className="fixed right-4 md:right-6 top-6 md:top-8 z-50">
         <button
           type="button"
           onClick={() => setFocusMode(v => !v)}
-          className="inline-flex items-center gap-2 px-3 py-2 rounded-full bg-blue-600 text-white shadow-lg hover:bg-blue-700 focus:outline-none"
+      className="h-10 w-10 inline-flex items-center justify-center rounded-lg bg-blue-600 text-white shadow-lg hover:bg-blue-700 focus:outline-none"
           aria-pressed={focusMode}
-          title={focusMode ? 'Unfocus' : 'Focus'}
+      title={focusMode ? 'Unfocus' : 'Focus'}
+      aria-label={focusMode ? 'Unfocus reading mode' : 'Focus reading mode'}
         >
-          {focusMode ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-          <span className="hidden sm:inline">{focusMode ? 'Unfocus' : 'Focus'}</span>
+      {focusMode ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
         </button>
       </div>
       {/* Table of Contents Sidebar (animated) */}
