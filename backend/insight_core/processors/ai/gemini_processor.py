@@ -330,19 +330,19 @@ Directive
 
 Output (markdown only)
 ## Global Situation Briefing
-- 10–15 bullets that explain what happened and why it matters. Connect dots across tech, markets, security, and geopolitics. Prefer specifics over generalities.
+- 10-15 bullets that explain what happened and why it matters. Connect dots across tech, markets, security, and geopolitics. Prefer specifics over generalities.
 
 ## Strategic Implications
-- Markets: 3–5 bullets (capital flows, regulatory posture, enterprise adoption).
-- Technology: 3–5 bullets (capabilities, constraints, moats, infra shifts).
-- Security/Privacy: 2–4 bullets (attack surface, failures, mitigations).
-- Geopolitics: 2–4 bullets (state actors, alliances, export controls).
+- Markets: 3-5 bullets (capital flows, regulatory posture, enterprise adoption).
+- Technology: 3-5 bullets (capabilities, constraints, moats, infra shifts).
+- Security/Privacy: 2-4 bullets (attack surface, failures, mitigations).
+- Geopolitics: 2-4 bullets (state actors, alliances, export controls).
 
 ## Early Warning Signals (Leading Indicators)
-- 5–8 bullets. Name concrete metrics, datasets, or events to watch next.
+- 5-8 bullets. Name concrete metrics, datasets, or events to watch next.
 
-## Recommended Actions (Next 24–72h)
-- 5–10 bullets. Clear, testable actions with intended outcome. Use strong verbs.
+## Recommended Actions (Next 24-72h)
+- 5-10 bullets. Clear, testable actions with intended outcome. Use strong verbs.
 
 Constraints
 - No code blocks. No JSON. No acknowledgements. Just the briefing.
