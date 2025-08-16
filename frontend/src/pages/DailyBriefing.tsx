@@ -116,24 +116,7 @@ export default function DailyBriefing() {
     { id: 'geopolitical', title: 'Geopolitical Events', icon: Globe },
   ];
 
-  // Dynamic metrics based on actual data
-  const getDynamicMetrics = () => {
-    if (!briefingStats || !sourcePosts.length) {
-      return {
-        criticalUpdates: 0,
-        opportunities: 0,
-        threatLevel: "Unknown"
-      };
-    }
-
-    return {
-      criticalUpdates: Math.min(briefingStats.postsProcessed, 5), // Cap at 5 for realism
-      opportunities: Math.max(Math.floor(briefingStats.postsProcessed * 0.6), 1), // ~60% of posts as opportunities
-      threatLevel: briefingStats.postsProcessed > 5 ? "High" : briefingStats.postsProcessed > 2 ? "Medium" : "Low"
-    };
-  };
-
-  const metrics = getDynamicMetrics();
+  // Metrics cards removed; keeping briefing stats only for small badges above briefing
 
   return (
     <div className="flex h-screen bg-gray-100">
@@ -291,408 +274,340 @@ export default function DailyBriefing() {
 
           {/* Executive Summary */}
           {activeSection === 'executive-summary' && (
-            focusMode ? (
-              <div className="space-y-8">
-                {/* Unfocus button in focus view */}
-                <div className="flex items-center justify-end mb-2">
+            <div className="space-y-8">
+              <div>
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-2xl font-bold text-gray-900">Executive Summary</h2>
                   <button
                     type="button"
-                    onClick={() => setFocusMode(false)}
+                    onClick={() => setFocusMode((v) => !v)}
                     className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-600 text-white shadow hover:bg-blue-700 focus:outline-none"
-                    aria-pressed={!focusMode}
-                    title="Unfocus"
+                    aria-pressed={focusMode}
+                    title={focusMode ? 'Unfocus' : 'Focus'}
                   >
-                    <EyeOff className="w-4 h-4" />
-                    Unfocus
+                    {focusMode ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    {focusMode ? 'Unfocus' : 'Focus'}
                   </button>
                 </div>
-                {/* Focus mode: only the reading content */}
+
+                {/* AI-Generated Briefing Content */}
                 {briefingData ? (
-                  <div className="bg-white border border-gray-200 rounded-lg p-6">
+                  <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                      🤖 AI-Generated Intelligence Briefing
+                    </h3>
                     <div className="prose max-w-none">
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <BarChart3 className="w-4 h-4 text-blue-600" />
+                          <span className="text-sm font-medium text-blue-800">
+                            Mark I Foundation Engine Output
+                          </span>
+                        </div>
+                        <div className="text-xs text-blue-700">
+                          Generated from {briefingStats?.totalFetched} sources • {briefingStats?.postsProcessed} posts processed
+                        </div>
+                      </div>
                       <MarkdownRenderer content={briefingData} />
                     </div>
                   </div>
                 ) : (
-                  <div className="bg-white border border-gray-200 rounded-lg p-8 text-center">
+                  <div className="bg-white border border-gray-200 rounded-lg p-8 text-center mb-6">
                     <BarChart3 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">No briefing yet</h3>
-                    <p className="text-gray-600">Exit focus to generate or view your intelligence briefing.</p>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                      {isGenerating ? 'Generating Intelligence Briefing...' : 'Ready to Generate Briefing'}
+                    </h3>
+                    <p className="text-gray-600 mb-4">
+                      {isGenerating 
+                        ? 'Mark I Foundation Engine is analyzing intelligence sources and generating your briefing...'
+                        : 'Select a date and click "Generate Briefing" to create your AI-powered intelligence report.'
+                      }
+                    </p>
+                    {isGenerating && (
+                      <div className="flex items-center justify-center gap-2 text-sm text-blue-600">
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        <span>Processing intelligence data...</span>
+                      </div>
+                    )}
                   </div>
                 )}
-              </div>
-            ) : (
-              <div className="space-y-8">
-                <div>
-                  <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-2xl font-bold text-gray-900">Executive Summary</h2>
-                    <button
-                      type="button"
-                      onClick={() => setFocusMode(true)}
-                      className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-600 text-white shadow hover:bg-blue-700 focus:outline-none"
-                      aria-pressed={focusMode}
-                      title="Focus"
-                    >
-                      <Eye className="w-4 h-4" />
-                      Focus
-                    </button>
-                  </div>
-                  
-                  {/* Key Metrics */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    <div className="bg-white border border-gray-200 rounded-lg p-6">
-                      <div className="flex items-center gap-3 mb-2">
-                        <div className="p-2 bg-red-100 rounded-lg">
-                          <Shield className="w-5 h-5 text-red-600" />
-                        </div>
-                        <h3 className="font-semibold text-gray-900">Critical Updates</h3>
-                      </div>
-                      <div className="text-2xl font-bold text-red-600">{metrics.criticalUpdates}</div>
-                      <p className="text-xs text-gray-500 mt-1">Requiring immediate attention</p>
-                    </div>
 
-                    <div className="bg-white border border-gray-200 rounded-lg p-6">
-                      <div className="flex items-center gap-3 mb-2">
-                        <div className="p-2 bg-green-100 rounded-lg">
-                          <TrendingUp className="w-5 h-5 text-green-600" />
-                        </div>
-                        <h3 className="font-semibold text-gray-900">Opportunities</h3>
+                {/* Topic-based Briefing Content */}
+                {(topicsBriefing || topics.length > 0) && (
+                  <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">🧩 Topic-based Briefing</h3>
+                    {/* BRIEFING */}
+                    {topicsBriefing ? (
+                      <div className="prose max-w-none mb-4">
+                        <MarkdownRenderer content={topicsBriefing} />
                       </div>
-                      <div className="text-2xl font-bold text-green-600">{metrics.opportunities}</div>
-                      <p className="text-xs text-gray-500 mt-1">Strategic opportunities identified</p>
-                    </div>
-
-                    <div className="bg-white border border-gray-200 rounded-lg p-6">
-                      <div className="flex items-center gap-3 mb-2">
-                        <div className="p-2 bg-yellow-100 rounded-lg">
-                          <BarChart3 className="w-5 h-5 text-yellow-600" />
-                        </div>
-                        <h3 className="font-semibold text-gray-900">Threat Level</h3>
-                      </div>
-                      <div className="text-2xl font-bold text-yellow-600">{metrics.threatLevel}</div>
-                      <p className="text-xs text-gray-500 mt-1">Overall assessment</p>
-                    </div>
-                  </div>
-
-                  {/* AI-Generated Briefing Content */}
-                  {briefingData ? (
-                    <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                        🤖 AI-Generated Intelligence Briefing
-                      </h3>
-                      <div className="prose max-w-none">
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                          <div className="flex items-center gap-2 mb-2">
-                            <BarChart3 className="w-4 h-4 text-blue-600" />
-                            <span className="text-sm font-medium text-blue-800">
-                              Mark I Foundation Engine Output
-                            </span>
-                          </div>
-                          <div className="text-xs text-blue-700">
-                            Generated from {briefingStats?.totalFetched} sources • {briefingStats?.postsProcessed} posts processed
-                          </div>
-                        </div>
-                        <MarkdownRenderer content={briefingData} />
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="bg-white border border-gray-200 rounded-lg p-8 text-center mb-6">
-                      <BarChart3 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                        {isGenerating ? 'Generating Intelligence Briefing...' : 'Ready to Generate Briefing'}
-                      </h3>
-                      <p className="text-gray-600 mb-4">
-                        {isGenerating 
-                          ? 'Mark I Foundation Engine is analyzing intelligence sources and generating your briefing...'
-                          : 'Select a date and click "Generate Briefing" to create your AI-powered intelligence report.'
-                        }
-                      </p>
-                      {isGenerating && (
-                        <div className="flex items-center justify-center gap-2 text-sm text-blue-600">
-                          <RefreshCw className="w-4 h-4 animate-spin" />
-                          <span>Processing intelligence data...</span>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Topic-based Briefing Content */}
-                  {(topicsBriefing || topics.length > 0) && (
-                    <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4">🧩 Topic-based Briefing</h3>
-                      {/* BRIEFING */}
-                      {topicsBriefing ? (
-                        <div className="prose max-w-none mb-4">
-                          <MarkdownRenderer content={topicsBriefing} />
-                        </div>
-                      ) : null}
-                      {/* spacer like a tab */}
-                      <div className="h-4" />
-                      {/* Collapsible topics */}
-                      <div className="space-y-4">
-                        {topics.map((topic, tIndex) => {
-                          const isOpen = openTopic === topic.id;
-                          return (
-                            <div key={topic.id || `topic_${tIndex}`} className="border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-                              <button
-                                onClick={() => setOpenTopic(isOpen ? null : topic.id)}
-                                className={`w-full text-left px-6 py-4 flex items-center justify-between transition-colors hover:bg-gray-50 ${isOpen ? 'bg-gray-50' : ''}`}
-                              >
-                                <span className="text-gray-900 font-bold tracking-tight text-lg md:text-xl flex-1">
-                                  <span className="inline-block border-l-4 border-indigo-600 pl-4">{tIndex + 1}. {topic.title || 'Untitled Topic'}</span>
-                                </span>
-                              </button>
-                              {isOpen && (
-                                <div className="px-6 pb-6">
-                                  {topic.summary && (
-                                    <div className="text-sm text-gray-700 leading-relaxed mb-5">
-                                      <MarkdownRenderer content={topic.summary} />
-                                    </div>
-                                  )}
-                                  {/* Topic-level controls */}
-                                  <div className="flex items-center justify-end gap-2 mb-3 text-xs">
-                                    <button
-                                      className="px-2 py-1 rounded border border-gray-200 hover:bg-gray-50"
-                                      onClick={() => {
-                                        const updated = { ...expandedPosts };
-                                        (topic.post_ids || []).forEach((pid) => { updated[`${topic.id}:${pid}`] = true; });
-                                        setExpandedPosts(updated);
-                                      }}
-                                    >Expand all posts</button>
-                                    <button
-                                      className="px-2 py-1 rounded border border-gray-200 hover:bg-gray-50"
-                                      onClick={() => {
-                                        const updated = { ...expandedPosts };
-                                        (topic.post_ids || []).forEach((pid) => { updated[`${topic.id}:${pid}`] = false; });
-                                        setExpandedPosts(updated);
-                                      }}
-                                    >Collapse all posts</button>
+                    ) : null}
+                    {/* spacer like a tab */}
+                    <div className="h-4" />
+                    {/* Collapsible topics */}
+                    <div className="space-y-4">
+                      {topics.map((topic, tIndex) => {
+                        const isOpen = openTopic === topic.id;
+                        return (
+                          <div key={topic.id || `topic_${tIndex}`} className="border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                            <button
+                              onClick={() => setOpenTopic(isOpen ? null : topic.id)}
+                              className={`w-full text-left px-6 py-4 flex items-center justify-between transition-colors hover:bg-gray-50 ${isOpen ? 'bg-gray-50' : ''}`}
+                            >
+                              <span className="text-gray-900 font-bold tracking-tight text-lg md:text-xl flex-1">
+                                <span className="inline-block border-l-4 border-indigo-600 pl-4">{tIndex + 1}. {topic.title || 'Untitled Topic'}</span>
+                              </span>
+                            </button>
+                            {isOpen && (
+                              <div className="px-6 pb-6">
+                                {topic.summary && (
+                                  <div className="text-sm text-gray-700 leading-relaxed mb-5">
+                                    <MarkdownRenderer content={topic.summary} />
                                   </div>
-                                  <div className="space-y-4">
-                                    {(topic.post_ids || []).map((pid, rIndex) => {
-                                      const post = postsMap[pid];
-                                      if (!post) return null;
-                                      const platformLabel = (post.platform || 'unknown').toUpperCase();
-                                      let dateLabel = 'Unknown date';
-                                      try { const d = new Date(post.date as string); if (!isNaN(d.getTime())) dateLabel = d.toLocaleDateString(); } catch {}
+                                )}
+                                {/* Topic-level controls */}
+                                <div className="flex items-center justify-end gap-2 mb-3 text-xs">
+                                  <button
+                                    className="px-2 py-1 rounded border border-gray-200 hover:bg-gray-50"
+                                    onClick={() => {
+                                      const updated = { ...expandedPosts };
+                                      (topic.post_ids || []).forEach((pid) => { updated[`${topic.id}:${pid}`] = true; });
+                                      setExpandedPosts(updated);
+                                    }}
+                                  >Expand all posts</button>
+                                  <button
+                                    className="px-2 py-1 rounded border border-gray-200 hover:bg-gray-50"
+                                    onClick={() => {
+                                      const updated = { ...expandedPosts };
+                                      (topic.post_ids || []).forEach((pid) => { updated[`${topic.id}:${pid}`] = false; });
+                                      setExpandedPosts(updated);
+                                    }}
+                                  >Collapse all posts</button>
+                                </div>
+                                <div className="space-y-4">
+                                  {(topic.post_ids || []).map((pid, rIndex) => {
+                                    const post = postsMap[pid];
+                                    if (!post) return null;
+                                    const platformLabel = (post.platform || 'unknown').toUpperCase();
+                                    let dateLabel = 'Unknown date';
+                                    try { const d = new Date(post.date as string); if (!isNaN(d.getTime())) dateLabel = d.toLocaleDateString(); } catch {}
 
-                                      const key = `${topic.id}:${pid}`;
-                                      const isExpanded = expandedPosts[key] ?? true;
-                                      return (
-                                        <div key={`${pid}_${rIndex}`} className="border border-gray-200 rounded-xl overflow-hidden shadow-sm relative">
-                                          <button
-                                            type="button"
-                                            className={`w-full text-left px-6 py-4 flex items-start justify-between select-none transition-colors ${isExpanded ? 'bg-gray-50' : ''} hover:bg-gray-50`}
-                                            aria-expanded={isExpanded}
-                                            onClick={() => setExpandedPosts((prev) => ({ ...prev, [key]: !isExpanded }))}
-                                          >
-                                            <div className="flex items-start gap-3 flex-1">
-                                              <div className="shrink-0 w-8 h-8 rounded-md bg-indigo-50 text-indigo-700 font-semibold flex items-center justify-center">{rIndex + 1}</div>
-                                              <div className="flex-1">
-                                                <div className="flex items-start justify-between">
-                                                  <div className="pr-3">
-                                                    <h4 className="text-base font-semibold text-gray-900 leading-snug">{post.title || `${platformLabel} Post`}</h4>
-                                                    <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-600">
-                                                      <span>📡 {post.feed_title || post.source}</span>
-                                                      <span>📅 {dateLabel}</span>
-                                                      <span>🔗 {platformLabel}</span>
-                                                    </div>
+                                    const key = `${topic.id}:${pid}`;
+                                    const isExpanded = expandedPosts[key] ?? true;
+                                    return (
+                                      <div key={`${pid}_${rIndex}`} className="border border-gray-200 rounded-xl overflow-hidden shadow-sm relative">
+                                        <button
+                                          type="button"
+                                          className={`w-full text-left px-6 py-4 flex items-start justify-between select-none transition-colors ${isExpanded ? 'bg-gray-50' : ''} hover:bg-gray-50`}
+                                          aria-expanded={isExpanded}
+                                          onClick={() => setExpandedPosts((prev) => ({ ...prev, [key]: !isExpanded }))}
+                                        >
+                                          <div className="flex items-start gap-3 flex-1">
+                                            <div className="shrink-0 w-8 h-8 rounded-md bg-indigo-50 text-indigo-700 font-semibold flex items-center justify-center">{rIndex + 1}</div>
+                                            <div className="flex-1">
+                                              <div className="flex items-start justify-between">
+                                                <div className="pr-3">
+                                                  <h4 className="text-base font-semibold text-gray-900 leading-snug">{post.title || `${platformLabel} Post`}</h4>
+                                                  <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-600">
+                                                    <span>📡 {post.feed_title || post.source}</span>
+                                                    <span>📅 {dateLabel}</span>
+                                                    <span>🔗 {platformLabel}</span>
                                                   </div>
-                                                  <div className="flex items-center gap-3">
-                                                    {post.url && (
-                                                      <a
-                                                        href={post.url}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        className="text-indigo-600 hover:text-indigo-800 p-1 rounded transition-all duration-150 hover:bg-indigo-50 hover:scale-110"
-                                                        aria-label="Open original"
-                                                        onClick={(e) => e.stopPropagation()}
-                                                        title="Open source"
-                                                      >
-                                                        <ExternalLink className="w-4 h-4" />
-                                                      </a>
-                                                    )}
+                                                </div>
+                                                <div className="flex items-center gap-3">
+                                                  {post.url && (
+                                                    <a
+                                                      href={post.url}
+                                                      target="_blank"
+                                                      rel="noopener noreferrer"
+                                                      className="text-indigo-600 hover:text-indigo-800 p-1 rounded transition-all duration-150 hover:bg-indigo-50 hover:scale-110"
+                                                      aria-label="Open original"
+                                                      onClick={(e) => e.stopPropagation()}
+                                                      title="Open source"
+                                                    >
+                                                      <ExternalLink className="w-4 h-4" />
+                                                    </a>
+                                                  )}
+                                                  <button
+                                                    className="text-gray-600 hover:text-gray-900 p-1 rounded transition-all duration-150 hover:bg-gray-100 hover:scale-110"
+                                                    title="Copy post content"
+                                                    onClick={async (e) => {
+                                                      e.stopPropagation();
+                                                      try {
+                                                        const tmp = document.createElement('div');
+                                                        tmp.innerHTML = (post.content_html || post.content) as string;
+                                                        const text = (tmp.textContent || tmp.innerText || '').trim();
+                                                        await navigator.clipboard.writeText(text);
+                                                        setCopied((prev) => ({ ...prev, [key]: true }));
+                                                        setTimeout(() => setCopied((prev) => ({ ...prev, [key]: false })), 1500);
+                                                      } catch {}
+                                                    }}
+                                                  >
+                                                    <Copy className="w-4 h-4" />
+                                                  </button>
+                                                  {post.url && (
                                                     <button
                                                       className="text-gray-600 hover:text-gray-900 p-1 rounded transition-all duration-150 hover:bg-gray-100 hover:scale-110"
-                                                      title="Copy post content"
+                                                      title="Copy source link"
                                                       onClick={async (e) => {
                                                         e.stopPropagation();
                                                         try {
-                                                          const tmp = document.createElement('div');
-                                                          tmp.innerHTML = (post.content_html || post.content) as string;
-                                                          const text = (tmp.textContent || tmp.innerText || '').trim();
-                                                          await navigator.clipboard.writeText(text);
+                                                          await navigator.clipboard.writeText(post.url as string);
                                                           setCopied((prev) => ({ ...prev, [key]: true }));
                                                           setTimeout(() => setCopied((prev) => ({ ...prev, [key]: false })), 1500);
                                                         } catch {}
                                                       }}
                                                     >
-                                                      <Copy className="w-4 h-4" />
+                                                      <Share2 className="w-4 h-4" />
                                                     </button>
-                                                    {post.url && (
-                                                      <button
-                                                        className="text-gray-600 hover:text-gray-900 p-1 rounded transition-all duration-150 hover:bg-gray-100 hover:scale-110"
-                                                        title="Copy source link"
-                                                        onClick={async (e) => {
-                                                          e.stopPropagation();
-                                                          try {
-                                                            await navigator.clipboard.writeText(post.url as string);
-                                                            setCopied((prev) => ({ ...prev, [key]: true }));
-                                                            setTimeout(() => setCopied((prev) => ({ ...prev, [key]: false })), 1500);
-                                                          } catch {}
-                                                        }}
-                                                      >
-                                                        <Share2 className="w-4 h-4" />
-                                                      </button>
-                                                    )}
-                                                  </div>
+                                                  )}
                                                 </div>
-                                                {isExpanded && <div className="mt-3 border-t border-gray-100" />}
                                               </div>
+                                              {isExpanded && <div className="mt-3 border-t border-gray-100" />}
                                             </div>
-                                          </button>
-                                          {copied[key] && (
-                                            <div className="absolute right-4 top-4 text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full px-3 py-1 shadow-sm animate-pulse">
-                                              Copied to clipboard
-                                            </div>
-                                          )}
-                                          {isExpanded && (
-                                            <div className="p-4 pt-3 text-gray-800 text-sm leading-relaxed prose max-w-none">
-                                              <MarkdownRenderer content={post.content_html || post.content} />
-                                            </div>
-                                          )}
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-
-                      {/* Unreferenced posts section removed: all posts are shown in Source Intelligence */}
-                    </div>
-                  )}
-
-                  {/* Source Posts Section */}
-                  <div className="bg-white border border-gray-200 rounded-lg p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Source Intelligence Posts</h3>
-            {/* Prefer posts from the standard flow; if empty, fallback to posts from the topics map */}
-            {(sourcePosts.length > 0 || Object.keys(postsMap).length > 0) ? (
-                      <div className="space-y-4">
-              {(sourcePosts.length ? sourcePosts : Object.values(postsMap)).map((post: Post, index: number) => {
-                          // Defensive guards: avoid crashes on unexpected/missing fields
-                          const platformLabel = (post?.platform || 'unknown').toUpperCase();
-                          let dateLabel = 'Unknown date';
-                          try {
-                            const d = new Date(post?.date as string);
-                            if (!isNaN(d.getTime())) dateLabel = d.toLocaleDateString();
-                          } catch (_) {
-                            // keep default
-                          }
-                          const key = `source:${index}`;
-                          const isExpanded = sourceExpanded[key] ?? true;
-
-                          return (
-                            <div key={index} className="border border-gray-200 rounded-xl overflow-hidden shadow-sm relative">
-                              <button
-                                type="button"
-                                className={`w-full text-left px-6 py-4 flex items-start justify-between select-none transition-colors ${isExpanded ? 'bg-gray-50' : ''} hover:bg-gray-50`}
-                                aria-expanded={isExpanded}
-                                onClick={() => setSourceExpanded((prev) => ({ ...prev, [key]: !isExpanded }))}
-                              >
-                                <div className="flex items-start gap-3 flex-1">
-                                  <div className="shrink-0 w-8 h-8 rounded-md bg-indigo-50 text-indigo-700 font-semibold flex items-center justify-center">{index + 1}</div>
-                                  <div className="flex-1">
-                                    <div className="flex items-start justify-between">
-                                      <div className="pr-3">
-                                        <h4 className="text-base font-semibold text-gray-900 leading-snug">{post.title || `${platformLabel} Post`}</h4>
-                                        <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-600">
-                                          <span>📡 {post.feed_title || post.source}</span>
-                                          <span>📅 {dateLabel}</span>
-                                          <span>🔗 {platformLabel}</span>
-                                        </div>
-                                      </div>
-                                      <div className="flex items-center gap-3">
-                                        {post.url && (
-                                          <a
-                                            href={post.url}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="text-indigo-600 hover:text-indigo-800 p-1 rounded transition-all duration-150 hover:bg-indigo-50 hover:scale-110"
-                                            aria-label="Open source"
-                                            onClick={(e) => e.stopPropagation()}
-                                            title="Open source"
-                                          >
-                                            <ExternalLink className="w-4 h-4" />
-                                          </a>
+                                          </div>
+                                        </button>
+                                        {copied[key] && (
+                                          <div className="absolute right-4 top-4 text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full px-3 py-1 shadow-sm animate-pulse">
+                                            Copied to clipboard
+                                          </div>
                                         )}
+                                        {isExpanded && (
+                                          <div className="p-4 pt-3 text-gray-800 text-sm leading-relaxed prose max-w-none">
+                                            <MarkdownRenderer content={post.content_html || post.content} />
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Unreferenced posts section removed: all posts are shown in Source Intelligence */}
+                  </div>
+                )}
+
+                {/* Source Posts Section */}
+                <div className="bg-white border border-gray-200 rounded-lg p-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Source Intelligence Posts</h3>
+          {/* Prefer posts from the standard flow; if empty, fallback to posts from the topics map */}
+          {(sourcePosts.length > 0 || Object.keys(postsMap).length > 0) ? (
+                    <div className="space-y-4">
+            {(sourcePosts.length ? sourcePosts : Object.values(postsMap)).map((post: Post, index: number) => {
+                        // Defensive guards: avoid crashes on unexpected/missing fields
+                        const platformLabel = (post?.platform || 'unknown').toUpperCase();
+                        let dateLabel = 'Unknown date';
+                        try {
+                          const d = new Date(post?.date as string);
+                          if (!isNaN(d.getTime())) dateLabel = d.toLocaleDateString();
+                        } catch (_) {
+                          // keep default
+                        }
+                        const key = `source:${index}`;
+                        const isExpanded = sourceExpanded[key] ?? true;
+
+                        return (
+                          <div key={index} className="border border-gray-200 rounded-xl overflow-hidden shadow-sm relative">
+                            <button
+                              type="button"
+                              className={`w-full text-left px-6 py-4 flex items-start justify-between select-none transition-colors ${isExpanded ? 'bg-gray-50' : ''} hover:bg-gray-50`}
+                              aria-expanded={isExpanded}
+                              onClick={() => setSourceExpanded((prev) => ({ ...prev, [key]: !isExpanded }))}
+                            >
+                              <div className="flex items-start gap-3 flex-1">
+                                <div className="shrink-0 w-8 h-8 rounded-md bg-indigo-50 text-indigo-700 font-semibold flex items-center justify-center">{index + 1}</div>
+                                <div className="flex-1">
+                                  <div className="flex items-start justify-between">
+                                    <div className="pr-3">
+                                      <h4 className="text-base font-semibold text-gray-900 leading-snug">{post.title || `${platformLabel} Post`}</h4>
+                                      <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-600">
+                                        <span>📡 {post.feed_title || post.source}</span>
+                                        <span>📅 {dateLabel}</span>
+                                        <span>🔗 {platformLabel}</span>
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                      {post.url && (
+                                        <a
+                                          href={post.url}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="text-indigo-600 hover:text-indigo-800 p-1 rounded transition-all duration-150 hover:bg-indigo-50 hover:scale-110"
+                                          aria-label="Open source"
+                                          onClick={(e) => e.stopPropagation()}
+                                          title="Open source"
+                                        >
+                                          <ExternalLink className="w-4 h-4" />
+                                        </a>
+                                      )}
+                                      <button
+                                        className="text-gray-600 hover:text-gray-900 p-1 rounded transition-all duration-150 hover:bg-gray-100 hover:scale-110"
+                                        title="Copy post content"
+                                        onClick={async (e) => {
+                                          e.stopPropagation();
+                                          try {
+                                            const tmp = document.createElement('div');
+                                            tmp.innerHTML = (post.content_html || post.content) as string;
+                                            const text = (tmp.textContent || tmp.innerText || '').trim();
+                                            await navigator.clipboard.writeText(text);
+                                            setCopied((prev) => ({ ...prev, [key]: true }));
+                                            setTimeout(() => setCopied((prev) => ({ ...prev, [key]: false })), 1500);
+                                          } catch {}
+                                        }}
+                                      >
+                                        <Copy className="w-4 h-4" />
+                                      </button>
+                                      {post.url && (
                                         <button
                                           className="text-gray-600 hover:text-gray-900 p-1 rounded transition-all duration-150 hover:bg-gray-100 hover:scale-110"
-                                          title="Copy post content"
+                                          title="Copy source link"
                                           onClick={async (e) => {
                                             e.stopPropagation();
                                             try {
-                                              const tmp = document.createElement('div');
-                                              tmp.innerHTML = (post.content_html || post.content) as string;
-                                              const text = (tmp.textContent || tmp.innerText || '').trim();
-                                              await navigator.clipboard.writeText(text);
+                                              await navigator.clipboard.writeText(post.url as string);
                                               setCopied((prev) => ({ ...prev, [key]: true }));
                                               setTimeout(() => setCopied((prev) => ({ ...prev, [key]: false })), 1500);
                                             } catch {}
                                           }}
                                         >
-                                          <Copy className="w-4 h-4" />
+                                          <Share2 className="w-4 h-4" />
                                         </button>
-                                        {post.url && (
-                                          <button
-                                            className="text-gray-600 hover:text-gray-900 p-1 rounded transition-all duration-150 hover:bg-gray-100 hover:scale-110"
-                                            title="Copy source link"
-                                            onClick={async (e) => {
-                                              e.stopPropagation();
-                                              try {
-                                                await navigator.clipboard.writeText(post.url as string);
-                                                setCopied((prev) => ({ ...prev, [key]: true }));
-                                                setTimeout(() => setCopied((prev) => ({ ...prev, [key]: false })), 1500);
-                                              } catch {}
-                                            }}
-                                          >
-                                            <Share2 className="w-4 h-4" />
-                                          </button>
-                                        )}
-                                      </div>
+                                      )}
                                     </div>
-                                    {isExpanded && <div className="mt-3 border-t border-gray-100" />}
                                   </div>
+                                  {isExpanded && <div className="mt-3 border-t border-gray-100" />}
                                 </div>
-                              </button>
-                              {copied[key] && (
-                                <div className="absolute right-4 top-4 text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full px-3 py-1 shadow-sm animate-pulse">
-                                  Copied to clipboard
-                                </div>
-                              )}
-                              {isExpanded && (
-                                <div className="p-4 pt-3 text-gray-800 text-sm leading-relaxed prose max-w-none">
-                                  {/* Use MarkdownRenderer for both Markdown and embedded HTML with sanitization */}
-                                  <MarkdownRenderer content={post.content_html || post.content} />
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <div className="text-center py-8 text-gray-500">
-                        <BarChart3 className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-                        <p>No source posts available. Generate a briefing to see intelligence posts.</p>
-                      </div>
-                    )}
-                  </div>
+                              </div>
+                            </button>
+                            {copied[key] && (
+                              <div className="absolute right-4 top-4 text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full px-3 py-1 shadow-sm animate-pulse">
+                                Copied to clipboard
+                              </div>
+                            )}
+                            {isExpanded && (
+                              <div className="p-4 pt-3 text-gray-800 text-sm leading-relaxed prose max-w-none">
+                                {/* Use MarkdownRenderer for both Markdown and embedded HTML with sanitization */}
+                                <MarkdownRenderer content={post.content_html || post.content} />
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-gray-500">
+                      <BarChart3 className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                      <p>No source posts available. Generate a briefing to see intelligence posts.</p>
+                    </div>
+                  )}
                 </div>
               </div>
-            )
+            </div>
           )}
 
           {/* Configure Sources Section */}
