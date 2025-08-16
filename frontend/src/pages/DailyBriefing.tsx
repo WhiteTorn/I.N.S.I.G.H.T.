@@ -118,8 +118,38 @@ export default function DailyBriefing() {
 
   // Metrics cards removed; keeping briefing stats only for small badges above briefing
 
+  // Extract a nice title from the first Markdown heading of either briefing
+  const extractBriefingTitle = (md?: string | null) => {
+    if (!md) return '';
+    try {
+      const lines = md.split(/\r?\n/);
+      for (const line of lines) {
+        const m = line.match(/^\s{0,3}#{1,3}\s+(.+)$/); // #, ## or ### heading
+        if (m) return m[1].trim();
+      }
+      const first = lines.find(l => l.trim());
+      if (first) return first.replace(/[\*_`>#-]/g, '').trim().slice(0, 120);
+    } catch {}
+    return '';
+  };
+
+  const briefingTitle = extractBriefingTitle(briefingData || topicsBriefing) || 'Daily Briefing';
+
   return (
     <div className="flex h-screen bg-gray-100">
+      {/* Floating Focus toggle – always visible while scrolling */}
+      <div className="fixed right-4 md:right-6 top-24 z-50">
+        <button
+          type="button"
+          onClick={() => setFocusMode(v => !v)}
+          className="inline-flex items-center gap-2 px-3 py-2 rounded-full bg-blue-600 text-white shadow-lg hover:bg-blue-700 focus:outline-none"
+          aria-pressed={focusMode}
+          title={focusMode ? 'Unfocus' : 'Focus'}
+        >
+          {focusMode ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+          <span className="hidden sm:inline">{focusMode ? 'Unfocus' : 'Focus'}</span>
+        </button>
+      </div>
       {/* Table of Contents Sidebar (animated) */}
       <div
         className={`${focusMode ? 'w-0 p-0 opacity-0 pointer-events-none border-0' : 'w-80 pt-4 pr-6 pb-6 pl-6 opacity-100 border-r'} bg-white border-gray-200 overflow-y-auto relative transition-all duration-300 ease-in-out`}
@@ -273,22 +303,12 @@ export default function DailyBriefing() {
         <div className={`p-8 ${focusMode ? 'w-full max-w-3xl' : 'max-w-4xl mx-auto'} transition-all duration-300 ease-in-out`}>
           {/* Status Bar removed as requested */}
 
-          {/* Executive Summary */}
+          {/* Executive Summary (now shows briefing title) */}
           {activeSection === 'executive-summary' && (
             <div className="space-y-8">
               <div>
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-2xl font-bold text-gray-900">Executive Summary</h2>
-                  <button
-                    type="button"
-                    onClick={() => setFocusMode((v) => !v)}
-                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-600 text-white shadow hover:bg-blue-700 focus:outline-none"
-                    aria-pressed={focusMode}
-                    title={focusMode ? 'Unfocus' : 'Focus'}
-                  >
-                    {focusMode ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    {focusMode ? 'Unfocus' : 'Focus'}
-                  </button>
+                <div className="mb-6">
+                  <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">{briefingTitle}</h1>
                 </div>
 
                 {/* AI-Generated Briefing Content */}
@@ -312,7 +332,7 @@ export default function DailyBriefing() {
                       <MarkdownRenderer content={briefingData} />
                     </div>
                   </div>
-                ) : (
+                ) : (!topicsBriefing && (
                   <div className="bg-white border border-gray-200 rounded-lg p-8 text-center mb-6">
                     <BarChart3 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                     <h3 className="text-lg font-semibold text-gray-900 mb-2">
@@ -331,7 +351,7 @@ export default function DailyBriefing() {
                       </div>
                     )}
                   </div>
-                )}
+                ))}
 
                 {/* Topic-based Briefing Content */}
                 {(topicsBriefing || topics.length > 0) && (
