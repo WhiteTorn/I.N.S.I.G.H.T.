@@ -120,10 +120,12 @@ export default function DailyBriefing() {
 
   return (
     <div className="flex h-screen bg-gray-100">
-      {/* Table of Contents Sidebar */}
-    {!focusMode && (
-    <div className="w-80 bg-white border-r border-gray-200 pt-4 pr-6 pb-6 pl-6 overflow-y-auto relative">
-        <div className="mb-8">
+      {/* Table of Contents Sidebar (animated) */}
+      <div
+        className={`${focusMode ? 'w-0 p-0 opacity-0 pointer-events-none border-0' : 'w-80 pt-4 pr-6 pb-6 pl-6 opacity-100 border-r'} bg-white border-gray-200 overflow-y-auto relative transition-all duration-300 ease-in-out`}
+        aria-hidden={focusMode}
+      >
+        <div className={`${focusMode ? 'hidden' : 'block'} mb-8`}>
           
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Daily Briefing</h1>
           <p className="text-sm text-gray-600">
@@ -264,12 +266,11 @@ export default function DailyBriefing() {
             </button>
           </div>
         </div>
-      </div>
-      )}
+  </div>
 
       {/* Main Content */}
-      <div className={`flex-1 overflow-y-auto ${focusMode ? 'flex items-start justify-center' : ''}`}>
-        <div className={`p-8 ${focusMode ? 'w-full max-w-3xl' : 'max-w-4xl mx-auto'}`}>
+      <div className={`flex-1 overflow-y-auto ${focusMode ? 'flex items-start justify-center' : ''} transition-all duration-300 ease-in-out`}>
+        <div className={`p-8 ${focusMode ? 'w-full max-w-3xl' : 'max-w-4xl mx-auto'} transition-all duration-300 ease-in-out`}>
           {/* Status Bar removed as requested */}
 
           {/* Executive Summary */}
