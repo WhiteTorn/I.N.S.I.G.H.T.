@@ -70,13 +70,26 @@ class ApiService {
     const defaultOptions: RequestInit = {
       headers: {
         'Content-Type': 'application/json',
+        'Accept': 'application/json',
       },
     };
 
     const response = await fetch(url, { ...defaultOptions, ...options });
     
     if (!response.ok) {
-      throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+      // Try to surface server error details when available
+      let detail = `${response.status} ${response.statusText}`;
+      try {
+        const data = await response.clone().json();
+        const serverMsg = (data && (data.detail || data.error || data.message));
+        if (serverMsg) detail = `${response.status} ${serverMsg}`;
+      } catch {
+        try {
+          const text = await response.text();
+          if (text) detail = `${response.status} ${text}`;
+        } catch {}
+      }
+      throw new Error(`API request failed: ${detail}`);
     }
 
     return response.json();
