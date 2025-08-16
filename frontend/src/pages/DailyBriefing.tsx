@@ -1,14 +1,13 @@
 import React from 'react';
 import { useState } from 'react';
-import { ChevronLeft, ChevronRight, Download, Share2, Calendar, BarChart3, TrendingUp, Shield, Globe, Cpu, RefreshCw, AlertCircle, CheckCircle2, ExternalLink, Settings, Copy, Eye, EyeOff } from 'lucide-react';
+import { Download, Share2, Calendar, BarChart3, TrendingUp, Shield, Globe, Cpu, RefreshCw, AlertCircle, CheckCircle2, ExternalLink, Settings, Copy, Eye, EyeOff } from 'lucide-react';
 import SourcesConfig from './SourcesConfig';
 import { apiService } from '../services/api';
 import type { BriefingResponse, Post, BriefingTopicsResponse, Topic } from '../services/api';
 import MarkdownRenderer from '../components/ui/MarkdownRenderer';
 
 export default function DailyBriefing() {
-  // Sidebar visibility is controlled by focus mode now; chevrons removed
-  const [showSidebar, setShowSidebar] = useState(true);
+  // Focus mode hides sidebar and non-reading content
   const [focusMode, setFocusMode] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -138,17 +137,6 @@ export default function DailyBriefing() {
 
   return (
     <div className="flex h-screen bg-gray-100">
-      {/* Focus Mode Toggle */}
-      <button
-        type="button"
-        onClick={() => setFocusMode((v) => !v)}
-        className="fixed right-3 top-3 z-50 inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-indigo-600 text-white shadow hover:bg-indigo-700 focus:outline-none"
-        aria-pressed={focusMode}
-        title={focusMode ? 'Exit focus' : 'Focus mode'}
-      >
-        {focusMode ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-        {focusMode ? 'Exit Focus' : 'Focus mode'}
-      </button>
       {/* Table of Contents Sidebar */}
     {!focusMode && (
     <div className="w-80 bg-white border-r border-gray-200 pt-4 pr-6 pb-6 pl-6 overflow-y-auto relative">
@@ -305,6 +293,19 @@ export default function DailyBriefing() {
           {activeSection === 'executive-summary' && (
             focusMode ? (
               <div className="space-y-8">
+                {/* Unfocus button in focus view */}
+                <div className="flex items-center justify-end mb-2">
+                  <button
+                    type="button"
+                    onClick={() => setFocusMode(false)}
+                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-600 text-white shadow hover:bg-blue-700 focus:outline-none"
+                    aria-pressed={!focusMode}
+                    title="Unfocus"
+                  >
+                    <EyeOff className="w-4 h-4" />
+                    Unfocus
+                  </button>
+                </div>
                 {/* Focus mode: only the reading content */}
                 {briefingData ? (
                   <div className="bg-white border border-gray-200 rounded-lg p-6">
@@ -323,7 +324,19 @@ export default function DailyBriefing() {
             ) : (
               <div className="space-y-8">
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900 mb-6">Executive Summary</h2>
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-2xl font-bold text-gray-900">Executive Summary</h2>
+                    <button
+                      type="button"
+                      onClick={() => setFocusMode(true)}
+                      className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-600 text-white shadow hover:bg-blue-700 focus:outline-none"
+                      aria-pressed={focusMode}
+                      title="Focus"
+                    >
+                      <Eye className="w-4 h-4" />
+                      Focus
+                    </button>
+                  </div>
                   
                   {/* Key Metrics */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
