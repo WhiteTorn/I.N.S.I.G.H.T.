@@ -300,7 +300,7 @@ export default function DailyBriefing() {
 
       {/* Main Content */}
       <div className={`flex-1 overflow-y-auto ${focusMode ? 'flex items-start justify-center' : ''} transition-all duration-300 ease-in-out`}>
-        <div className={`p-8 ${focusMode ? 'w-full max-w-3xl' : 'max-w-4xl mx-auto'} transition-all duration-300 ease-in-out`}>
+        <div className={`p-8 ${focusMode ? 'w-full max-w-4xl mx-auto' : 'max-w-4xl mx-auto'} transition-all duration-300 ease-in-out`}>
           {/* Status Bar removed as requested */}
 
           {/* Executive Summary (now shows briefing title) */}
