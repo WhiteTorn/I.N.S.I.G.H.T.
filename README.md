@@ -21,3 +21,14 @@ cp .env.example .env
 ```
 
 Edit the `.env` file with actual credentials
+
+## Docker Installation
+
+From project root
+docker build -t insight:mark-v .
+
+Use either --env-file or mount .env; start both ports
+docker run --rm \
+  -p 5173:5173 -p 8000:8000 \
+  --env-file .env \  # or: -v "$PWD/.env":/app/.env:ro
+  insight:mark-v
