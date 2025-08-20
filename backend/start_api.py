@@ -9,6 +9,8 @@ import sys
 import os
 from dotenv import load_dotenv, find_dotenv
 
+PORT = 8000
+
 # Add the backend directory to the Python path
 backend_path = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, backend_path)
@@ -33,7 +35,7 @@ def start_server():
         uvicorn.run(
             "main:app",
             host="0.0.0.0",
-            port=8000,
+            port=PORT,
             reload=True,
             reload_dirs=[backend_path],
             log_level="info"
