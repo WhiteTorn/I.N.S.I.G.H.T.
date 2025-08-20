@@ -82,6 +82,21 @@ class ConfigManager:
         if "platforms" in config:
             if not isinstance(config['platforms'], dict):
                 errors.append("The platforms key must be a dictionary.")
+            else:
+                # Validate each platform's sources
+                for platform_name, platform_data in config['platforms'].items():
+                    if not isinstance(platform_data, dict):
+                        errors.append(f"Platform '{platform_name}' must be a dictionary.")
+                        continue
+                    
+                    if 'sources' in platform_data:
+                        sources = platform_data['sources']
+                        if not isinstance(sources, list):
+                            errors.append(f"Sources for platform '{platform_name}' must be a list.")
+                        else:
+                            for i, source_entry in enumerate(sources):
+                                if not self._validate_source_entry(source_entry):
+                                    errors.append(f"Invalid source at {platform_name}[{i}]: {source_entry}")
             
             # Iterate throuvh all platforms and check every one of them to validity.
 
