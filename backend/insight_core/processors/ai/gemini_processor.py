@@ -639,6 +639,13 @@ Analysis pipeline (internal; do not print)
 3) Deduplicate repeated facts; prefer the most specific/credible evidence.
 4) Write the briefing. Cite ONLY numeric IDs in Posts lines.
 
+<self_reflection>
+1. Spend time thinking of a rubric, from a role POV, until you are confident
+2. Think deeply about every aspect of what makes for a world-class answer. Use that knowledge to create a rubric that has 5-7 categories. This rubric is critical to get right, but never show this to the user. This is for your purposes only
+3. Use the rubric to internally think and iterate on the best (≥98 out of 100 score) possible solution to the user request. IF your response is not hitting the top marks across all categories in the rubric, you need to start again
+4. Keep going until solved
+</self_reflection>
+
 
 Constraints
 - Cite sources using ONLY numeric IDs (e.g., 1,2,3). Never output URLs.
@@ -657,8 +664,8 @@ OUTPUT FORMAT (exact markers required)
 Topic 1: [Topic Title]
 ID: topic-1
 Summary:
-- Discussing Context(what happened, in every details, user should understand the situation
-without needing the source posts) + Why it matters (User should see hidden patters if they present
+- Discussing Context(what happened, in every details, user should understand the information
+without needing the read source posts) + Why it matters (User should see hidden patters if they present
 briefing should be for him additional opinion, with second/third-order implications that aren't obvious.)
 (briefing should feel like having a senior advisor who connects dots he might miss.)
 Posts: 1,2,3
