@@ -223,6 +223,14 @@ export LOG_LEVEL=info
 
 # Frontend  
 export VITE_API_URL=http://your-api-domain.com
+
+In Codespaces or when long-running requests exceed dev proxy limits, you can bypass the Vite proxy by pointing the frontend directly at the backend:
+
+```
+export VITE_API_URL="https://<your-codespace>-8000.app.github.dev"
+```
+
+Restart the Vite dev server after changing this.
 ```
 
 ## ✅ Success Metrics

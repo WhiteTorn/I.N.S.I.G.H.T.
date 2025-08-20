@@ -18,6 +18,10 @@ export default defineConfig({
         target: 'http://localhost:8000',
         changeOrigin: true,
         secure: false,
+  // Increase timeouts to accommodate longer backend processing (e.g., Telegram throttling)
+  // Values are in milliseconds and are passed to http-proxy
+  timeout: 180000,        // socket inactivity timeout (3 minutes)
+  proxyTimeout: 180000,   // upstream response timeout (3 minutes)
       },
     },
   },

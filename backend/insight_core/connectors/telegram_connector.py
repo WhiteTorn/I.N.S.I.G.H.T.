@@ -33,8 +33,8 @@ class TelegramConnector(BaseConnector):
         
         # Rate limiting defaults
         self.request_counter = 0
-        self.REQUEST_THRESHOLD = 15
-        self.COOLDOWN_SECONDS = 30
+        self.REQUEST_THRESHOLD = 10
+        self.COOLDOWN_SECONDS = 18
         
         self.logger.info("TelegramConnector object created (pending setup)")
     

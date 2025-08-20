@@ -74,11 +74,11 @@ class ApiService {
       },
     };
 
-    const response = await fetch(url, { ...defaultOptions, ...options });
+  const response = await fetch(url, { ...defaultOptions, ...options });
     
     if (!response.ok) {
       // Try to surface server error details when available
-      let detail = `${response.status} ${response.statusText}`;
+  let detail = `${response.status} ${response.statusText}`;
       try {
         const data = await response.clone().json();
         const serverMsg = (data && (data.detail || data.error || data.message));
@@ -89,7 +89,8 @@ class ApiService {
           if (text) detail = `${response.status} ${text}`;
         } catch {}
       }
-      throw new Error(`API request failed: ${detail}`);
+  const ct = response.headers.get('content-type') || 'unknown';
+  throw new Error(`API request failed: ${detail} | url=${url} | content-type=${ct}`);
     }
 
     return response.json();
