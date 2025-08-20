@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiService } from '../services/api';
-import type { SourceConfig } from '../types';
+import type { SourceConfig, SourceItem, SourceState } from '../types';
 import { Loader2, Save, Plus, Trash2, ChevronLeft, Rss, Youtube, Send, MessageSquare, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -54,7 +54,14 @@ export default function SourcesConfig({ embedded = false, onClose }: SourcesConf
       const res = await apiService.getSources();
       if (mounted) {
         if (res.success && res.data) {
-          setConfig(res.data as SourceConfig);
+          const normalizedConfig = { ...res.data as SourceConfig };
+
+          Object.keys(normalizedConfig.platforms).forEach(platformKey =>{
+            const platform = normalizedConfig.platforms[platformKey];
+            platform.sources = normalizeSources(platform.sources);
+          })
+
+          setConfig(normalizedConfig);
         } else {
           toast.error(res.error || 'Failed to load sources configuration');
         }
@@ -80,6 +87,23 @@ export default function SourcesConfig({ embedded = false, onClose }: SourcesConf
     telegram: <Send className="w-5 h-5" />,
     reddit: <MessageSquare className="w-5 h-5" />,
   };
+
+  function normalizeSources(list: Array<string | SourceItem>): SourceItem[] {
+    if (!Array.isArray(list)) return [];
+    return list.map((entry) => {
+      if (typeof entry === 'string') {
+        return { id: entry, state: 'enabled' as SourceState };
+      }
+      const id = typeof entry.id === 'string' && entry.id.trim() ? entry.id : String(entry.id ?? '');
+      const st: SourceState =
+        entry.state === 'disabled' || entry.state === 'only' ? entry.state : 'enabled';
+      return { id, state: st };
+    });
+  }
+  
+  function denormalizeSources(list: SourceItem[]): Array<string | SourceItem> {
+    return list.map((s) => ({ id: s.id, state: s.state }));
+  }
 
   const totalSources = useMemo(() => {
     if (!config) return 0;
@@ -117,7 +141,7 @@ export default function SourcesConfig({ embedded = false, onClose }: SourcesConf
         ...config.platforms,
         [platform]: {
           ...config.platforms[platform],
-          sources: [...config.platforms[platform].sources, value.trim()],
+          sources: [...config.platforms[platform].sources, { id: value.trim(), state: 'enabled' as SourceState }],
         },
       },
     };
@@ -128,7 +152,7 @@ export default function SourcesConfig({ embedded = false, onClose }: SourcesConf
   const updateSource = (platform: PlatformKey, index: number, value: string) => {
     if (!config) return;
     const list = [...config.platforms[platform].sources];
-    list[index] = value;
+    list[index] = { id: value, state: list[index].state};
     const next = {
       ...config,
       platforms: {
@@ -172,6 +196,66 @@ export default function SourcesConfig({ embedded = false, onClose }: SourcesConf
       toast.error(res.error || 'Failed to save configuration');
     }
   };
+
+  function getSourceStateStyle(state: SourceState): string {
+    switch (state) {
+      case 'enabled': return 'bg-green-100 text-green-700 border-green-200';
+      case 'disabled': return 'bg-red-100 text-red-700 border-red-200';  
+      case 'only': return 'bg-blue-100 text-blue-700 border-blue-200';
+      default: return 'bg-gray-100 text-gray-700 border-gray-200';
+    }
+  }
+
+  function cycleSourceState(currentState: SourceState): SourceState {
+    switch (currentState) {
+      case 'enabled': return 'disabled';
+      case 'disabled': return 'only';  
+      case 'only': return 'enabled';
+      default: return 'enabled';
+    }
+  }
+
+  const toggleSourceState = (platform: PlatformKey, index: number) => {
+    if (!config) return;
+    
+    const currentSources = [...config.platforms[platform].sources];
+    const currentState = currentSources[index].state;
+    const newState = cycleSourceState(currentState);
+    
+    // If setting to 'only', clear other 'only' states in this platform
+    if (newState === 'only') {
+      currentSources.forEach((src, i) => {
+        if (i !== index && src.state === 'only') {
+          src.state = 'enabled';
+        }
+      });
+    }
+    
+    // Update the clicked source
+    currentSources[index] = { 
+      ...currentSources[index], 
+      state: newState 
+    };
+    
+    const next = {
+      ...config,
+      platforms: {
+        ...config.platforms,
+        [platform]: {
+          ...config.platforms[platform],
+          sources: currentSources,
+        },
+      },
+    };
+    
+    setConfig(next);
+    setDirty(true);
+  };
+
+  if (typeof window !== 'undefined') {
+    (window as any).__normalizeSources = normalizeSources;
+    (window as any).__denormalizeSources = denormalizeSources;
+  }
 
   if (loading) {
     return (
@@ -339,7 +423,11 @@ export default function SourcesConfig({ embedded = false, onClose }: SourcesConf
                 <div className="flex items-center gap-2">
                   {/* Export removed per request */}
                   <button
-                    onClick={(e) => { e.stopPropagation(); setBulkEdit({ platform: String(platform), text: config.platforms[platform].sources.join('\n') }); }}
+                    onClick={(e) => { 
+                      e.stopPropagation(); 
+                      const sourceIds = config.platforms[platform].sources.map(s => s.id);
+                      setBulkEdit({ platform: String(platform), text: sourceIds.join('\n') }); 
+                    }}
                     className="inline-flex items-center gap-1 px-2 py-1.5 rounded-md text-sm border border-gray-300 hover:bg-gray-50"
                     title="Bulk edit sources"
                   >
@@ -373,11 +461,15 @@ export default function SourcesConfig({ embedded = false, onClose }: SourcesConf
                   <div className="space-y-2">
                     {config.platforms[platform].sources.map((src, idx) => (
                       <div key={idx} className="flex items-center gap-2">
-                        <span className="inline-flex items-center justify-center w-7 h-9 rounded-md bg-gray-100 text-gray-700 border border-gray-200 font-mono text-xs">
+                        <button 
+                          onClick={() => toggleSourceState(platform, idx)}
+                          className={`inline-flex items-center justify-center w-7 h-9 rounded-md border font-mono text-xs hover:opacity-75 ${getSourceStateStyle(src.state)}`}
+                          title={`State: ${src.state} - Click to cycle`}
+                        >
                           {idx + 1}
-                        </span>
+                        </button>
                         <input
-                          value={src}
+                          value={src.id}
                           onChange={(e) => updateSource(platform, idx, e.target.value)}
                           className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm"
                           placeholder="Enter source identifier or URL"
@@ -422,8 +514,8 @@ export default function SourcesConfig({ embedded = false, onClose }: SourcesConf
                 onClick={() => {
                   if (!config) return;
                   const lines = bulkEdit.text.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
-                  const next = { ...config } as SourceConfig;
-                  next.platforms[bulkEdit.platform].sources = lines;
+                  const sourceItems = lines.map(line => ({ id: line, state: 'enabled' as SourceState }));
+                  next.platforms[bulkEdit.platform].sources = sourceItems;
                   setConfig(next);
                   setDirty(true);
                   setBulkEdit(null);
@@ -438,4 +530,8 @@ export default function SourcesConfig({ embedded = false, onClose }: SourcesConf
       )}
     </div>
   );
+
+  
 }
+
+

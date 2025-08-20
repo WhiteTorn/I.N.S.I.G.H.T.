@@ -8,44 +8,113 @@
         "telegram": {
             "enabled": true,
             "sources": [
-                "ai_newz",
-                "llm_under_hood",
-                "epsiloncorrect",
-                "adel_and_ml",
-                "bminaiev_blog",
-                "gonzo_ML",
-                "optozorax_dev",
-                "turboproject",
-                "staniverse",
-                "neuraldeep",
-                "toshoseti"
+                {
+                    "id": "ai_newz",
+                    "state": "disabled"
+                },
+                {
+                    "id": "llm_under_hood",
+                    "state": "disabled"
+                },
+                {
+                    "id": "epsiloncorrect",
+                    "state": "disabled"
+                },
+                {
+                    "id": "adel_and_ml",
+                    "state": "disabled"
+                },
+                {
+                    "id": "bminaiev_blog",
+                    "state": "enabled"
+                },
+                {
+                    "id": "gonzo_ML",
+                    "state": "enabled"
+                },
+                {
+                    "id": "optozorax_dev",
+                    "state": "disabled"
+                },
+                {
+                    "id": "turboproject",
+                    "state": "disabled"
+                },
+                {
+                    "id": "staniverse",
+                    "state": "disabled"
+                },
+                {
+                    "id": "neuraldeep",
+                    "state": "disabled"
+                },
+                {
+                    "id": "toshoseti",
+                    "state": "disabled"
+                }
             ]
         },
         "rss": {
             "enabled": true,
             "sources": [
-                "https://simonwillison.net/atom/everything/",
-                "https://www.oneusefulthing.org/feed",
-                "https://tg.i-c-a.su/rss/denissexy?limit=50",
-                "https://tg.i-c-a.su/rss/seeallochnaya?limit=50",
-                "https://karpathy.bearblog.dev/feed/"
+                {
+                    "id": "https://simonwillison.net/atom/everything/",
+                    "state": "enabled"
+                },
+                {
+                    "id": "https://www.oneusefulthing.org/feed",
+                    "state": "disabled"
+                },
+                {
+                    "id": "https://tg.i-c-a.su/rss/denissexy?limit=50",
+                    "state": "disabled"
+                },
+                {
+                    "id": "https://tg.i-c-a.su/rss/seeallochnaya?limit=50",
+                    "state": "disabled"
+                },
+                {
+                    "id": "https://karpathy.bearblog.dev/feed/",
+                    "state": "disabled"
+                }
             ]
         },
         "youtube": {
             "enabled": false,
             "sources": [
-                "UCoryWpk4QVYKFCJul9KBdyw"
+                {
+                    "id": "UCoryWpk4QVYKFCJul9KBdyw",
+                    "state": "enabled"
+                }
             ]
         },
         "reddit": {
             "enabled": false,
             "sources": [
-                "r/LocalLLaMA",
-                "denissexy",
-                "gonzo_ML",
-                "https://simonwillison.net/atom/everything/",
-                "https://sive.rs/feed",
-                "https://www.oneusefulthing.org/feed"
+                {
+                    "id": "r/LocalLLaMA",
+                    "state": "enabled"
+                },
+                {
+                    "id": "denissexy",
+                    "state": "enabled"
+                },
+                {
+                    "id": "gonzo_ML",
+                    "state": "enabled"
+                },
+                {
+                    "id": "https://simonwillison.net/atom/everything/",
+                    "state": "enabled"
+                },
+                {
+                    "id": "https://sive.rs/feed",
+                    "state": "enabled"
+                },
+                {
+                    "id": "https://www.oneusefulthing.org/feed",
+                    "state": "enabled"
+                }
             ]
         }
     }

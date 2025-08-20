@@ -7,7 +7,7 @@ export interface SourceConfig {
   platforms: {
     [key: string]: {
       enabled: boolean;
-      sources: string[];
+      sources: SourceItem[]; // SourceItem[]; Custom class.
     };
   };
 }
@@ -27,3 +27,10 @@ export interface ApiResponse<T = any> {
   message?: string;
   error?: string;
 } 
+
+type SourceState = "enabled" | "disabled" | "error";
+
+export interface SourceItem {
+  id: string;
+  state: SourceState;
+}

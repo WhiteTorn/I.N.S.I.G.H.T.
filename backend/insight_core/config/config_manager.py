@@ -82,7 +82,8 @@ class ConfigManager:
         if "platforms" in config:
             if not isinstance(config['platforms'], dict):
                 errors.append("The platforms key must be a dictionary.")
-            # check data types of each source in the list
+            
+            # Iterate throuvh all platforms and check every one of them to validity.
 
         # Return validation result
         if len(errors) > 0:
@@ -99,6 +100,30 @@ class ConfigManager:
                 enabled_sources[source] = config['platforms'][source]['sources']
 
         return enabled_sources
+    
+    def get_active_sources(self, config: Dict, platform: str) -> List[str]:
+
+        platform_config = self.get_platform_config(config, platform)
+        if not platform_config or not platform_config.get('enabled', False):
+            return []
+
+        sources = platform_config.get('sources', [])
+
+        normalized_sources = []
+        for src in sources:
+            if isinstance(src, str):
+                normalized_sources.append({'id': src, 'state': 'enabled'})
+            elif isinstance(src, dict):
+                normalized_sources.append(src)
+
+        # Apply filtering logic
+        only_sources = [s for s in normalized_sources if s.get('state') == 'only']
+        if only_sources:
+            # If any source is 'only', fetch only those
+            return [s['id'] for s in only_sources]
+        else:
+            # Otherwise, fetch all non-disabled sources
+            return [s['id'] for s in normalized_sources if s.get('state') != 'disabled']
 
     def get_platform_config(self, config: Dict, platform: str) -> Dict:
         """Returns the config for a specific platform from the config."""
@@ -154,3 +179,15 @@ class ConfigManager:
     def _save_config(self):
         with open(self.config_path, 'w') as file:
             json.dump(self.config, file, indent = 4)
+
+    def _validate_source_entry(self, entry) -> bool:
+        """Validate a single source entry - can be string or object"""
+        if isinstance(entry, str):
+            return len(entry.strip()) > 0 # what his means?
+        elif isinstance(entry, dict):
+            return ('id' in entry and 
+                    isinstance(entry['id'], str) and
+                    len(entry['id'].strip()) > 0 and
+                    'state' in entry and 
+                    entry['state'] in ['enabled', 'disabled', 'only'])
+        return False

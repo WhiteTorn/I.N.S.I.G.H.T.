@@ -50,8 +50,8 @@ class MarkIFoundationEngine:
                     connector = create_connector(platform)
                     if connector:
                         print(f"✅ {platform} connector ready")
-                        connector_config = self.config_manager.get_platform_config(self.config, platform)
-                        sources = connector_config.get('sources', [])
+                        # connector_config = self.config_manager.get_platform_config(self.config, platform)
+                        sources = self.config_manager.get_active_sources(self.config, platform)
                         connector.setup_connector()
                         await connector.connect()
 
@@ -133,7 +133,8 @@ class MarkIFoundationEngine:
                     connector = create_connector(platform)
                     if connector:
                         connector_config = self.config_manager.get_platform_config(self.config, platform)
-                        sources = connector_config.get('sources', [])
+                        sources = self.config_manager.get_active_sources(self.config, platform)
+                        print(sources)
                         connector.setup_connector()
                         await connector.connect()
                         for source in sources:
